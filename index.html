@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <title>한에스시스템(V1.0)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <style>
+    /* 전체 레이아웃 및 폰트 */
+    body, html {
+      margin: 0; padding: 0;
+      width: 100%; height: 100%;
+      overflow: hidden;
+      font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
+      background-color: #f8f9fa;
+    }
+
+    /* 상단 헤더: 흰색 배경 및 그림자 */
+    header {
+      background-color: #ffffff;
+      height: 65px;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border-bottom: 1px solid #e9ecef;
+      z-index: 100;
+      position: relative;
+    }
+
+    /* 로고 영역 배치 */
+    .logo-area {
+      display: flex;
+      align-items: center;
+      margin-right: 30px;
+      gap: 12px;
+    }
+
+    /* 도시아이콘 (SVG) */
+    .city-icon {
+      width: 28px;
+      height: 28px;
+      fill: #1a73e8;
+    }
+
+    .logo-container {
+      height: 50px;
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+
+    .logo-container img {
+      height: 100%;
+      width: auto;
+      display: block;
+      object-fit: contain;
+    }
+
+    /* 이미지 실패 시 나타나는 세 줄 텍스트 로고 */
+    .logo-fallback {
+      display: none;
+      flex-direction: column;
+      line-height: 1.1;
+      font-weight: 800;
+    }
+    .logo-fallback .line1 { font-size: 15px; color: #1a237e; }
+    .logo-fallback .line2 { font-size: 15px; color: #6a1b9a; }
+    .logo-fallback .line3 { font-size: 10px; color: #5f6368; margin-top: 2px; }
+
+    /* 메뉴 버튼 디자인 */
+    .nav-btn {
+      border: none;
+      border-radius: 20px;
+      color: #5f6368;
+      background-color: #f1f3f4;
+      padding: 8px 20px;
+      margin-right: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .nav-btn:hover { background-color: #e8eaed; color: #202124; }
+    
+    /* 선택된 버튼 활성화 효과 (파랑+청록 그라데이션) */
+    .nav-btn.active {
+      background: linear-gradient(135deg, #0062E0 0%, #19A7CE 100%);
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(0, 100, 255, 0.3);
+    }
+
+    /* iframe 영역 */
+    #content-frame {
+      width: 100%;
+      height: calc(100vh - 66px);
+      border: none;
+      background-color: #ffffff;
+    }
+
+    /* 커스텀 디자인 알림창 */
+    #custom-alert {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 16px;
+      width: 320px;
+      text-align: center;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+    }
+    .modal-btn {
+      background: #0062E0;
+      color: white;
+      border: none;
+      padding: 10px 35px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-area">
+      <svg class="city-icon" viewBox="0 0 24 24">
+        <path d="M15 11V5l-3-3-3 3v2H3v14h18V11h-6zm-8 8H5v-2h2v2zm0-4H5v-2h2v2zm0-4H5V9h2v2zm6 8h-2v-2h2v2zm0-4h-2v-2h2v2zm0-4h-2V9h2v2zm0-4h-2V5h2v2zm6 12h-2v-2h2v2zm0-4h-2v-2h2v2z"/>
+      </svg>
+      
+      <div class="logo-container">
+        <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAtAKADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBIRhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqGhcXl5wg4SFhoeIiWpKTlJWWl5iZmqjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD3+iiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD//2Q==" alt="Logo" onerror="handleImageError(this)">
+        
+        <div id="fallback-text" class="logo-fallback">
+          <div class="line1">한에스</div>
+          <div class="line2">시스템</div>
+          <div class="line3">(V1.0)</div>
+        </div>
+      </div>
+    </div>
+    
+    <button class="nav-btn" onclick="goLink('new', 'https://gemini.google.com/share/e73c437099a9', this)">진행사항 ↗</button>
+    <button id="btn-default" class="nav-btn" onclick="goLink('frame', 'https://script.google.com/macros/s/AKfycbzU6UBeYWfO9_SbvmyM69S6LTznRRgc4y5gNgXgP795_XaEDvOYnRYnby7T0U_5v-4bDQ/exec', this)">휴폐업조회</button>
+    <button class="nav-btn" onclick="goLink('frame', 'https://scourt.gensolsoft.com/', this)">대법원 사건검색</button>
+  </header>
+
+  <iframe id="content-frame" src="about:blank"></iframe>
+
+  <div id="custom-alert">
+    <div class="modal-content">
+      <div style="font-weight:700; margin-bottom:12px;">시스템 알림</div>
+      <div id="modal-text"></div>
+      <button class="modal-btn" onclick="closeAlert()">확인</button>
+    </div>
+  </div>
+
+  <script>
+    /* 1. 모달 알림창 제어 */
+    function showAlert(message) {
+      document.getElementById('modal-text').innerText = message;
+      document.getElementById('custom-alert').style.display = 'flex';
+    }
+
+    function closeAlert() {
+      document.getElementById('custom-alert').style.display = 'none';
+    }
+
+    /* 2. 로고 이미지 깨짐 처리 */
+    function handleImageError(img) {
+      img.style.display = 'none';
+      document.getElementById('fallback-text').style.display = 'flex';
+    }
+
+    /* 3. 메뉴 이동 로직 */
+    function goLink(type, url, el) {
+      // 모든 버튼에서 active 클래스 제거 후 현재 버튼에 추가
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+      el.classList.add('active');
+
+      if (type === 'new') {
+        window.open(url, '_blank');
+      } else {
+        document.getElementById('content-frame').src = url;
+      }
+    }
+
+    /* 4. 보안 스크립트: 우클릭 방지 */
+    document.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      showAlert('보안을 위해 우클릭이 제한됩니다.');
+    });
+
+    /* 5. 초기 실행 (초기 화면 설정) */
+    window.onload = function() {
+      const defaultBtn = document.getElementById('btn-default');
+      if (defaultBtn) {
+        // 첫 번째 메뉴(휴폐업조회) 자동 클릭 효과
+        defaultBtn.click();
+      }
+    };
+  </script>
+
+</body>
+</html>
