@@ -10,6 +10,11 @@
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      /* 텍스트 드래그 방지 (보안 강화) */
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
     }
 
     body, html {
@@ -68,7 +73,7 @@
       animation: twinkle 3s ease-in-out infinite;
     }
 
-    /* 공통 컨테이너 스타일 */
+    /* 컨테이너 스타일 */
     .container-box {
       position: absolute;
       top: 50%;
@@ -89,12 +94,10 @@
       display: none; /* 기본 숨김 */
     }
 
-    /* 활성화 클래스 */
     .container-box.active {
       display: block;
     }
 
-    /* 로고 영역 */
     .logo-area {
       text-align: center;
       margin-bottom: 30px;
@@ -116,7 +119,6 @@
       text-shadow: 0 0 10px rgba(138, 43, 226, 0.8);
     }
 
-    /* 텍스트 스타일 */
     .info-text {
       color: rgba(255, 255, 255, 0.9);
       font-size: 16px;
@@ -131,7 +133,6 @@
       margin-bottom: 10px;
     }
 
-    /* 입력 폼 스타일 */
     .input-group {
       margin-bottom: 20px;
       text-align: left;
@@ -145,6 +146,7 @@
       font-weight: 600;
     }
 
+    /* 입력창은 드래그/입력 가능하도록 예외 처리 */
     .input-group input {
       width: 100%;
       padding: 12px 15px;
@@ -154,6 +156,8 @@
       color: #ffffff;
       font-size: 14px;
       transition: all 0.3s ease;
+      -webkit-user-select: text;
+      user-select: text;
     }
 
     .input-group input:focus {
@@ -163,7 +167,6 @@
       box-shadow: 0 0 20px rgba(28, 181, 224, 0.3);
     }
 
-    /* 버튼 스타일 */
     .login-btn {
       width: 100%;
       padding: 14px;
@@ -190,15 +193,6 @@
       cursor: not-allowed;
     }
 
-    /* 에러 및 로딩 */
-    .error-message {
-      color: #ff6b6b;
-      font-size: 13px;
-      margin-top: 10px;
-      display: none;
-    }
-    .error-message.show { display: block; }
-
     .loading {
       display: none;
       color: rgba(255, 255, 255, 0.8);
@@ -207,7 +201,6 @@
     }
     .loading.show { display: block; }
 
-    /* 아이콘 스타일 */
     .icon-large {
       width: 60px;
       height: 60px;
@@ -217,7 +210,6 @@
     .icon-success { fill: #4facfe; filter: drop-shadow(0 0 10px rgba(79, 172, 254, 0.6)); }
     .icon-denied { fill: #ff6b6b; filter: drop-shadow(0 0 10px rgba(255, 107, 107, 0.8)); }
 
-    /* 반응형 */
     @media (max-width: 768px) {
       .container-box {
         padding: 40px 30px;
@@ -226,7 +218,7 @@
     }
   </style>
 </head>
-<body>
+<body oncontextmenu="return false" ondragstart="return false" onselectstart="return false">
 
   <div class="space-bg"></div>
   <div class="stars" id="stars"></div>
@@ -244,7 +236,6 @@
         <input type="email" id="email" placeholder="example@email.com" required autocomplete="email">
       </div>
       <button type="submit" class="login-btn" id="loginBtn">확인</button>
-      <div class="error-message" id="errorMessage">오류가 발생했습니다.</div>
       <div class="loading" id="loading">확인 중...</div>
     </form>
   </div>
@@ -273,11 +264,33 @@
   </div>
 
   <script>
-    // --- 설정 영역 ---
-    const SPREADSHEET_ID = '1Iby3Hey84ENIwtbtD2T00kKNeh1AD8f4Jz26t_96NlI';
-    const SHEET_NAME = '시트1';
-    const API_KEY = 'AIzaSyBqDTG_nAtG99HTCEgYK0ZD-rZ0fY2NtPo';
+    // ============================================
+    // [설정] 허용할 이메일 목록 (여기에 추가/삭제하세요)
+    // ============================================
+    const ALLOWED_EMAILS = [
+      'tojidi@gmail.com',
+      'kjloveh8@gmail.com',
+      'wony93680@gmail.com',
+      'jesussw0410@gmail.com',
+      'purityma1@gmail.com'
+    ];
+    
+    // 접속 성공 시 이동할 주소
     const TARGET_URL = 'https://tojidi-debug.github.io/doyaa2/';
+    // ============================================
+
+
+    // [보안] 우클릭 및 개발자 도구 단축키 차단
+    document.addEventListener('contextmenu', event => event.preventDefault());
+    document.addEventListener('keydown', function(event) {
+      // F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U 차단
+      if (event.key === 'F12' || 
+          (event.ctrlKey && event.shiftKey && (event.key === 'I' || event.key === 'J')) || 
+          (event.ctrlKey && (event.key === 'U' || event.key === 'u'))) {
+        event.preventDefault();
+        return false;
+      }
+    });
 
     // 별 배경 생성
     function createStars() {
@@ -293,101 +306,53 @@
       }
     }
 
-    // --- 메인 로직 ---
     window.onload = function() {
       createStars();
       
-      // 1. 기존에 저장된(인증된) 이메일이 있는지 확인 (localStorage 사용)
+      // 자동 로그인 체크
       const savedEmail = localStorage.getItem('myVerifiedEmail');
-      
-      if (savedEmail) {
-        // 2-A. 저장된 이메일이 있으면 -> 환영 메시지 보여주고 -> 백그라운드에서 유효성 체크
+      if (savedEmail && ALLOWED_EMAILS.includes(savedEmail)) {
         showContainer('welcomeContainer');
-        verifyEmail(savedEmail, true); // true = 자동 로그인 모드
+        setTimeout(() => {
+          window.location.href = TARGET_URL;
+        }, 1500);
       } else {
-        // 2-B. 저장된 이메일이 없으면 -> 로그인 폼 표시
         showContainer('loginContainer');
       }
     };
 
-    // 화면 전환 함수
     function showContainer(id) {
       document.querySelectorAll('.container-box').forEach(el => el.classList.remove('active'));
       document.getElementById(id).classList.add('active');
     }
 
-    // 이메일 입력 폼 제출 시
     function checkEmail(event) {
       event.preventDefault();
-      const email = document.getElementById('email').value.trim().toLowerCase();
-      verifyEmail(email, false); // false = 수동 입력 모드
-    }
-
-    // 이메일 검증 로직 (공통)
-    async function verifyEmail(email, isAutoLogin) {
+      const inputEmail = document.getElementById('email').value.trim().toLowerCase();
       const loginBtn = document.getElementById('loginBtn');
-      const errorMessage = document.getElementById('errorMessage');
       const loading = document.getElementById('loading');
 
-      // 수동 로그인일 때만 버튼 UI 제어
-      if (!isAutoLogin) {
-        loginBtn.disabled = true;
-        loading.classList.add('show');
-        errorMessage.classList.remove('show');
-      }
+      // 로딩 효과
+      loginBtn.disabled = true;
+      loading.classList.add('show');
 
-      try {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A:A?key=${API_KEY}`;
-        const response = await fetch(url);
-        
-        if (!response.ok) throw new Error('Network Error');
-        const data = await response.json();
-        
-        if (!data.values) throw new Error('No Data');
-
-        const emailList = data.values.map(row => row[0] ? row[0].trim().toLowerCase() : '');
-
-        if (emailList.includes(email)) {
-          // [성공]
-          
-          // 1. 이메일을 localStorage에 영구 저장 (다음 방문 시 자동 접속을 위해)
-          localStorage.setItem('myVerifiedEmail', email);
-
-          // 2. 수동 입력이었다면 환영 메시지 잠깐 보여주기
-          if (!isAutoLogin) {
-            showContainer('welcomeContainer'); 
-          }
-
-          // 3. 페이지 이동 (1.5초 딜레이로 메시지 읽을 시간 줌)
+      // 약간의 지연 시간 후 확인 (자연스러운 느낌)
+      setTimeout(() => {
+        // 이메일 목록 확인
+        if (ALLOWED_EMAILS.includes(inputEmail)) {
+          // 성공
+          localStorage.setItem('myVerifiedEmail', inputEmail);
+          showContainer('welcomeContainer');
           setTimeout(() => {
             window.location.href = TARGET_URL;
           }, 1500);
-
         } else {
-          // [실패] 등록되지 않은 이메일
-          if (isAutoLogin) {
-            // 자동 로그인이었는데 실패했다면 (시트에서 삭제된 경우) -> 다시 로그인 폼으로
-            localStorage.removeItem('myVerifiedEmail');
-            alert("인증 정보가 만료되었습니다. 다시 로그인해주세요.");
-            showContainer('loginContainer');
-          } else {
-            // 수동 입력 실패 -> 접근 거부 화면
-            showContainer('accessDenied');
-          }
-        }
-
-      } catch (error) {
-        console.error(error);
-        if (!isAutoLogin) {
-          errorMessage.textContent = '확인 중 오류가 발생했습니다.';
-          errorMessage.classList.add('show');
-          loginBtn.disabled = false;
+          // 실패
           loading.classList.remove('show');
-        } else {
-           // 자동 로그인 중 에러나면 그냥 로그인폼 보여줌
-           showContainer('loginContainer');
+          loginBtn.disabled = false;
+          showContainer('accessDenied');
         }
-      }
+      }, 800);
     }
   </script>
 
