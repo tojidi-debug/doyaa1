@@ -49,7 +49,6 @@ html, body {
 .btn:hover { transform:translateY(-2px); }
 .btn-gray:hover { background:#e2e8f0; transform:none; }
 
-/* 상태 표시 */
 .status {
   display:none;
   width:100%; padding:12px 16px;
@@ -57,18 +56,10 @@ html, body {
   font-size:13px; font-weight:700;
   align-items:center; gap:10px;
 }
-.status.running {
-  display:flex;
-  background:#eff6ff; border:1.5px solid #bfdbfe; color:#2563eb;
-}
-.status.success {
-  display:flex;
-  background:#f0fdf4; border:1.5px solid #bbf7d0; color:#16a34a;
-}
-.status.error {
-  display:flex;
-  background:#fef2f2; border:1.5px solid #fca5a5; color:#dc2626;
-}
+.status.running { display:flex; background:#eff6ff; border:1.5px solid #bfdbfe; color:#2563eb; }
+.status.success { display:flex; background:#f0fdf4; border:1.5px solid #bbf7d0; color:#16a34a; }
+.status.error   { display:flex; background:#fef2f2; border:1.5px solid #fca5a5; color:#dc2626; }
+
 .spin {
   width:14px; height:14px; flex-shrink:0;
   border:2px solid currentColor; border-top-color:transparent;
@@ -77,8 +68,48 @@ html, body {
 @keyframes spin { to { transform:rotate(360deg); } }
 
 .hint { font-size:11px; color:#94a3b8; line-height:1.6; }
-.hint a { color:#0d9488; text-decoration:none; }
+.hint a { color:#0d9488; text-decoration:none; cursor:pointer; }
 .hint a:hover { text-decoration:underline; }
+
+/* 커스텀 알림 모달 */
+#custom-alert {
+  display:none;
+  position:fixed; inset:0;
+  background:rgba(15,23,42,.4);
+  align-items:center; justify-content:center;
+  z-index:99999;
+}
+.modal-content {
+  background:#fff;
+  border-radius:20px;
+  padding:28px 28px 22px;
+  width:300px;
+  box-shadow:0 20px 60px rgba(0,0,0,.2);
+  text-align:center;
+  animation:pop .18s ease-out;
+}
+@keyframes pop {
+  from { opacity:0; transform:scale(.94) translateY(8px); }
+  to   { opacity:1; transform:scale(1)   translateY(0); }
+}
+.modal-title {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  font-size:15px; font-weight:800; color:#0f172a; margin-bottom:12px;
+}
+.modal-icon {
+  width:20px; height:20px; fill:#0d9488; flex-shrink:0;
+}
+.modal-message {
+  font-size:13px; color:#475569; line-height:1.7; margin-bottom:20px;
+}
+.modal-btn {
+  padding:10px 32px;
+  background:linear-gradient(135deg,#0d9488,#0891b2);
+  color:#fff; border:none; border-radius:10px;
+  font-size:13px; font-weight:800; cursor:pointer;
+  font-family:inherit;
+}
+.modal-btn:hover { opacity:.9; }
 </style>
 </head>
 <body>
@@ -99,93 +130,108 @@ html, body {
   </div>
 
   <div class="hint">
-    서버가 이미 실행 중이면 <a href="http://localhost:5000/" target="_blank">바로 연결</a>을 클릭하세요
+    서버가 이미 실행 중이면 <a onclick="openOnly()">바로 연결</a>을 클릭하세요
+  </div>
+</div>
+
+<!-- 커스텀 알림창 -->
+<div id="custom-alert">
+  <div class="modal-content">
+    <div class="modal-title">
+      <svg class="modal-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>
+      시스템 알림
+    </div>
+    <div id="modal-text" class="modal-message"></div>
+    <button class="modal-btn" onclick="closeAlert()">확인</button>
   </div>
 </div>
 
 <script>
-var APP     = 'http://localhost:5000/';
-var BRIDGE  = 'http://localhost:8081/run';
-var tries   = 0;
+var APP    = 'http://localhost:5000/';
+var BRIDGE = 'http://localhost:8081/run';
+var FOLDER = 'C:\\Users\\KICPA\\Claude\\Projects\\감사보고서 다운';
+var tries  = 0;
 var polling = null;
 
-function setStatus(type, msg, showSpin) {
-  var el  = document.getElementById('status');
-  var sp  = document.getElementById('spin');
-  var txt = document.getElementById('statusTxt');
-  el.className = 'status ' + type;
-  txt.textContent = msg;
-  sp.style.display = showSpin ? 'block' : 'none';
+/* ── 알림창 ── */
+function showAlert(msg) {
+  document.getElementById('modal-text').innerText = msg;
+  document.getElementById('custom-alert').style.display = 'flex';
+}
+function closeAlert() {
+  document.getElementById('custom-alert').style.display = 'none';
 }
 
-// 폴더 경로 복사 + 알림
-var FOLDER = 'C:\\Users\\KICPA\\Claude\\Projects\\감사보고서 다운';
+/* ── 상태 표시 ── */
+function setStatus(type, msg, showSpin) {
+  var el = document.getElementById('status');
+  el.className = 'status ' + type;
+  document.getElementById('statusTxt').textContent = msg;
+  document.getElementById('spin').style.display = showSpin ? 'block' : 'none';
+}
 
+/* ── 전체화면 iframe (URL 숨김) ── */
+function goFullScreen(url) {
+  document.body.innerHTML =
+    '<iframe src="' + escapeHtml(url) + '" ' +
+    'style="width:100vw;height:100vh;border:0;display:block;background:#fff;" ' +
+    'title="DART Downloader" referrerpolicy="no-referrer"></iframe>';
+  document.addEventListener('contextmenu', blockContextMenu);
+  document.addEventListener('keydown', blockShortcuts);
+}
+
+function escapeHtml(v) {
+  return String(v || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/* ── 서버 시작 & 열기 ── */
 async function startAndOpen() {
   // 폴더 경로 클립보드 복사
   try {
     await navigator.clipboard.writeText(FOLDER);
   } catch(e) {
-    // clipboard API 실패 시 execCommand fallback
     var tmp = document.createElement('textarea');
-    tmp.value = FOLDER;
-    document.body.appendChild(tmp);
-    tmp.select();
-    document.execCommand('copy');
+    tmp.value = FOLDER; document.body.appendChild(tmp);
+    tmp.select(); document.execCommand('copy');
     document.body.removeChild(tmp);
   }
   setStatus('success', '📋 폴더 주소를 복사했습니다. 탐색기 주소창에 붙여넣어 주세요!', false);
-  setTimeout(function() {
-    document.getElementById('status').className = 'status';
-  }, 5000);
+  setTimeout(function() { document.getElementById('status').className = 'status'; }, 5000);
 }
 
-// 서버 폴링 후 새 탭 열기 (바로 연결용 내부 함수)
-async function pollAndOpen() {
-  tries = 0;
-  try {
-    await fetch(BRIDGE, { mode:'no-cors', cache:'no-store' });
-    setStatus('running', '서버 시작 중... (최대 30초)', true);
-  } catch(e) {
-    setStatus('error', 'DART_런처.bat을 먼저 실행해 주세요.');
-    return;
-  }
-
-  // 2. localhost:5000 응답 대기 → 뜨면 새 탭으로 열기
-  clearInterval(polling);
-  polling = setInterval(async function() {
-    tries++;
-    setStatus('running', '서버 연결 대기 중... (' + tries + 's)', true);
-    try {
-      await fetch(APP, { mode:'no-cors', cache:'no-store' });
-      clearInterval(polling);
-      setStatus('success', '서버가 준비됐습니다! 새 탭으로 열립니다.', false);
-      setTimeout(function() { window.open(APP, '_blank'); }, 600);
-    } catch(e) {
-      if (tries >= 40) {
-        clearInterval(polling);
-        setStatus('error', '연결 실패. 서버 상태를 확인하세요.');
-      }
-    }
-  }, 1000);
-}
-
-// 이미 실행 중일 때 바로 새 탭 열기
+/* ── 바로 연결 (전체화면 iframe) ── */
 function openOnly() {
-  window.open(APP, '_blank');
+  goFullScreen(APP);
 }
 
-document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-document.addEventListener('dragstart',   function(e) { e.preventDefault(); });
-document.addEventListener('keydown', function(e) {
-  var k = e.key.toLowerCase();
-  if (e.key === 'F12' ||
-      (e.ctrlKey && k === 'u') ||
-      (e.ctrlKey && e.key === 's') ||
-      (e.ctrlKey && e.shiftKey && ['i','j','c'].indexOf(k) >= 0)) {
-    e.preventDefault(); return false;
+/* ── 보안: 우클릭·단축키 차단 ── */
+function blockContextMenu(e) {
+  e.preventDefault();
+  showAlert('보안을 위해 우클릭이 제한됩니다.');
+  return false;
+}
+
+function blockShortcuts(e) {
+  var k = String(e.key || '').toLowerCase();
+  var blocked = k === 'f12' ||
+    (e.ctrlKey && k === 'u') ||
+    (e.ctrlKey && k === 's') ||
+    (e.ctrlKey && k === 'p') ||
+    (e.ctrlKey && e.shiftKey && ['i','j','c'].indexOf(k) >= 0);
+  if (blocked) {
+    e.preventDefault(); e.stopPropagation();
+    showAlert('보안을 위해 해당 기능이 제한됩니다.');
+    return false;
   }
-});
+}
+
+document.addEventListener('contextmenu', blockContextMenu);
+document.addEventListener('keydown', blockShortcuts);
+document.addEventListener('selectstart', function(e) { e.preventDefault(); });
+document.addEventListener('dragstart',   function(e) { e.preventDefault(); });
 </script>
 
 </body>
