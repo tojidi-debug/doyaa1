@@ -68,7 +68,6 @@ html, body {
 .btns {
   display:flex;
   flex-direction:row;
-  justify-content:space-between;
   gap:8px;
   width:100%;
 }
@@ -91,14 +90,12 @@ html, body {
   background:linear-gradient(135deg,#0d9488,#059669);
   color:#fff;
   border:none;
-  box-shadow:0 3px 14px rgba(13,148,136,.28);
 }
 
 .btn-run {
   background:linear-gradient(135deg,#2563eb,#0891b2);
   color:#fff;
   border:none;
-  box-shadow:0 3px 14px rgba(37,99,235,.25);
 }
 
 .btn-no {
@@ -116,35 +113,6 @@ html, body {
   background:#e2e8f0;
 }
 
-.status {
-  display:none;
-  align-items:center;
-  gap:8px;
-  font-size:13px;
-  font-weight:700;
-  color:#0d9488;
-  padding:10px 16px;
-  background:#f0fdf4;
-  border-radius:10px;
-  border:1.5px solid #bbf7d0;
-  width:100%;
-  justify-content:center;
-}
-
-.spin {
-  width:14px;
-  height:14px;
-  border:2.5px solid #0d9488;
-  border-top-color:transparent;
-  border-radius:50%;
-  animation:spin .8s linear infinite;
-  flex-shrink:0;
-}
-
-@keyframes spin {
-  to { transform:rotate(360deg); }
-}
-
 .hint {
   font-size:11px;
   color:#94a3b8;
@@ -160,6 +128,95 @@ html, body {
   text-decoration:underline;
 }
 
+/* 알림창 배경 */
+.modal-bg {
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.35);
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+}
+
+/* 알림창 */
+.modal {
+  width:340px;
+  background:#fff;
+  border-radius:22px;
+  padding:28px 28px 24px;
+  box-shadow:0 18px 60px rgba(15,23,42,.22);
+  text-align:center;
+  animation:pop .18s ease-out;
+}
+
+@keyframes pop {
+  from {
+    opacity:0;
+    transform:translateY(8px) scale(.96);
+  }
+  to {
+    opacity:1;
+    transform:translateY(0) scale(1);
+  }
+}
+
+.modal-icon {
+  width:54px;
+  height:54px;
+  margin:0 auto 16px;
+  border-radius:16px;
+  background:linear-gradient(135deg,#0d9488,#0891b2);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:26px;
+  font-weight:900;
+}
+
+.modal-title {
+  font-size:17px;
+  font-weight:900;
+  color:#0f172a;
+  margin-bottom:10px;
+}
+
+.modal-text {
+  font-size:14px;
+  color:#475569;
+  line-height:1.7;
+  margin-bottom:22px;
+}
+
+.modal-buttons {
+  display:flex;
+  gap:10px;
+}
+
+.modal-yes,
+.modal-no {
+  flex:1;
+  padding:11px 8px;
+  border-radius:12px;
+  font-size:14px;
+  font-weight:800;
+  cursor:pointer;
+  font-family:inherit;
+}
+
+.modal-yes {
+  border:none;
+  color:#fff;
+  background:linear-gradient(135deg,#0d9488,#059669);
+}
+
+.modal-no {
+  border:1.5px solid #e2e8f0;
+  color:#64748b;
+  background:#f8fafc;
+}
+
 @media (max-width:430px) {
   .card {
     width:92%;
@@ -171,6 +228,10 @@ html, body {
   .btn-no {
     font-size:12px;
     padding:9px 4px;
+  }
+
+  .modal {
+    width:86%;
   }
 }
 </style>
@@ -184,18 +245,13 @@ html, body {
   <div class="title">DART 감사보고서 다운로더</div>
 
   <div class="question" id="qBox">
-    🔌 서버를 시작하거나 DART 다운로더를 실행할 수 있습니다.
+    🔌 서버를 시작하거나 다운로더 폴더를 열 수 있습니다.
   </div>
 
   <div class="btns" id="btnBox">
     <button class="btn-yes" onclick="launchServer()">서버 시작</button>
-    <button class="btn-run" onclick="runDownloader()">다운로더 실행</button>
+    <button class="btn-run" onclick="showFolderModal()">다운로더 실행</button>
     <button class="btn-no" onclick="goNo()">아니오</button>
-  </div>
-
-  <div class="status" id="statusBox">
-    <div class="spin" id="spin"></div>
-    <span id="statusTxt">실행 중...</span>
   </div>
 
   <div class="hint" id="hint">
@@ -203,94 +259,51 @@ html, body {
   </div>
 </div>
 
+<!-- 깔끔한 확인 알림창 -->
+<div class="modal-bg" id="folderModal">
+  <div class="modal">
+    <div class="modal-icon">📂</div>
+    <div class="modal-title">폴더 열기</div>
+    <div class="modal-text">
+      해당 폴더 새 창을 오픈할까요?
+    </div>
+    <div class="modal-buttons">
+      <button class="modal-yes" onclick="openFolder()">예</button>
+      <button class="modal-no" onclick="closeFolderModal()">아니오</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const APP = 'http://localhost:5000/';
-const PROTOCOL = 'dart-launcher://';
-let tries = 0;
+
+// 열 폴더 경로
+const FOLDER_URL = 'file:///C:/Users/KICPA/Claude/Projects/%EA%B0%90%EC%82%AC%EB%B3%B4%EA%B3%A0%EC%84%9C%20%EB%8B%A4%EC%9A%B4/';
 
 function launchServer() {
-  tries = 0;
-  resetStatus();
-  showStatus('서버 시작 중...');
-
-  window.location.href = PROTOCOL;
-
-  setTimeout(poll, 2000);
-}
-
-function runDownloader() {
-  resetStatus();
-  showStatus('DART 다운로더 실행 요청 중...');
-
-  window.location.href = PROTOCOL;
-
+  window.location.href = 'dart-launcher://';
   setTimeout(function() {
-    document.getElementById('statusTxt').textContent =
-      '실행 요청을 보냈습니다. Windows 확인창이 뜨면 허용하세요.';
-  }, 800);
+    window.location.href = APP;
+  }, 2000);
 }
 
-function showStatus(text) {
-  document.getElementById('qBox').style.display = 'none';
-  document.getElementById('btnBox').style.display = 'none';
-  document.getElementById('hint').style.display = 'none';
-  document.getElementById('statusBox').style.display = 'flex';
-  document.getElementById('statusTxt').textContent = text;
+function showFolderModal() {
+  document.getElementById('folderModal').style.display = 'flex';
 }
 
-function resetStatus() {
-  const st = document.getElementById('statusBox');
-  const spin = document.getElementById('spin');
+function closeFolderModal() {
+  document.getElementById('folderModal').style.display = 'none';
+}
 
-  st.style.background = '#f0fdf4';
-  st.style.borderColor = '#bbf7d0';
-  st.style.color = '#0d9488';
-  spin.style.display = 'block';
+function openFolder() {
+  closeFolderModal();
+
+  // 새 창으로 폴더 열기
+  window.open(FOLDER_URL, '_blank');
 }
 
 function goNo() {
-  document.getElementById('qBox').textContent = '취소했습니다.';
-  document.getElementById('btnBox').style.display = 'none';
-  document.getElementById('hint').style.display = 'none';
-}
-
-async function poll() {
-  tries++;
-
-  document.getElementById('statusTxt').textContent =
-    '서버 연결 대기 중... (' + tries + '초)';
-
-  try {
-    await fetch(APP, {
-      mode:'no-cors',
-      cache:'no-store'
-    });
-
-    document.getElementById('statusTxt').textContent = '연결됨! 이동 중...';
-
-    setTimeout(function() {
-      window.location.href = APP;
-    }, 600);
-
-  } catch(e) {
-    if (tries < 40) {
-      setTimeout(poll, 1000);
-    } else {
-      showFail();
-    }
-  }
-}
-
-function showFail() {
-  const st = document.getElementById('statusBox');
-
-  st.style.background = '#fef2f2';
-  st.style.borderColor = '#fca5a5';
-  st.style.color = '#dc2626';
-
-  document.getElementById('spin').style.display = 'none';
-  document.getElementById('statusTxt').textContent = '연결 실패';
-  document.getElementById('hint').style.display = 'block';
+  // 아무 이벤트 없음
 }
 
 // 오른쪽 마우스 금지
@@ -317,12 +330,8 @@ document.addEventListener('keydown', function(e) {
     return false;
   }
 
-  if (e.key === 'Enter') {
-    launchServer();
-  }
-
   if (e.key === 'Escape') {
-    goNo();
+    closeFolderModal();
   }
 });
 </script>
