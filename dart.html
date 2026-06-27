@@ -19,6 +19,7 @@ html, body {
   justify-content:center;
   background:#f0f4f8;
   font-family:'Malgun Gothic','Noto Sans KR',sans-serif;
+  user-select:none;
 }
 
 .card {
@@ -66,52 +67,49 @@ html, body {
 
 .btns {
   display:flex;
-  flex-direction:column;
-  gap:10px;
+  flex-direction:row;
+  justify-content:space-between;
+  gap:8px;
   width:100%;
 }
 
 .btn-yes,
-.btn-run {
-  width:100%;
-  padding:14px;
-  color:#fff;
-  border:none;
-  border-radius:14px;
-  font-size:15px;
+.btn-run,
+.btn-no {
+  flex:1;
+  padding:10px 6px;
+  border-radius:10px;
+  font-size:13px;
   font-weight:800;
   cursor:pointer;
   font-family:inherit;
   transition:all .18s;
+  white-space:nowrap;
 }
 
 .btn-yes {
   background:linear-gradient(135deg,#0d9488,#059669);
-  box-shadow:0 3px 14px rgba(13,148,136,.35);
+  color:#fff;
+  border:none;
+  box-shadow:0 3px 14px rgba(13,148,136,.28);
 }
 
 .btn-run {
   background:linear-gradient(135deg,#2563eb,#0891b2);
-  box-shadow:0 3px 14px rgba(37,99,235,.30);
+  color:#fff;
+  border:none;
+  box-shadow:0 3px 14px rgba(37,99,235,.25);
+}
+
+.btn-no {
+  background:#f1f5f9;
+  color:#64748b;
+  border:1.5px solid #e2e8f0;
 }
 
 .btn-yes:hover,
 .btn-run:hover {
   transform:translateY(-2px);
-}
-
-.btn-no {
-  width:100%;
-  padding:14px;
-  background:#f1f5f9;
-  color:#64748b;
-  border:1.5px solid #e2e8f0;
-  border-radius:14px;
-  font-size:15px;
-  font-weight:700;
-  cursor:pointer;
-  font-family:inherit;
-  transition:all .18s;
 }
 
 .btn-no:hover {
@@ -161,6 +159,20 @@ html, body {
 .hint a:hover {
   text-decoration:underline;
 }
+
+@media (max-width:430px) {
+  .card {
+    width:92%;
+    padding:34px 24px 30px;
+  }
+
+  .btn-yes,
+  .btn-run,
+  .btn-no {
+    font-size:12px;
+    padding:9px 4px;
+  }
+}
 </style>
 </head>
 
@@ -176,8 +188,8 @@ html, body {
   </div>
 
   <div class="btns" id="btnBox">
-    <button class="btn-yes" onclick="launchServer()">서버 시작 후 연결</button>
-    <button class="btn-run" onclick="runDownloader()">DART 다운로더 실행</button>
+    <button class="btn-yes" onclick="launchServer()">서버 시작</button>
+    <button class="btn-run" onclick="runDownloader()">다운로더 실행</button>
     <button class="btn-no" onclick="goNo()">아니오</button>
   </div>
 
@@ -193,25 +205,24 @@ html, body {
 
 <script>
 const APP = 'http://localhost:5000/';
+const PROTOCOL = 'dart-launcher://';
 let tries = 0;
 
-// 서버 시작 + localhost 연결
 function launchServer() {
+  tries = 0;
+  resetStatus();
   showStatus('서버 시작 중...');
 
-  // Windows에 dart-launcher:// 프로토콜이 등록되어 있어야 함
-  window.location.href = 'dart-launcher://';
+  window.location.href = PROTOCOL;
 
   setTimeout(poll, 2000);
 }
 
-// DART다운로더_실행.bat 실행 버튼
 function runDownloader() {
-  showStatus('DART 다운로더 실행 중...');
+  resetStatus();
+  showStatus('DART 다운로더 실행 요청 중...');
 
-  // 이 주소 자체는 화면에 표시되지 않음
-  // 실제 실행 파일은 Windows 프로토콜 등록에서 지정
-  window.location.href = 'dart-launcher://';
+  window.location.href = PROTOCOL;
 
   setTimeout(function() {
     document.getElementById('statusTxt').textContent =
@@ -227,18 +238,34 @@ function showStatus(text) {
   document.getElementById('statusTxt').textContent = text;
 }
 
+function resetStatus() {
+  const st = document.getElementById('statusBox');
+  const spin = document.getElementById('spin');
+
+  st.style.background = '#f0fdf4';
+  st.style.borderColor = '#bbf7d0';
+  st.style.color = '#0d9488';
+  spin.style.display = 'block';
+}
+
 function goNo() {
   document.getElementById('qBox').textContent = '취소했습니다.';
   document.getElementById('btnBox').style.display = 'none';
+  document.getElementById('hint').style.display = 'none';
 }
 
 async function poll() {
   tries++;
+
   document.getElementById('statusTxt').textContent =
     '서버 연결 대기 중... (' + tries + '초)';
 
   try {
-    await fetch(APP, { mode:'no-cors', cache:'no-store' });
+    await fetch(APP, {
+      mode:'no-cors',
+      cache:'no-store'
+    });
+
     document.getElementById('statusTxt').textContent = '연결됨! 이동 중...';
 
     setTimeout(function() {
@@ -249,20 +276,30 @@ async function poll() {
     if (tries < 40) {
       setTimeout(poll, 1000);
     } else {
-      var st = document.getElementById('statusBox');
-      st.style.background = '#fef2f2';
-      st.style.borderColor = '#fca5a5';
-      st.style.color = '#dc2626';
-
-      document.getElementById('spin').style.display = 'none';
-      document.getElementById('statusTxt').textContent = '연결 실패';
-      document.getElementById('hint').style.display = 'block';
+      showFail();
     }
   }
 }
 
+function showFail() {
+  const st = document.getElementById('statusBox');
+
+  st.style.background = '#fef2f2';
+  st.style.borderColor = '#fca5a5';
+  st.style.color = '#dc2626';
+
+  document.getElementById('spin').style.display = 'none';
+  document.getElementById('statusTxt').textContent = '연결 실패';
+  document.getElementById('hint').style.display = 'block';
+}
+
 // 오른쪽 마우스 금지
 document.addEventListener('contextmenu', function(e) {
+  e.preventDefault();
+});
+
+// 드래그 방지
+document.addEventListener('dragstart', function(e) {
   e.preventDefault();
 });
 
@@ -273,10 +310,19 @@ document.addEventListener('keydown', function(e) {
   if (
     e.key === 'F12' ||
     (e.ctrlKey && key === 'u') ||
+    (e.ctrlKey && e.key === 's') ||
     (e.ctrlKey && e.shiftKey && ['i', 'j', 'c'].includes(key))
   ) {
     e.preventDefault();
     return false;
+  }
+
+  if (e.key === 'Enter') {
+    launchServer();
+  }
+
+  if (e.key === 'Escape') {
+    goNo();
   }
 });
 </script>
