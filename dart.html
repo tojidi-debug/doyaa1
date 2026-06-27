@@ -3,11 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <title>DART 감사보고서 다운로더</title>
+
 <style>
-*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+*, *::before, *::after {
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
 html, body {
-  width:100%; height:100%;
-  display:flex; align-items:center; justify-content:center;
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   background:#f0f4f8;
   font-family:'Malgun Gothic','Noto Sans KR',sans-serif;
 }
@@ -16,24 +25,38 @@ html, body {
   background:#fff;
   border-radius:24px;
   padding:40px 44px 36px;
-  width:360px;
+  width:390px;
   box-shadow:0 8px 36px rgba(0,0,0,.12);
-  display:flex; flex-direction:column; align-items:center; gap:18px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:18px;
   text-align:center;
 }
 
 .logo {
-  width:64px; height:64px;
+  width:64px;
+  height:64px;
   background:linear-gradient(135deg,#0d9488,#0891b2);
   border-radius:18px;
-  display:flex; align-items:center; justify-content:center;
-  font-size:30px; font-weight:900; color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:30px;
+  font-weight:900;
+  color:#fff;
 }
 
-.title { font-size:17px; font-weight:800; color:#0f172a; }
+.title {
+  font-size:17px;
+  font-weight:800;
+  color:#0f172a;
+}
 
 .question {
-  font-size:14px; color:#475569; line-height:1.7;
+  font-size:14px;
+  color:#475569;
+  line-height:1.7;
   padding:14px 18px;
   background:#f8fafc;
   border-radius:12px;
@@ -41,32 +64,67 @@ html, body {
   width:100%;
 }
 
-.btns { display:flex; gap:10px; width:100%; }
+.btns {
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  width:100%;
+}
 
-.btn-yes {
-  flex:1; padding:14px;
-  background:linear-gradient(135deg,#0d9488,#059669);
-  color:#fff; border:none; border-radius:14px;
-  font-size:15px; font-weight:800; cursor:pointer;
+.btn-yes,
+.btn-run {
+  width:100%;
+  padding:14px;
+  color:#fff;
+  border:none;
+  border-radius:14px;
+  font-size:15px;
+  font-weight:800;
+  cursor:pointer;
   font-family:inherit;
-  box-shadow:0 3px 14px rgba(13,148,136,.35);
   transition:all .18s;
 }
-.btn-yes:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(13,148,136,.45); }
+
+.btn-yes {
+  background:linear-gradient(135deg,#0d9488,#059669);
+  box-shadow:0 3px 14px rgba(13,148,136,.35);
+}
+
+.btn-run {
+  background:linear-gradient(135deg,#2563eb,#0891b2);
+  box-shadow:0 3px 14px rgba(37,99,235,.30);
+}
+
+.btn-yes:hover,
+.btn-run:hover {
+  transform:translateY(-2px);
+}
 
 .btn-no {
-  flex:1; padding:14px;
-  background:#f1f5f9; color:#64748b;
-  border:1.5px solid #e2e8f0; border-radius:14px;
-  font-size:15px; font-weight:700; cursor:pointer;
-  font-family:inherit; transition:all .18s;
+  width:100%;
+  padding:14px;
+  background:#f1f5f9;
+  color:#64748b;
+  border:1.5px solid #e2e8f0;
+  border-radius:14px;
+  font-size:15px;
+  font-weight:700;
+  cursor:pointer;
+  font-family:inherit;
+  transition:all .18s;
 }
-.btn-no:hover { background:#e2e8f0; }
+
+.btn-no:hover {
+  background:#e2e8f0;
+}
 
 .status {
   display:none;
-  align-items:center; gap:8px;
-  font-size:13px; font-weight:700; color:#0d9488;
+  align-items:center;
+  gap:8px;
+  font-size:13px;
+  font-weight:700;
+  color:#0d9488;
   padding:10px 16px;
   background:#f0fdf4;
   border-radius:10px;
@@ -74,36 +132,58 @@ html, body {
   width:100%;
   justify-content:center;
 }
-.spin {
-  width:14px; height:14px;
-  border:2.5px solid #0d9488; border-top-color:transparent;
-  border-radius:50%; animation:spin .8s linear infinite; flex-shrink:0;
-}
-@keyframes spin { to { transform:rotate(360deg); } }
 
-.hint { font-size:11px; color:#94a3b8; line-height:1.6; }
-.hint a { color:#0d9488; text-decoration:none; }
-.hint a:hover { text-decoration:underline; }
+.spin {
+  width:14px;
+  height:14px;
+  border:2.5px solid #0d9488;
+  border-top-color:transparent;
+  border-radius:50%;
+  animation:spin .8s linear infinite;
+  flex-shrink:0;
+}
+
+@keyframes spin {
+  to { transform:rotate(360deg); }
+}
+
+.hint {
+  font-size:11px;
+  color:#94a3b8;
+  line-height:1.6;
+}
+
+.hint a {
+  color:#0d9488;
+  text-decoration:none;
+}
+
+.hint a:hover {
+  text-decoration:underline;
+}
 </style>
 </head>
+
 <body>
 
 <div class="card">
   <div class="logo">D</div>
+
   <div class="title">DART 감사보고서 다운로더</div>
 
   <div class="question" id="qBox">
-    🔌 서버를 시작하고 연결할까요?
+    🔌 서버를 시작하거나 DART 다운로더를 실행할 수 있습니다.
   </div>
 
   <div class="btns" id="btnBox">
-    <button class="btn-yes" onclick="launch()">예</button>
-    <button class="btn-no"  onclick="goNo()">아니오</button>
+    <button class="btn-yes" onclick="launchServer()">서버 시작 후 연결</button>
+    <button class="btn-run" onclick="runDownloader()">DART 다운로더 실행</button>
+    <button class="btn-no" onclick="goNo()">아니오</button>
   </div>
 
   <div class="status" id="statusBox">
     <div class="spin" id="spin"></div>
-    <span id="statusTxt">서버 시작 중...</span>
+    <span id="statusTxt">실행 중...</span>
   </div>
 
   <div class="hint" id="hint">
@@ -115,17 +195,36 @@ html, body {
 const APP = 'http://localhost:5000/';
 let tries = 0;
 
-function launch() {
-  document.getElementById('qBox').style.display   = 'none';
-  document.getElementById('btnBox').style.display = 'none';
-  document.getElementById('hint').style.display   = 'none';
-  document.getElementById('statusBox').style.display = 'flex';
+// 서버 시작 + localhost 연결
+function launchServer() {
+  showStatus('서버 시작 중...');
 
-  // 커스텀 프로토콜로 bat 실행 (DART_프로토콜등록.bat 먼저 실행했어야 함)
+  // Windows에 dart-launcher:// 프로토콜이 등록되어 있어야 함
   window.location.href = 'dart-launcher://';
 
-  // 2초 후 서버 폴링 시작
   setTimeout(poll, 2000);
+}
+
+// DART다운로더_실행.bat 실행 버튼
+function runDownloader() {
+  showStatus('DART 다운로더 실행 중...');
+
+  // 이 주소 자체는 화면에 표시되지 않음
+  // 실제 실행 파일은 Windows 프로토콜 등록에서 지정
+  window.location.href = 'dart-launcher://';
+
+  setTimeout(function() {
+    document.getElementById('statusTxt').textContent =
+      '실행 요청을 보냈습니다. Windows 확인창이 뜨면 허용하세요.';
+  }, 800);
+}
+
+function showStatus(text) {
+  document.getElementById('qBox').style.display = 'none';
+  document.getElementById('btnBox').style.display = 'none';
+  document.getElementById('hint').style.display = 'none';
+  document.getElementById('statusBox').style.display = 'flex';
+  document.getElementById('statusTxt').textContent = text;
 }
 
 function goNo() {
@@ -135,11 +234,17 @@ function goNo() {
 
 async function poll() {
   tries++;
-  document.getElementById('statusTxt').textContent = '서버 연결 대기 중... (' + tries + 's)';
+  document.getElementById('statusTxt').textContent =
+    '서버 연결 대기 중... (' + tries + '초)';
+
   try {
     await fetch(APP, { mode:'no-cors', cache:'no-store' });
     document.getElementById('statusTxt').textContent = '연결됨! 이동 중...';
-    setTimeout(function(){ window.location.href = APP; }, 600);
+
+    setTimeout(function() {
+      window.location.href = APP;
+    }, 600);
+
   } catch(e) {
     if (tries < 40) {
       setTimeout(poll, 1000);
@@ -148,12 +253,33 @@ async function poll() {
       st.style.background = '#fef2f2';
       st.style.borderColor = '#fca5a5';
       st.style.color = '#dc2626';
+
       document.getElementById('spin').style.display = 'none';
       document.getElementById('statusTxt').textContent = '연결 실패';
       document.getElementById('hint').style.display = 'block';
     }
   }
 }
+
+// 오른쪽 마우스 금지
+document.addEventListener('contextmenu', function(e) {
+  e.preventDefault();
+});
+
+// 소스보기 / 개발자도구 단축키 일부 차단
+document.addEventListener('keydown', function(e) {
+  const key = e.key.toLowerCase();
+
+  if (
+    e.key === 'F12' ||
+    (e.ctrlKey && key === 'u') ||
+    (e.ctrlKey && e.shiftKey && ['i', 'j', 'c'].includes(key))
+  ) {
+    e.preventDefault();
+    return false;
+  }
+});
 </script>
+
 </body>
 </html>
