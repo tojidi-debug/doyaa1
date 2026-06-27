@@ -3,20 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <title>DART 감사보고서 다운로더</title>
-
 <style>
-*, *::before, *::after {
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
 html, body {
-  width:100%;
-  height:100%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  width:100%; height:100%;
+  display:flex; align-items:center; justify-content:center;
   background:#f0f4f8;
   font-family:'Malgun Gothic','Noto Sans KR',sans-serif;
   user-select:none;
@@ -26,312 +18,172 @@ html, body {
   background:#fff;
   border-radius:24px;
   padding:40px 44px 36px;
-  width:390px;
+  width:380px;
   box-shadow:0 8px 36px rgba(0,0,0,.12);
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:18px;
+  display:flex; flex-direction:column; align-items:center; gap:16px;
   text-align:center;
 }
 
 .logo {
-  width:64px;
-  height:64px;
+  width:64px; height:64px;
   background:linear-gradient(135deg,#0d9488,#0891b2);
   border-radius:18px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:30px;
-  font-weight:900;
-  color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  font-size:30px; font-weight:900; color:#fff;
 }
 
-.title {
-  font-size:17px;
-  font-weight:800;
-  color:#0f172a;
-}
+.title { font-size:17px; font-weight:800; color:#0f172a; }
 
-.question {
-  font-size:14px;
-  color:#475569;
-  line-height:1.7;
-  padding:14px 18px;
-  background:#f8fafc;
-  border-radius:12px;
-  border:1.5px solid #e2e8f0;
-  width:100%;
-}
+.btns { display:flex; gap:8px; width:100%; }
 
-.btns {
-  display:flex;
-  flex-direction:row;
-  gap:8px;
-  width:100%;
-}
-
-.btn-yes,
-.btn-run,
-.btn-no {
-  flex:1;
-  padding:10px 6px;
+.btn {
+  flex:1; padding:12px 6px;
   border-radius:10px;
-  font-size:13px;
-  font-weight:800;
-  cursor:pointer;
-  font-family:inherit;
-  transition:all .18s;
-  white-space:nowrap;
+  font-size:13px; font-weight:800;
+  cursor:pointer; font-family:inherit;
+  transition:all .18s; white-space:nowrap; border:none;
 }
+.btn-green { background:linear-gradient(135deg,#0d9488,#059669); color:#fff; }
+.btn-blue  { background:linear-gradient(135deg,#2563eb,#0891b2); color:#fff; }
+.btn-gray  { background:#f1f5f9; color:#64748b; border:1.5px solid #e2e8f0 !important; }
+.btn:hover { transform:translateY(-2px); }
+.btn-gray:hover { background:#e2e8f0; transform:none; }
 
-.btn-yes {
-  background:linear-gradient(135deg,#0d9488,#059669);
-  color:#fff;
-  border:none;
-}
-
-.btn-run {
-  background:linear-gradient(135deg,#2563eb,#0891b2);
-  color:#fff;
-  border:none;
-}
-
-.btn-no {
-  background:#f1f5f9;
-  color:#64748b;
-  border:1.5px solid #e2e8f0;
-}
-
-.btn-yes:hover,
-.btn-run:hover {
-  transform:translateY(-2px);
-}
-
-.btn-no:hover {
-  background:#e2e8f0;
-}
-
-.hint {
-  font-size:11px;
-  color:#94a3b8;
-  line-height:1.6;
-}
-
-.hint a {
-  color:#0d9488;
-  text-decoration:none;
-}
-
-.hint a:hover {
-  text-decoration:underline;
-}
-
-/* 알림창 배경 */
-.modal-bg {
+/* 상태 표시 */
+.status {
   display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(15,23,42,.35);
-  align-items:center;
-  justify-content:center;
-  z-index:9999;
-}
-
-/* 알림창 */
-.modal {
-  width:340px;
-  background:#fff;
-  border-radius:22px;
-  padding:28px 28px 24px;
-  box-shadow:0 18px 60px rgba(15,23,42,.22);
-  text-align:center;
-  animation:pop .18s ease-out;
-}
-
-@keyframes pop {
-  from {
-    opacity:0;
-    transform:translateY(8px) scale(.96);
-  }
-  to {
-    opacity:1;
-    transform:translateY(0) scale(1);
-  }
-}
-
-.modal-icon {
-  width:54px;
-  height:54px;
-  margin:0 auto 16px;
-  border-radius:16px;
-  background:linear-gradient(135deg,#0d9488,#0891b2);
-  color:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:26px;
-  font-weight:900;
-}
-
-.modal-title {
-  font-size:17px;
-  font-weight:900;
-  color:#0f172a;
-  margin-bottom:10px;
-}
-
-.modal-text {
-  font-size:14px;
-  color:#475569;
-  line-height:1.7;
-  margin-bottom:22px;
-}
-
-.modal-buttons {
-  display:flex;
-  gap:10px;
-}
-
-.modal-yes,
-.modal-no {
-  flex:1;
-  padding:11px 8px;
+  width:100%; padding:12px 16px;
   border-radius:12px;
-  font-size:14px;
-  font-weight:800;
-  cursor:pointer;
-  font-family:inherit;
+  font-size:13px; font-weight:700;
+  align-items:center; gap:10px;
 }
-
-.modal-yes {
-  border:none;
-  color:#fff;
-  background:linear-gradient(135deg,#0d9488,#059669);
+.status.running {
+  display:flex;
+  background:#eff6ff; border:1.5px solid #bfdbfe; color:#2563eb;
 }
-
-.modal-no {
-  border:1.5px solid #e2e8f0;
-  color:#64748b;
-  background:#f8fafc;
+.status.success {
+  display:flex;
+  background:#f0fdf4; border:1.5px solid #bbf7d0; color:#16a34a;
 }
-
-@media (max-width:430px) {
-  .card {
-    width:92%;
-    padding:34px 24px 30px;
-  }
-
-  .btn-yes,
-  .btn-run,
-  .btn-no {
-    font-size:12px;
-    padding:9px 4px;
-  }
-
-  .modal {
-    width:86%;
-  }
+.status.error {
+  display:flex;
+  background:#fef2f2; border:1.5px solid #fca5a5; color:#dc2626;
 }
+.spin {
+  width:14px; height:14px; flex-shrink:0;
+  border:2px solid currentColor; border-top-color:transparent;
+  border-radius:50%; animation:spin .8s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
+.hint { font-size:11px; color:#94a3b8; line-height:1.6; }
+.hint a { color:#0d9488; text-decoration:none; }
+.hint a:hover { text-decoration:underline; }
 </style>
 </head>
-
 <body>
 
 <div class="card">
   <div class="logo">D</div>
-
   <div class="title">DART 감사보고서 다운로더</div>
 
-  <div class="question" id="qBox">
-    🔌 서버를 시작하거나 다운로더 폴더를 열 수 있습니다.
+  <div class="btns">
+    <button class="btn btn-green" onclick="startAndOpen()">&#9654; 서버 시작 &amp; 열기</button>
+    <button class="btn btn-blue"  onclick="openOnly()">바로 연결</button>
+    <button class="btn btn-gray"  onclick="window.close()">닫기</button>
   </div>
 
-  <div class="btns" id="btnBox">
-    <button class="btn-yes" onclick="launchServer()">서버 시작</button>
-    <button class="btn-run" onclick="showFolderModal()">다운로더 실행</button>
-    <button class="btn-no" onclick="goNo()">아니오</button>
+  <div class="status" id="status">
+    <div class="spin" id="spin"></div>
+    <span id="statusTxt"></span>
   </div>
 
-  <div class="hint" id="hint">
-    서버가 이미 실행 중이면 <a href="http://localhost:5000/" target="_self">여기를 클릭</a>하세요
-  </div>
-</div>
-
-<!-- 깔끔한 확인 알림창 -->
-<div class="modal-bg" id="folderModal">
-  <div class="modal">
-    <div class="modal-icon">📂</div>
-    <div class="modal-title">폴더 열기</div>
-    <div class="modal-text">
-      해당 폴더 새 창을 오픈할까요?
-    </div>
-    <div class="modal-buttons">
-      <button class="modal-yes" onclick="openFolder()">예</button>
-      <button class="modal-no" onclick="closeFolderModal()">아니오</button>
-    </div>
+  <div class="hint">
+    서버가 이미 실행 중이면 <a href="http://localhost:5000/" target="_blank">바로 연결</a>을 클릭하세요
   </div>
 </div>
 
 <script>
-const APP = 'http://localhost:5000/';
+var APP     = 'http://localhost:5000/';
+var BRIDGE  = 'http://localhost:8081/run';
+var tries   = 0;
+var polling = null;
 
-// 열 폴더 경로
-const FOLDER_URL = 'file:///C:/Users/KICPA/Claude/Projects/%EA%B0%90%EC%82%AC%EB%B3%B4%EA%B3%A0%EC%84%9C%20%EB%8B%A4%EC%9A%B4/';
+function setStatus(type, msg, showSpin) {
+  var el  = document.getElementById('status');
+  var sp  = document.getElementById('spin');
+  var txt = document.getElementById('statusTxt');
+  el.className = 'status ' + type;
+  txt.textContent = msg;
+  sp.style.display = showSpin ? 'block' : 'none';
+}
 
-function launchServer() {
-  window.location.href = 'dart-launcher://';
+// 폴더 경로 복사 + 알림
+var FOLDER = 'C:\\Users\\KICPA\\Claude\\Projects\\감사보고서 다운';
+
+async function startAndOpen() {
+  // 폴더 경로 클립보드 복사
+  try {
+    await navigator.clipboard.writeText(FOLDER);
+  } catch(e) {
+    // clipboard API 실패 시 execCommand fallback
+    var tmp = document.createElement('textarea');
+    tmp.value = FOLDER;
+    document.body.appendChild(tmp);
+    tmp.select();
+    document.execCommand('copy');
+    document.body.removeChild(tmp);
+  }
+  setStatus('success', '📋 폴더 주소를 복사했습니다. 탐색기 주소창에 붙여넣어 주세요!', false);
   setTimeout(function() {
-    window.location.href = APP;
-  }, 2000);
+    document.getElementById('status').className = 'status';
+  }, 5000);
 }
 
-function showFolderModal() {
-  document.getElementById('folderModal').style.display = 'flex';
-}
-
-function closeFolderModal() {
-  document.getElementById('folderModal').style.display = 'none';
-}
-
-function openFolder() {
-  closeFolderModal();
-
-  // 새 창으로 폴더 열기
-  window.open(FOLDER_URL, '_blank');
-}
-
-function goNo() {
-  // 아무 이벤트 없음
-}
-
-// 오른쪽 마우스 금지
-document.addEventListener('contextmenu', function(e) {
-  e.preventDefault();
-});
-
-// 드래그 방지
-document.addEventListener('dragstart', function(e) {
-  e.preventDefault();
-});
-
-// 소스보기 / 개발자도구 단축키 일부 차단
-document.addEventListener('keydown', function(e) {
-  const key = e.key.toLowerCase();
-
-  if (
-    e.key === 'F12' ||
-    (e.ctrlKey && key === 'u') ||
-    (e.ctrlKey && e.key === 's') ||
-    (e.ctrlKey && e.shiftKey && ['i', 'j', 'c'].includes(key))
-  ) {
-    e.preventDefault();
-    return false;
+// 서버 폴링 후 새 탭 열기 (바로 연결용 내부 함수)
+async function pollAndOpen() {
+  tries = 0;
+  try {
+    await fetch(BRIDGE, { mode:'no-cors', cache:'no-store' });
+    setStatus('running', '서버 시작 중... (최대 30초)', true);
+  } catch(e) {
+    setStatus('error', 'DART_런처.bat을 먼저 실행해 주세요.');
+    return;
   }
 
-  if (e.key === 'Escape') {
-    closeFolderModal();
+  // 2. localhost:5000 응답 대기 → 뜨면 새 탭으로 열기
+  clearInterval(polling);
+  polling = setInterval(async function() {
+    tries++;
+    setStatus('running', '서버 연결 대기 중... (' + tries + 's)', true);
+    try {
+      await fetch(APP, { mode:'no-cors', cache:'no-store' });
+      clearInterval(polling);
+      setStatus('success', '서버가 준비됐습니다! 새 탭으로 열립니다.', false);
+      setTimeout(function() { window.open(APP, '_blank'); }, 600);
+    } catch(e) {
+      if (tries >= 40) {
+        clearInterval(polling);
+        setStatus('error', '연결 실패. 서버 상태를 확인하세요.');
+      }
+    }
+  }, 1000);
+}
+
+// 이미 실행 중일 때 바로 새 탭 열기
+function openOnly() {
+  window.open(APP, '_blank');
+}
+
+document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+document.addEventListener('dragstart',   function(e) { e.preventDefault(); });
+document.addEventListener('keydown', function(e) {
+  var k = e.key.toLowerCase();
+  if (e.key === 'F12' ||
+      (e.ctrlKey && k === 'u') ||
+      (e.ctrlKey && e.key === 's') ||
+      (e.ctrlKey && e.shiftKey && ['i','j','c'].indexOf(k) >= 0)) {
+    e.preventDefault(); return false;
   }
 });
 </script>
