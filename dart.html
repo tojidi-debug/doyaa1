@@ -71,6 +71,106 @@ html, body {
 .hint a { color:#0d9488; text-decoration:none; cursor:pointer; }
 .hint a:hover { text-decoration:underline; }
 
+/* ── 경로 정보 박스 ── */
+.path-box {
+  width:100%;
+  background:#f8fafc;
+  border:1.5px solid #e2e8f0;
+  border-radius:12px;
+  padding:8px 10px;
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+}
+
+.path-row {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:6px;
+}
+
+.path-label {
+  font-size:10px;
+  font-weight:700;
+  color:#64748b;
+  white-space:nowrap;
+  flex-shrink:0;
+}
+
+.path-label.bat  { color:#7c3aed; }
+.path-label.down { color:#0891b2; }
+
+.path-text {
+  font-size:9.5px;
+  color:#94a3b8;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  flex:1;
+  text-align:left;
+  letter-spacing:-0.2px;
+}
+
+.path-actions {
+  display:flex;
+  gap:3px;
+  flex-shrink:0;
+}
+
+.path-btn {
+  border:none;
+  border-radius:6px;
+  padding:3px 7px;
+  font-size:9px;
+  font-weight:800;
+  cursor:pointer;
+  font-family:inherit;
+  transition:all .15s;
+  white-space:nowrap;
+}
+
+.path-btn.copy {
+  background:#e0f2fe;
+  color:#0369a1;
+}
+.path-btn.copy:hover { background:#bae6fd; }
+
+.path-btn.open {
+  background:#ede9fe;
+  color:#6d28d9;
+}
+.path-btn.open:hover { background:#ddd6fe; }
+
+.path-divider {
+  border:none;
+  border-top:1px dashed #e2e8f0;
+  margin:1px 0;
+}
+
+/* 복사 완료 토스트 */
+.toast {
+  position:fixed;
+  bottom:24px;
+  left:50%;
+  transform:translateX(-50%) translateY(12px);
+  background:#0f172a;
+  color:#fff;
+  font-size:12px;
+  font-weight:700;
+  padding:9px 20px;
+  border-radius:50px;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .2s, transform .2s;
+  z-index:9999;
+  white-space:nowrap;
+}
+.toast.show {
+  opacity:1;
+  transform:translateX(-50%) translateY(0);
+}
+
 /* 커스텀 알림 모달 */
 #custom-alert {
   display:none;
@@ -96,18 +196,13 @@ html, body {
   display:flex; align-items:center; justify-content:center; gap:8px;
   font-size:15px; font-weight:800; color:#0f172a; margin-bottom:12px;
 }
-.modal-icon {
-  width:20px; height:20px; fill:#0d9488; flex-shrink:0;
-}
-.modal-message {
-  font-size:13px; color:#475569; line-height:1.7; margin-bottom:20px;
-}
+.modal-icon { width:20px; height:20px; fill:#0d9488; flex-shrink:0; }
+.modal-message { font-size:13px; color:#475569; line-height:1.7; margin-bottom:20px; }
 .modal-btn {
   padding:10px 32px;
   background:linear-gradient(135deg,#0d9488,#0891b2);
   color:#fff; border:none; border-radius:10px;
-  font-size:13px; font-weight:800; cursor:pointer;
-  font-family:inherit;
+  font-size:13px; font-weight:800; cursor:pointer; font-family:inherit;
 }
 .modal-btn:hover { opacity:.9; }
 </style>
@@ -129,10 +224,42 @@ html, body {
     <span id="statusTxt"></span>
   </div>
 
+  <!-- ── 경로 정보 박스 ── -->
+  <div class="path-box">
+
+    <!-- BAT 파일 경로 -->
+    <div class="path-row">
+      <span class="path-label bat">🟣 BAT</span>
+      <span class="path-text" title="C:\Users\KICPA\Claude\Projects\감사보고서 다운">C:\Users\KICPA\Claude\Projects\감사보고서 다운</span>
+      <div class="path-actions">
+        <button class="path-btn copy" onclick="copyPath('C:\\Users\\KICPA\\Claude\\Projects\\감사보고서 다운', this)">복사</button>
+        <button class="path-btn open" onclick="openExplorer('C:\\Users\\KICPA\\Claude\\Projects\\감사보고서 다운')">탐색기</button>
+      </div>
+    </div>
+
+    <hr class="path-divider">
+
+    <!-- 다운로드 폴더 경로 -->
+    <div class="path-row">
+      <span class="path-label down">🔵 다운</span>
+      <span class="path-text" title="C:\Users\KICPA\Desktop\AI\report down">C:\Users\KICPA\Desktop\AI\report down</span>
+      <div class="path-actions">
+        <button class="path-btn copy" onclick="copyPath('C:\\Users\\KICPA\\Desktop\\AI\\report down', this)">복사</button>
+        <button class="path-btn open" onclick="openExplorer('C:\\Users\\KICPA\\Desktop\\AI\\report down')">탐색기</button>
+      </div>
+    </div>
+
+  </div>
+  <!-- ── /경로 정보 박스 ── -->
+
   <div class="hint">
-    서버가 이미 실행 중이면 <a onclick="openOnly()">바로 연결</a>을 클릭하세요
+    서버가 이미 실행 중이면 <a onclick="openOnly()">바로 연결</a>을 클릭하세요<br>
+    <span style="color:#c084fc;">탐색기</span> 버튼은 브릿지 서버(8081)가 실행 중일 때 작동합니다
   </div>
 </div>
+
+<!-- 복사 완료 토스트 -->
+<div class="toast" id="toast"></div>
 
 <!-- 커스텀 알림창 -->
 <div id="custom-alert">
@@ -150,8 +277,6 @@ html, body {
 var APP    = 'http://localhost:5000/';
 var BRIDGE = 'http://localhost:8081/run';
 var FOLDER = 'C:\\Users\\KICPA\\Claude\\Projects\\감사보고서 다운';
-var tries  = 0;
-var polling = null;
 
 /* ── 알림창 ── */
 function showAlert(msg) {
@@ -162,6 +287,14 @@ function closeAlert() {
   document.getElementById('custom-alert').style.display = 'none';
 }
 
+/* ── 토스트 알림 ── */
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 1800);
+}
+
 /* ── 상태 표시 ── */
 function setStatus(type, msg, showSpin) {
   var el = document.getElementById('status');
@@ -170,7 +303,52 @@ function setStatus(type, msg, showSpin) {
   document.getElementById('spin').style.display = showSpin ? 'block' : 'none';
 }
 
-/* ── 전체화면 iframe (URL 숨김) ── */
+/* ── 경로 복사 ── */
+function copyPath(path, btn) {
+  var orig = btn ? btn.textContent : '';
+  navigator.clipboard.writeText(path).then(function() {
+    showToast('📋 복사됨: ' + path.split('\\').pop());
+    if (btn) {
+      btn.textContent = '✓';
+      setTimeout(function() { btn.textContent = orig; }, 1500);
+    }
+  }).catch(function() {
+    // fallback
+    var tmp = document.createElement('textarea');
+    tmp.value = path;
+    document.body.appendChild(tmp);
+    tmp.select();
+    document.execCommand('copy');
+    document.body.removeChild(tmp);
+    showToast('📋 복사됨: ' + path.split('\\').pop());
+    if (btn) {
+      btn.textContent = '✓';
+      setTimeout(function() { btn.textContent = orig; }, 1500);
+    }
+  });
+}
+
+/* ── 탐색기 열기 (브릿지 서버 경유) ── */
+function openExplorer(path) {
+  fetch(BRIDGE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cmd: 'explorer "' + path + '"' })
+  }).then(function(r) {
+    if (!r.ok) throw new Error('bridge error');
+    showToast('📂 탐색기 열기 요청 완료');
+  }).catch(function() {
+    // 브릿지 없으면 경로를 복사해주고 안내
+    copyPath(path, null);
+    showAlert(
+      '브릿지 서버(8081)에 연결할 수 없습니다.\n\n' +
+      '아래 경로를 파일 탐색기 주소창에 붙여넣으세요:\n\n' +
+      path + '\n\n(경로가 클립보드에 복사되었습니다)'
+    );
+  });
+}
+
+/* ── 전체화면 iframe ── */
 function goFullScreen(url) {
   document.body.innerHTML =
     '<iframe src="' + escapeHtml(url) + '" ' +
@@ -189,7 +367,6 @@ function escapeHtml(v) {
 
 /* ── 서버 시작 & 열기 ── */
 async function startAndOpen() {
-  // 폴더 경로 클립보드 복사
   try {
     await navigator.clipboard.writeText(FOLDER);
   } catch(e) {
@@ -198,22 +375,21 @@ async function startAndOpen() {
     tmp.select(); document.execCommand('copy');
     document.body.removeChild(tmp);
   }
-  setStatus('success', '📋 폴더 주소를 복사했습니다. 탐색기 주소창에 붙여넣어 주세요!', false);
+  setStatus('success', '📋 BAT 폴더 주소 복사됨 — 탐색기 주소창에 붙여넣으세요', false);
   setTimeout(function() { document.getElementById('status').className = 'status'; }, 5000);
 }
 
-/* ── 바로 연결 (전체화면 iframe) ── */
+/* ── 바로 연결 ── */
 function openOnly() {
   goFullScreen(APP);
 }
 
-/* ── 보안: 우클릭·단축키 차단 ── */
+/* ── 보안 ── */
 function blockContextMenu(e) {
   e.preventDefault();
   showAlert('보안을 위해 우클릭이 제한됩니다.');
   return false;
 }
-
 function blockShortcuts(e) {
   var k = String(e.key || '').toLowerCase();
   var blocked = k === 'f12' ||
