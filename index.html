@@ -187,9 +187,68 @@
     .adm-ft { padding:12px 22px; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:8px; background:#fafffe; flex-shrink:0; }
     .adm-close { padding:8px 22px; border-radius:20px; border:none; cursor:pointer; background:linear-gradient(135deg,#0d9488,#0891b2); color:#fff; font-size:13px; font-weight:700; font-family:'Noto Sans KR',sans-serif; transition:all .18s; }
     .adm-close:hover { transform:translateY(-1px); }
+    .auth-pending .wrapper,
+    .auth-denied .wrapper,
+    .auth-pending .overlay,
+    .auth-denied .overlay { display:none!important; }
+    .auth-screen {
+      position:fixed; inset:0; z-index:9999;
+      display:flex; align-items:center; justify-content:center;
+      background:#ffffff;
+      padding:24px; font-family:'Noto Sans KR','Malgun Gothic',sans-serif;
+    }
+    .auth-ok .auth-screen { display:none; }
+    .auth-card {
+      width:min(520px,calc(100vw - 40px)); padding:24px 22px 22px;
+      background:#fff; border:1px solid #dbeafe; border-radius:12px;
+      box-shadow:0 18px 48px rgba(30,64,175,.10); text-align:left;
+    }
+    .auth-row { display:flex; align-items:center; gap:12px; }
+    .auth-label {
+      display:inline-flex; align-items:center; gap:8px; flex:0 0 auto;
+      color:#2f7ec8; font-size:14px; font-weight:800; white-space:nowrap;
+    }
+    .auth-label::before {
+      content:''; width:10px; height:13px; border-radius:1px;
+      background:linear-gradient(180deg,#66c7f4,#3b82f6); box-shadow:inset 0 0 0 1px rgba(255,255,255,.35);
+    }
+    .auth-input {
+      flex:1; height:36px; min-width:0; padding:0 13px;
+      border:1.5px solid #a9d5f7; border-radius:5px;
+      background:#f4fbff; color:#1e293b; font-size:13px;
+      font-family:'Noto Sans KR','Malgun Gothic',sans-serif; outline:none;
+      -webkit-user-select:text; user-select:text;
+      box-shadow:inset 0 1px 2px rgba(15,23,42,.04);
+    }
+    .auth-input::placeholder { color:#b6c4d3; }
+    .auth-input:focus { border-color:#60a5fa; background:#fff; box-shadow:0 0 0 3px rgba(96,165,250,.16); }
+    .auth-actions { display:flex; justify-content:center; gap:8px; margin-top:18px; }
+    .auth-btn {
+      height:34px; min-width:72px; padding:0 16px; border-radius:7px;
+      border:1px solid #bfdbfe; font-size:13px; font-weight:800;
+      font-family:'Noto Sans KR','Malgun Gothic',sans-serif; cursor:pointer;
+      transition:background .15s, border-color .15s, transform .12s;
+    }
+    .auth-btn:active { transform:translateY(1px); }
+    .auth-btn.primary { background:#2f8edb; border-color:#2f8edb; color:#fff; }
+    .auth-btn.primary:hover { background:#1d7fca; border-color:#1d7fca; }
+    .auth-btn.secondary { background:#f8fafc; color:#64748b; }
+    .auth-btn.secondary:hover { background:#eef6ff; color:#334155; }
+    .auth-alert {
+      display:none; margin-top:14px; padding:11px 12px; border-radius:8px;
+      background:#f8fafc; border:1px solid #dbeafe; color:#475569;
+      font-size:13px; line-height:1.55; text-align:center;
+    }
+    .auth-alert.show { display:block; }
+    .auth-alert.denied { background:#fff7f7; border-color:#fecaca; color:#dc2626; }
+    @media (max-width:560px) {
+      .auth-row { flex-direction:column; align-items:stretch; gap:9px; }
+      .auth-label { justify-content:flex-start; }
+      .auth-card { padding:22px 18px; }
+    }
   </style>
 </head>
-<body oncontextmenu="return false">
+<body class="auth-pending" oncontextmenu="return false">
 <div class="wrapper">
 
   <header>
@@ -213,6 +272,20 @@
 
   <div class="content-wrapper">
     <iframe id="content-frame" src="about:blank" referrerpolicy="no-referrer" title="content"></iframe>
+  </div>
+</div>
+
+<div id="auth-screen" class="auth-screen">
+  <div class="auth-card">
+    <div class="auth-row">
+      <label class="auth-label" for="auth-email">이메일주소</label>
+      <input id="auth-email" class="auth-input" type="email" placeholder="000@gmail.com" autocomplete="email" spellcheck="false">
+    </div>
+    <div class="auth-actions">
+      <button class="auth-btn primary" type="button" onclick="submitEmailAuth()">입력</button>
+      <button class="auth-btn secondary" type="button" onclick="cancelEmailAuth()">취소</button>
+    </div>
+    <div id="auth-alert" class="auth-alert" role="alert"></div>
   </div>
 </div>
 
@@ -317,6 +390,107 @@
 </div>
 
 <script>
+  /* ─── 이메일 접근 제한 ─── */
+  const ALLOWED_EMAILS = [
+    'tojidi@gmail.com',
+    'kjloveh8@gmail.com',
+    'jesussw0410@gmail.com',
+    'ohdass12@gmai.com',
+  ];
+  const AUTH_EMAIL_KEY = 'hanai_allowed_email_v1';
+  let AUTH_OK = false;
+
+  function normalizeEmail(value) {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  function isAllowedEmail(email) {
+    return ALLOWED_EMAILS.includes(normalizeEmail(email));
+  }
+
+  function setAuthState(allowed, email) {
+    AUTH_OK = !!allowed;
+    document.body.classList.toggle('auth-ok', AUTH_OK);
+    document.body.classList.toggle('auth-denied', !AUTH_OK);
+    document.body.classList.remove('auth-pending');
+    if (AUTH_OK && email) localStorage.setItem(AUTH_EMAIL_KEY, normalizeEmail(email));
+  }
+
+  function showAuthAlert(message, denied) {
+    const alert = document.getElementById('auth-alert');
+    if (!alert) return;
+    alert.textContent = message;
+    alert.classList.toggle('denied', !!denied);
+    alert.classList.add('show');
+  }
+
+  function clearAuthAlert() {
+    const alert = document.getElementById('auth-alert');
+    if (!alert) return;
+    alert.textContent = '';
+    alert.classList.remove('show', 'denied');
+  }
+
+  function focusAuthInput() {
+    const input = document.getElementById('auth-email');
+    if (input) setTimeout(() => input.focus(), 40);
+  }
+
+  function requestEmailAuth(forcePrompt) {
+    const cached = normalizeEmail(localStorage.getItem(AUTH_EMAIL_KEY));
+    if (!forcePrompt && cached && isAllowedEmail(cached)) {
+      setAuthState(true, cached);
+      return true;
+    }
+
+    if (forcePrompt) localStorage.removeItem(AUTH_EMAIL_KEY);
+    setAuthState(false, '');
+    clearAuthAlert();
+    focusAuthInput();
+    return false;
+  }
+
+  function submitEmailAuth() {
+    const input = document.getElementById('auth-email');
+    const entered = normalizeEmail(input ? input.value : '');
+    if (!entered) {
+      showAuthAlert('이메일 주소를 입력하세요.', false);
+      focusAuthInput();
+      return;
+    }
+    if (isAllowedEmail(entered)) {
+      clearAuthAlert();
+      setAuthState(true, entered);
+      renderNav();
+      goHome();
+      return;
+    }
+    localStorage.removeItem(AUTH_EMAIL_KEY);
+    setAuthState(false, entered);
+    showAuthAlert('접속 불가: 허용된 이메일 목록에 없는 사용자입니다.', true);
+    if (input) input.select();
+  }
+
+  function cancelEmailAuth() {
+    localStorage.removeItem(AUTH_EMAIL_KEY);
+    setAuthState(false, '');
+    showAuthAlert('접속 불가: 이메일 인증이 취소되었습니다.', true);
+  }
+
+  function retryEmailAuth() {
+    requestEmailAuth(true);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('auth-email');
+    if (input) {
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') submitEmailAuth();
+        if (e.key === 'Escape') cancelEmailAuth();
+      });
+    }
+    requestEmailAuth(false);
+  });
   /* ─── 상수 ─── */
   const HOME_URL = 'https://tojidi-debug.github.io/kicpadb/search.html';
   const VER      = 'v9';   // 버전 올리면 localStorage 자동 초기화
@@ -357,7 +531,7 @@
     { id:7,  g:2, name:'금융위',     url:'https://script.google.com/macros/s/AKfycbwpZ_9dOOiSq_vj7dfx33Lqopw3KKczXCO1ikkVstWME-NVABXDJ_HZ1HxkLOrfo-s7Mw/exec' },
     { id:8,  g:3, name:'기준서 검색', url:'https://tojidi-debug.github.io/kicpadb/search.html' },
     { id:9,  g:4, name:'PDF편집',    url:'https://tojidi-debug.github.io/kicpadb/pdf.html' },
-    { id:10, g:4, name:'PROMPT',     url:'https://script.google.com/macros/s/AKfycby-aVoSlddyXrOtiI0Zk02jAbMD0IfJIj4ONhFuvo5GdF6xbOPxpRmdTgKt4CU3RAroIw/exec' },
+    { id:10, g:4, name:'PROMPT',     url:'https://script.google.com/macros/s/AKfycbzAu3T5GdQVG9KldkOEic0NHDcY-e0O1mjdM3hmPg4ZyO3napv5JJbzBoqFgrKjxqPS/exec' },
     { id:11, g:4, name:'포스트잇',   url:'https://script.google.com/macros/s/AKfycbyieDb30eK8mAC0D9Z4sNT91ovmD4iUMcRpC2EmQC5HA5lLG2EYGx3TaRdpInMS94hu/exec' },
     { id:12, g:4, name:'이미지보드', url:'https://tojidi-debug.github.io/kicpadb/menu.html' },
   ];
@@ -547,10 +721,12 @@
   document.addEventListener('dragstart',   e => e.preventDefault());
 
   /* ─── 시작 ─── */
-  window.onload = function() { renderNav(); goHome(); };
+  window.onload = function() { if (!AUTH_OK) return; renderNav(); goHome(); };
 </script>
 </body>
 </html>
+
+
 
 
 
