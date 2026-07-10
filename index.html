@@ -493,9 +493,11 @@
   });
   /* ─── 상수 ─── */
   const HOME_URL = 'https://tojidi-debug.github.io/kicpadb/search.html';
-  const VER      = 'v10-sheet-auth';   // 버전 올리면 localStorage 자동 초기화
+  const VER      = 'v12-page-only';   // 버전 올리면 localStorage 자동 초기화
   const MENU_SHEET_ID = '19SmDDYNJTcKXNNB73MIuWGrQMRCFI2a59WYwBXG4xGQ';
   const MENU_SHEET_NAME = 'list';
+  const MENU_SHEET_EDIT_URL = 'https://docs.google.com/spreadsheets/d/19SmDDYNJTcKXNNB73MIuWGrQMRCFI2a59WYwBXG4xGQ/edit?gid=0#gid=0';
+  const LATEST_PROMPT_URL = 'https://script.google.com/macros/s/AKfycbynvCGxjeJL2PYwLJFepLBY-rnH0g-rvfBxMlVfh0EBrDdAYUAgFl1Z7zjThdNWP5Y0tw/exec';
 
   const GRP = {
     1:{ cls:'g1', lbl:'조회' },
@@ -551,7 +553,7 @@
 
   /* ─── 유틸 ─── */
   function cp(a)  { return a.map(m => ({...m})); }
-  function sv()   { localStorage.setItem('gmenus', JSON.stringify(menus)); localStorage.setItem('gapw', apw); }
+  function sv()   { localStorage.setItem('gmenus', JSON.stringify(menus)); localStorage.setItem('gapw', apw); localStorage.setItem('gmenus_local_override', '1'); }
   function esc(v) { return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
 
   /* ─── Nav 렌더링 ─── */
@@ -617,7 +619,7 @@
     if (el) el.classList.add('active');
 
     const frame = document.getElementById('content-frame');
-    frame.src = isAppsScriptUrl(url) ? buildLinkPageUrl(name, url) : url;
+    if (frame) frame.src = url;
   }
   /* ─── Admin PW 모달 ─── */
   function openAdminPw() {
@@ -631,7 +633,8 @@
     const entered = document.getElementById('pw-inp').value;
     if (entered === apw) {
       closePw();
-      openAdmin();
+      const frame = document.getElementById('content-frame');
+      if (frame) frame.src = MENU_SHEET_EDIT_URL;
     } else {
       document.getElementById('pw-err').textContent = '비밀번호가 올바르지 않습니다.';
       document.getElementById('pw-inp').value = '';
@@ -720,7 +723,8 @@
     window[cb] = function(response) {
       done = true;
       try {
-        const loaded = parseSheetMenus(response);
+        apw = readSheetAdminPassword(response) || apw;
+        const loaded = ensureRequiredMenus(parseSheetMenus(response));
         if (loaded.length) {
           menus = loaded;
           nid = Math.max(0, ...menus.map(m => Number(m.id) || 0)) + 1;
@@ -775,7 +779,8 @@
       const cells = row.c || [];
       const rawId = cellValue(cells[col.id]);
       const label = cellValue(cells[col.label]);
-      const url = cellValue(cells[col.url]);
+      let url = cellValue(cells[col.url]);
+      if (String(rawId || '').trim().toLowerCase() === 'prompt') url = LATEST_PROMPT_URL;
       const type = cellValue(cells[col.type]) || 'link';
       const enabled = boolValue(cellValue(cells[col.enabled]));
       const sort = Number(cellValue(cells[col.sort]) || ((rowIndex + 1) * 10));
@@ -790,12 +795,52 @@
         sort: sort
       };
     }).filter(function(item) {
-      return item.sheetId && item.sheetId.indexOf('__') !== 0 && item.name && item.url && item.type !== 'config' && item.enabled !== false;
+      return item.sheetId && item.sheetId.indexOf('__') !== 0 && !isHiddenSheetMenu(item) && item.name && item.url && item.type !== 'config' && item.enabled !== false;
     }).sort(function(a, b) {
       return Number(a.sort || 9999) - Number(b.sort || 9999);
     });
   }
 
+  function normalizeMenuKey(value) {
+    return String(value || '').trim().toLowerCase().replace(/[\s_\-]+/g, '');
+  }
+
+  function isHiddenSheetMenu(item) {
+    const key = normalizeMenuKey(item.sheetId || item.id || '');
+    const name = normalizeMenuKey(item.name || '');
+    return key === 'hanai' || name === 'hanai';
+  }
+
+  function ensureRequiredMenus(items) {
+    const result = (items || []).filter(function(item) { return !isHiddenSheetMenu(item); });
+    addRequiredMenu(result, 'recovery', '회생조회', 13, 30);
+    addRequiredMenu(result, 'pdf', 'PDF편집', 9, 100);
+    return result.sort(function(a, b) { return Number(a.sort || 9999) - Number(b.sort || 9999); });
+  }
+
+  function addRequiredMenu(result, sheetId, name, defaultId, sort) {
+    const exists = result.some(function(item) {
+      const key = normalizeMenuKey(item.sheetId || item.id || '');
+      const itemName = normalizeMenuKey(item.name || '');
+      return key === normalizeMenuKey(sheetId) || itemName === normalizeMenuKey(name);
+    });
+    if (exists) return;
+    const fallback = DEFAULT_MENUS.find(function(item) { return item.id === defaultId || item.name === name; });
+    if (fallback) result.push(Object.assign({}, fallback, { sort: sort, sheetId: sheetId, type: 'link', enabled: true }));
+  }
+
+  function readSheetAdminPassword(response) {
+    const table = response && response.table;
+    if (!table || !Array.isArray(table.rows)) return '';
+    const headers = (table.cols || []).map(function(col) { return String((col && (col.label || col.id)) || '').trim().toLowerCase(); });
+    const idCol = Math.max(0, headers.indexOf('id'));
+    const urlCol = headers.indexOf('url') >= 0 ? headers.indexOf('url') : 2;
+    for (let i = 0; i < table.rows.length; i++) {
+      const cells = table.rows[i].c || [];
+      if (cellValue(cells[idCol]) === '__admin_password') return cellValue(cells[urlCol]);
+    }
+    return '';
+  }
   function cellValue(cell) {
     if (!cell) return '';
     if (cell.v === null || cell.v === undefined) return '';
@@ -839,7 +884,11 @@
   document.addEventListener('dragstart',   e => e.preventDefault());
 
   /* ─── 시작 ─── */
-  window.onload = function() { if (!AUTH_OK) return; renderNav(); goHome(); loadMenusFromGoogleSheet(); };
+  function loadMenusUnlessLocalOverride() {
+    loadMenusFromGoogleSheet();
+  }
+
+  window.onload = function() { if (!AUTH_OK) return; renderNav(); goHome(); loadMenusUnlessLocalOverride(); };
 </script>
 </body>
 </html>
