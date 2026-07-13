@@ -246,35 +246,79 @@
       .auth-label { justify-content:flex-start; }
       .auth-card { padding:22px 18px; }
     }
+    /* A안: 듀얼 레이어 헤더 */
+    :root{--a-ink:#17313a;--a-teal:#15afda;--a-mint:#e8f8fc;--a-line:#d8e8ed;--a-paper:#fbfdfd;--a-navy:#118cae}
+    header.app-header{height:auto;min-height:83px;padding:0;gap:0;display:block;background:var(--a-paper);border-bottom:1px solid var(--a-line);box-shadow:0 5px 20px rgba(28,68,72,.08)}
+    .header-main{height:43px;display:flex;align-items:center;gap:10px;padding:0 14px;background:#e8eeec}
+    .menu-trigger{width:36px;height:36px;flex:0 0 36px;border:1px solid #cadbd7;border-radius:9px;background:#fff;color:var(--a-ink);cursor:pointer;display:grid;place-items:center;font-size:21px;line-height:1;transition:.16s}.menu-trigger:hover{background:var(--a-mint);color:var(--a-teal);transform:translateY(-1px)}
+    .brand-lockup{display:flex;align-items:center;gap:8px;min-width:132px}.fox-mark{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;background:var(--a-mint);color:var(--a-teal);clip-path:polygon(50% 0,64% 18%,92% 10%,80% 43%,88% 78%,62% 68%,50% 96%,38% 68%,12% 78%,20% 43%,8% 10%,36% 18%);font-size:9px;font-weight:900}.brand-copy{font-size:14px;font-weight:800;cursor:pointer;line-height:1.1;white-space:nowrap;background:linear-gradient(90deg,#118cae 0%,#15afda 58%,#58cce7 100%);-webkit-background-clip:text;background-clip:text;color:transparent}.brand-copy small{display:block;color:#118cae;font-size:8px;letter-spacing:.13em;margin-top:3px}
+    .primary-nav{display:flex;align-self:stretch;align-items:stretch;gap:2px;min-width:0;overflow-x:auto;scrollbar-width:none}.primary-nav::-webkit-scrollbar,.secondary-nav::-webkit-scrollbar{display:none}.primary-tab{position:relative;border:0;background:transparent;padding:0 14px;color:#53686e;font:700 14px 'Noto Sans KR',sans-serif;white-space:nowrap;cursor:pointer}.primary-tab::after{content:"";position:absolute;left:14px;right:14px;bottom:0;height:3px;border-radius:3px 3px 0 0;background:transparent}.primary-tab:hover,.primary-tab.active{color:var(--a-teal)}.primary-tab.active{font-weight:800}.primary-tab.active::after{background:var(--a-teal)}
+    .header-spacer{flex:1}.header-admin{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:999px;background:linear-gradient(135deg,#0f2548 0%,#183d78 100%);color:#fff;padding:8px 15px;font:800 11px 'Noto Sans KR',sans-serif;cursor:pointer;box-shadow:0 5px 15px rgba(24,61,120,.28);transition:transform .16s,box-shadow .16s}.header-admin svg{width:12px;height:12px;fill:#56e0d0}.header-admin:hover{transform:translateY(-1px);box-shadow:0 7px 18px rgba(24,61,120,.34)}.header-sub{height:40px;border-top:1px solid #edf3f1;background:#f6faf8;display:flex;align-items:center;padding:0 14px;transition:padding-left .18s ease}.secondary-nav{display:flex;align-items:center;gap:6px;min-width:0;overflow-x:auto;scrollbar-width:none}.secondary-nav .nb{border:0;box-shadow:none;background:transparent;color:#53686e;padding:6px 10px;border-radius:999px;font-size:13px;font-weight:700}.secondary-nav .nb:hover{background:#eaf3f0;color:var(--a-teal);transform:none;box-shadow:none}.secondary-nav .nb.active{background:var(--a-teal);color:#fff;box-shadow:none}.secondary-nav .nb .nbico{width:12px;height:12px}
+    .drawer-backdrop{position:fixed;inset:0;z-index:2200;background:rgba(19,39,44,.42);opacity:0;pointer-events:none;transition:opacity .2s}.drawer-backdrop.show{opacity:1;pointer-events:auto}.menu-drawer{position:fixed;z-index:2300;top:0;bottom:0;left:0;width:min(200px,88vw);background:#fbfdfc;transform:translateX(-102%);transition:transform .24s cubic-bezier(.22,1,.36,1);box-shadow:18px 0 46px rgba(21,48,53,.18);display:flex;flex-direction:column}.menu-drawer.open{transform:translateX(0)}.drawer-head{height:64px;display:flex;align-items:center;gap:10px;padding:0 18px;border-bottom:1px solid var(--a-line)}.drawer-head strong{font-size:16px;color:var(--a-ink)}.drawer-close{margin-left:auto;width:34px;height:34px;border:0;border-radius:50%;background:#eef4f2;color:#53686e;font-size:20px;cursor:pointer}.drawer-body{overflow:auto;padding:8px 14px 20px}.drawer-group{padding:4px 0 6px;border-bottom:1px solid #e5eeeb}.drawer-group:last-child{border-bottom:0}.drawer-group-title{display:flex;align-items:center;justify-content:space-between;padding:3px 8px 4px;color:#7a8e92;font-size:10px;font-weight:800;letter-spacing:.08em}.drawer-menu{width:100%;border:0;background:transparent;display:flex;align-items:center;gap:7px;padding:6px 10px;border-radius:8px;color:#344d53;font:600 12px 'Noto Sans KR',sans-serif;cursor:pointer;text-align:left}.drawer-menu svg{width:14px;height:14px;fill:currentColor;opacity:.72}.drawer-menu:hover{background:#eef5f2;color:var(--a-teal)}.drawer-menu.active{background:var(--a-mint);color:var(--a-teal);font-weight:800}
+    .quick-rail{position:fixed;z-index:1900;right:12px;top:50%;transform:translateY(-38%);display:grid;gap:7px}.quick-button{position:relative;width:39px;height:39px;border:1px solid var(--a-line);border-radius:11px;background:#fff;color:var(--a-navy);cursor:pointer;display:grid;place-items:center;box-shadow:0 6px 17px rgba(26,58,63,.11);transition:.16s}.quick-button svg{width:17px;height:17px;fill:currentColor}.quick-button:hover{transform:translateX(-2px);background:var(--a-mint);color:var(--a-teal)}.quick-button.primary{background:var(--a-navy);border-color:var(--a-navy);color:#fff}.quick-button::before{content:attr(data-label);position:absolute;right:47px;top:50%;transform:translateY(-50%);padding:5px 8px;border-radius:6px;background:var(--a-ink);color:#fff;font-size:10px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s}.quick-button:hover::before{opacity:1}
+    @media (max-width:900px){.brand-lockup{min-width:auto}.brand-copy{display:none}.header-sub{padding-left:14px}.primary-tab{padding:0 10px}.primary-tab::after{left:10px;right:10px}}@media (max-width:760px){header.app-header{min-height:82px}.header-main{height:42px;padding:0 8px;gap:7px}.fox-mark{width:30px;height:30px;flex-basis:30px}.header-admin{padding:7px 10px}.header-sub{height:40px;padding:0 8px}.secondary-nav .nb{padding:6px 9px}.quick-rail{top:auto;right:10px;bottom:12px;transform:none;display:flex}.quick-button{border-radius:50%}.quick-button::before{display:none}}
+    .primary-tab[data-group="1"]{color:#167b9b}.primary-tab[data-group="1"].active{background:linear-gradient(180deg,rgba(21,175,218,.02),rgba(21,175,218,.10))}.primary-tab[data-group="1"].active::after{background:linear-gradient(90deg,#118cae,#15afda)}
+    .primary-tab[data-group="2"]{color:#287565}.primary-tab[data-group="2"].active{background:linear-gradient(180deg,rgba(54,138,113,.02),rgba(54,138,113,.10))}.primary-tab[data-group="2"].active::after{background:linear-gradient(90deg,#287565,#48a184)}
+    .primary-tab[data-group="3"]{color:#34474e}.primary-tab[data-group="3"].active{background:linear-gradient(180deg,rgba(52,71,78,.01),rgba(52,71,78,.09))}.primary-tab[data-group="3"].active::after{background:linear-gradient(90deg,#34474e,#60737a)}
+    .primary-tab[data-group="4"]{color:#48667a}.primary-tab[data-group="4"].active{background:linear-gradient(180deg,rgba(72,102,122,.02),rgba(72,102,122,.10))}.primary-tab[data-group="4"].active::after{background:linear-gradient(90deg,#48667a,#7390a2)}
+    /* 1단 메뉴 hover: 배경 없이 밝은 그라데이션 글자 + 12% 확대 */
+    .primary-tab{transition:transform .16s ease,color .16s ease;transform-origin:center}
+    .primary-tab.active,.primary-tab[data-group="1"].active,.primary-tab[data-group="2"].active,.primary-tab[data-group="3"].active,.primary-tab[data-group="4"].active{background:transparent}
+    .primary-tab:hover{transform:scale(1.12);background-color:transparent}
+    .primary-tab[data-group="1"]:hover{background-image:linear-gradient(90deg,#159ac1,#32c7e8);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .primary-tab[data-group="2"]:hover{background-image:linear-gradient(90deg,#2e8a73,#58b89b);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .primary-tab[data-group="3"]:hover{background-image:linear-gradient(90deg,#455b63,#758a91);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .primary-tab[data-group="4"]:hover{background-image:linear-gradient(90deg,#54758a,#83a2b5);-webkit-background-clip:text;background-clip:text;color:transparent}
+    /* 1단 메뉴 색상 통일: 조회 스타일 */
+    .primary-tab[data-group]{color:#167b9b}
+    .primary-tab[data-group].active::after{background:linear-gradient(90deg,#118cae,#15afda)}
+    .primary-tab[data-group]:hover{background-image:linear-gradient(90deg,#159ac1,#32c7e8);-webkit-background-clip:text;background-clip:text;color:transparent}
+    /* 1단 메뉴 청록색 단색 아이콘 */
+    .primary-tab{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+    .primary-tab{--icon-start:#167b9b;--icon-end:#15afda}.primary-tab .primary-icon{width:12px;height:12px;flex:0 0 12px}
+    .primary-tab:hover{background-image:none;color:#167b9b}
+    .primary-tab:hover{--icon-start:#e49a3a;--icon-end:#f1764d}.primary-tab:hover .primary-icon{transform:none}
+    .primary-tab .primary-label{display:inline-block}
+    .primary-tab:hover .primary-label{background:linear-gradient(90deg,#159ac1,#32c7e8);-webkit-background-clip:text;background-clip:text;color:transparent}
+    /* icon 시안: hover 시 글자만 5% 확대, 아이콘 크기는 고정 */
+    .primary-tab:hover{transform:none}
+    .primary-tab .primary-label{transition:transform .16s ease;transform-origin:center}
+    .primary-tab:hover .primary-label{transform:scale(1.05)}
+    /* hover 글자 선명도: transform 확대 대신 실제 글꼴 크기 사용 */
+    .primary-tab .primary-label{transform:none;transition:font-size .14s ease,color .14s ease}
+    .primary-tab:hover .primary-label{transform:none;font-size:14.5px}
+    .brand-mascot{width:36px;height:36px;flex:0 0 36px;display:block;object-fit:contain;border-radius:8px;pointer-events:none}
   </style>
 </head>
 <body class="auth-pending" oncontextmenu="return false">
 <div class="wrapper">
 
-  <header>
-    <div class="logo" onclick="goHome()" title="기준서검색 (홈)">
-      <img src="https://tojidi-debug.github.io/doyaa1/gumiho.jpg" alt="구미호"
-           onerror="this.style.display='none'">
+  <header class="app-header">
+    <div class="header-main">
+      <button class="menu-trigger" type="button" onclick="openMenuDrawer()" aria-label="전체 메뉴 열기" aria-controls="menu-drawer">≡</button>
+      <div class="brand-lockup"><img class="brand-mascot" src="https://tojidi-debug.github.io/doyaa1/gumiho.jpg" alt="GUMIHO" onerror="this.style.display='none'"><span class="brand-copy" onclick="goHome()" title="기준서 검색 홈">GUMIHO<small>SMART HUB</small></span></div>
+      <nav id="primary-nav" class="primary-nav" aria-label="1단 메뉴"></nav>
+      <div class="header-spacer"></div><button class="header-admin" type="button" onclick="openAdminPw()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4.4 0-8 2.2-8 5v1h16v-1c0-2.8-3.6-5-8-5z"/></svg><span>admin</span></button>
     </div>
-    <div class="divider"></div>
-
-    <div class="nav-area">
-      <div id="nav-dynamic"></div>
-    </div>
-
-    <div class="right-area">
-      <button class="btn-admin" onclick="openAdminPw()">
-        <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-        admin
-      </button>
-    </div>
+    <div class="header-sub"><nav id="nav-dynamic" class="secondary-nav" aria-label="2단 메뉴"></nav></div>
   </header>
+  <div id="drawer-backdrop" class="drawer-backdrop" onclick="closeMenuDrawer()"></div>
+  <aside id="menu-drawer" class="menu-drawer" aria-label="전체 메뉴" aria-hidden="true">
+    <div class="drawer-head"><strong>전체 메뉴</strong><button class="drawer-close" type="button" onclick="closeMenuDrawer()" aria-label="전체 메뉴 닫기">×</button></div>
+    <div id="drawer-body" class="drawer-body"></div>
+  </aside>
 
   <div class="content-wrapper">
-    <iframe id="content-frame" src="about:blank" referrerpolicy="no-referrer" title="content"></iframe>
+    <iframe id="content-frame" name="content-frame" src="about:blank" referrerpolicy="no-referrer" title="content"></iframe>
   </div>
 </div>
 
+<nav class="quick-rail" aria-label="빠른 기능">
+  <button class="quick-button primary" type="button" data-label="홈" onclick="goHome()" aria-label="홈"><svg viewBox="0 0 24 24"><path d="M12 3 2 12h3v9h6v-6h2v6h6v-9h3L12 3z"/></svg></button>
+  <button class="quick-button" type="button" data-label="최근 실행" onclick="openLastMenu()" aria-label="최근 실행 메뉴"><svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 1 1-8.5 6H2l3.5-4L9 9H6.6A7 7 0 1 0 13 5v4l5 3-1 1.7-6-3.7V3h2z"/></svg></button>
+  <button class="quick-button" type="button" data-label="전체 메뉴" onclick="openMenuDrawer()" aria-label="전체 메뉴"><svg viewBox="0 0 24 24"><path d="M4 5h16v2H4V5zm0 6h16v2H4v-2zm0 6h16v2H4v-2z"/></svg></button>
+  <button class="quick-button" type="button" data-label="관리자" onclick="openAdminPw()" aria-label="관리자"><svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4.4 0-8 2.2-8 5v1h16v-1c0-2.8-3.6-5-8-5z"/></svg></button>
+</nav>
 <div id="auth-screen" class="auth-screen">
   <div class="auth-card">
     <div class="auth-row">
@@ -493,17 +537,16 @@
   });
   /* ─── 상수 ─── */
   const HOME_URL = 'https://tojidi-debug.github.io/kicpadb/search.html';
-  const VER      = 'v12-page-only';   // 버전 올리면 localStorage 자동 초기화
+  const VER      = 'v10-sheet-auth';   // 버전 올리면 localStorage 자동 초기화
   const MENU_SHEET_ID = '19SmDDYNJTcKXNNB73MIuWGrQMRCFI2a59WYwBXG4xGQ';
   const MENU_SHEET_NAME = 'list';
-  const MENU_SHEET_EDIT_URL = 'https://docs.google.com/spreadsheets/d/19SmDDYNJTcKXNNB73MIuWGrQMRCFI2a59WYwBXG4xGQ/edit?gid=0#gid=0';
   const LATEST_PROMPT_URL = 'https://script.google.com/macros/s/AKfycbynvCGxjeJL2PYwLJFepLBY-rnH0g-rvfBxMlVfh0EBrDdAYUAgFl1Z7zjThdNWP5Y0tw/exec';
 
   const GRP = {
     1:{ cls:'g1', lbl:'조회' },
-    2:{ cls:'g2', lbl:'지적·협의' },
-    3:{ cls:'g3', lbl:'법령·보고서' },
-    4:{ cls:'g4', lbl:'도구' },
+    2:{ cls:'g2', lbl:'지적·질의사항' },
+    3:{ cls:'g3', lbl:'일반기준서' },
+    4:{ cls:'g4', lbl:'업무지원' },
   };
 
   /* ─── 아이콘 (SVG path, viewBox 0 0 24 24) ─── */
@@ -523,6 +566,12 @@
     13: 'M12 2a10 10 0 1 0 10 10h-2a8 8 0 1 1-2.34-5.66L15 9h7V2l-2.92 2.92A9.96 9.96 0 0 0 12 2z', // 회생조회
   };
 
+  const GROUP_ICONS = {
+    1:'M9.5 3a6.5 6.5 0 1 0 3.98 11.64L18.85 20 20 18.85l-5.36-5.37A6.5 6.5 0 0 0 9.5 3zm0 2a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9z',
+    2:'M4 3h16a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm3.3 7.2-1.4 1.4 3.1 3.1 7-7-1.4-1.4-5.6 5.6-1.7-1.7z',
+    3:'M4 3h6a4 4 0 0 1 3 1.35A4 4 0 0 1 16 3h4v16h-4a4 4 0 0 0-3 1.35A4 4 0 0 0 10 19H4V3zm2 2v12h4c.7 0 1.37.12 2 .35V6.2A2 2 0 0 0 10 5H6zm8 1.2v11.15A6 6 0 0 1 16 17h2V5h-2a2 2 0 0 0-2 1.2z',
+    4:'M4 6h7v2H4V6zm11 0h5v2h-5V6zm-2-2h2v6h-2V4zM4 16h5v2H4v-2zm9 0h7v2h-7v-2zm-2-2h2v6h-2v-6z'
+  };
   /* ─── 기본 메뉴 ─── */
   const DEFAULT_MENUS = [
     { id:1,  g:1, name:'휴폐업',     url:'https://script.google.com/macros/s/AKfycbz1E0D17-PeAJlvAjiLeiZh2rzQ2W23SuheSR6nQv_T53N7HgCzq0V_aujW2Rq0E48Ejg/exec' },
@@ -553,55 +602,181 @@
 
   /* ─── 유틸 ─── */
   function cp(a)  { return a.map(m => ({...m})); }
-  function sv()   { localStorage.setItem('gmenus', JSON.stringify(menus)); localStorage.setItem('gapw', apw); localStorage.setItem('gmenus_local_override', '1'); }
+  function sv()   { localStorage.setItem('gmenus', JSON.stringify(menus)); localStorage.setItem('gapw', apw); }
   function esc(v) { return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
 
-  /* ─── Nav 렌더링 ─── */
-  function renderNav() {
-    try {
-      const wrap = document.getElementById('nav-dynamic');
-      wrap.innerHTML = '';
-      let first = true;
-      [1,2,3,4].forEach(g => {
-        const items = menus.filter(m => m.g === g);
-        if (!items.length) return;
-        if (!first) { const s = document.createElement('div'); s.className='sep'; wrap.appendChild(s); }
-        first = false;
-        const grp = document.createElement('div');
-        grp.className = 'grp';
-        items.forEach(m => {
-          const btn = document.createElement('button');
-          btn.className   = 'nb ' + GRP[g].cls;
-          btn.dataset.mid = m.id;
-          const p = ICONS[m.id] || 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4z';
-          btn.innerHTML   = `<svg class="nbico" viewBox="0 0 24 24"><path d="${p}"/></svg>${esc(m.name)}`;
-          btn.onclick     = () => goLink(m.url, btn, m.name);
-          grp.appendChild(btn);
-        });
-        wrap.appendChild(grp);
-      });
-    } catch(e) { console.error('renderNav:', e); }
+  /* ─── A안 내비게이션 ─── */
+  let activeGroup = 1;
+  let activeMenuId = null;
+  let lastMenu = null;
+
+  function menuIconPath(menu) {
+    return ICONS[menu.id] || 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4 1.79-4 4 1.79 4 4 4z';
   }
 
-  /* ─── 네비게이션 ─── */
+  function renderNav() {
+    try {
+      const primary = document.getElementById('primary-nav');
+      const secondary = document.getElementById('nav-dynamic');
+      if (!primary || !secondary) return;
+
+      const availableGroups = [1,2,3,4].filter(function(g) {
+        return menus.some(function(menu) { return menu.g === g; });
+      });
+      if (!availableGroups.includes(activeGroup)) activeGroup = availableGroups[0] || 1;
+
+      primary.innerHTML = '';
+      availableGroups.forEach(function(g) {
+        const tab = document.createElement('button');
+        tab.type = 'button';
+        tab.className = 'primary-tab' + (g === activeGroup ? ' active' : '');
+        tab.dataset.group = g;
+        tab.innerHTML = '<svg class="primary-icon" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="group-icon-gradient-' + g + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" style="stop-color:var(--icon-start)"/><stop offset="100%" style="stop-color:var(--icon-end)"/></linearGradient></defs><path fill="url(#group-icon-gradient-' + g + ')" d="' + GROUP_ICONS[g] + '"/></svg><span class="primary-label">' + esc(GRP[g].lbl) + '</span>';
+        tab.setAttribute('aria-pressed', g === activeGroup ? 'true' : 'false');
+        tab.onmouseenter = function() { previewGroup(g); };
+        tab.onfocus = function() { previewGroup(g); };
+        tab.onclick = function() { setActiveGroup(g); };
+        primary.appendChild(tab);
+      });
+
+      secondary.innerHTML = '';
+      menus.filter(function(menu) { return menu.g === activeGroup; }).forEach(function(menu) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'nb';
+        btn.dataset.mid = menu.id;
+        btn.innerHTML = '<svg class="nbico" viewBox="0 0 24 24"><path d="' + menuIconPath(menu) + '"/></svg>' + esc(menu.name);
+        if (String(menu.id) === String(activeMenuId)) btn.classList.add('active');
+        btn.onclick = function() { goLink(menu.url, btn, menu.name, menu.id); };
+        secondary.appendChild(btn);
+      });
+      renderDrawer();
+      alignSecondaryNav();
+    } catch(e) {
+      console.error('renderNav:', e);
+    }
+  }
+
+  function alignSecondaryNav() {
+    window.requestAnimationFrame(function() {
+      const sub = document.querySelector('.header-sub');
+      const main = document.querySelector('.header-main');
+      const secondary = document.getElementById('nav-dynamic');
+      const activeTab = document.querySelector('.primary-tab.active');
+      if (!sub || !main || !secondary || !activeTab) return;
+      const mainRect = main.getBoundingClientRect();
+      const tabRect = activeTab.getBoundingClientRect();
+      const secondaryWidth = secondary.scrollWidth;
+      const edge = window.innerWidth <= 760 ? 8 : 14;
+      const centered = tabRect.left + (tabRect.width / 2) - mainRect.left - (secondaryWidth / 2);
+      const maximum = Math.max(edge, mainRect.width - secondaryWidth - edge);
+      sub.style.paddingLeft = Math.round(Math.min(maximum, Math.max(edge, centered))) + 'px';
+    });
+  }
+
+  window.addEventListener('resize', alignSecondaryNav);
+  function previewGroup(group) {
+    const nextGroup = Number(group) || 1;
+    if (activeGroup === nextGroup) return;
+    activeGroup = nextGroup;
+    renderNav();
+  }
+  function setActiveGroup(group) {
+    activeGroup = Number(group) || 1;
+    const representativeIds = { 1:1, 2:3, 3:8, 4:10 };
+    const representativeId = representativeIds[activeGroup];
+    const representative = menus.find(function(menu) {
+      return Number(menu.g) === activeGroup && String(menu.id) === String(representativeId);
+    }) || menus.find(function(menu) {
+      return Number(menu.g) === activeGroup;
+    });
+    if (representative) {
+      goLink(representative.url, null, representative.name, representative.id);
+    } else {
+      renderNav();
+    }
+  }
+
+  function renderDrawer() {
+    const body = document.getElementById('drawer-body');
+    if (!body) return;
+    body.innerHTML = '';
+    [1,2,3,4].forEach(function(g) {
+      const items = menus.filter(function(menu) { return menu.g === g; });
+      if (!items.length) return;
+      const section = document.createElement('section');
+      section.className = 'drawer-group';
+      const heading = document.createElement('div');
+      heading.className = 'drawer-group-title';
+      heading.innerHTML = '<span>' + esc(GRP[g].lbl) + '</span><span>' + items.length + '</span>';
+      section.appendChild(heading);
+      items.forEach(function(menu) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'drawer-menu';
+        btn.dataset.mid = menu.id;
+        btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="' + menuIconPath(menu) + '"/></svg><span>' + esc(menu.name) + '</span>';
+        if (String(menu.id) === String(activeMenuId)) btn.classList.add('active');
+        btn.onclick = function() {
+          activeGroup = menu.g;
+          goLink(menu.url, btn, menu.name, menu.id);
+          closeMenuDrawer();
+        };
+        section.appendChild(btn);
+      });
+      body.appendChild(section);
+    });
+  }
+
+  function openMenuDrawer() {
+    const drawer = document.getElementById('menu-drawer');
+    const backdrop = document.getElementById('drawer-backdrop');
+    if (!drawer || !backdrop) return;
+    renderDrawer();
+    drawer.classList.add('open');
+    drawer.setAttribute('aria-hidden', 'false');
+    backdrop.classList.add('show');
+  }
+
+  function closeMenuDrawer() {
+    const drawer = document.getElementById('menu-drawer');
+    const backdrop = document.getElementById('drawer-backdrop');
+    if (!drawer || !backdrop) return;
+    drawer.classList.remove('open');
+    drawer.setAttribute('aria-hidden', 'true');
+    backdrop.classList.remove('show');
+  }
+
   function clearAct() {
-    document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
+    activeMenuId = null;
+    document.querySelectorAll('[data-mid]').forEach(function(button) {
+      button.classList.remove('active');
+    });
+  }
+
+  function syncActiveMenu(menuId) {
+    activeMenuId = menuId;
+    document.querySelectorAll('[data-mid]').forEach(function(button) {
+      button.classList.toggle('active', String(button.dataset.mid) === String(menuId));
+    });
   }
 
   function goHome() {
-    clearAct();
-    document.getElementById('content-frame').src = HOME_URL;
-    const homeMenu = menus.find(m => m.url === HOME_URL);
+    const homeMenu = menus.find(function(menu) { return menu.url === HOME_URL; });
     if (homeMenu) {
-      const btn = document.querySelector('[data-mid="' + homeMenu.id + '"]');
-      if (btn) btn.classList.add('active');
+      activeGroup = homeMenu.g;
+      activeMenuId = homeMenu.id;
+      renderNav();
+    } else {
+      clearAct();
     }
+    document.getElementById('content-frame').src = HOME_URL;
   }
 
   function isAppsScriptUrl(url) {
     try {
-      const u = new URL(url);
-      return u.hostname === 'script.google.com' && u.pathname.includes('/macros/');
+      const parsed = new URL(url);
+      return parsed.hostname === 'script.google.com' && parsed.pathname.includes('/macros/');
     } catch(e) {
       return false;
     }
@@ -614,13 +789,42 @@
     return launcher.href;
   }
 
-  function goLink(url, el, name) {
-    clearAct();
-    if (el) el.classList.add('active');
+  function goLink(url, el, name, menuId) {
+    const menu = menus.find(function(item) {
+      return String(item.id) === String(menuId || (el && el.dataset.mid));
+    });
+    if (menu) {
+      activeGroup = menu.g;
+      lastMenu = { id:menu.id, g:menu.g, name:menu.name, url:menu.url };
+      syncActiveMenu(menu.id);
+      renderNav();
+    } else {
+      clearAct();
+      if (el) el.classList.add('active');
+    }
 
     const frame = document.getElementById('content-frame');
-    if (frame) frame.src = url;
+    if (!frame) return;
+    if (isAppsScriptUrl(url)) {
+      const relayUrl = buildLinkPageUrl(name, url);
+      window.open(relayUrl, 'content-frame');
+    } else {
+      frame.src = url;
+    }
   }
+
+  function openLastMenu() {
+    if (!lastMenu) {
+      showAlert('아직 실행한 메뉴가 없습니다.');
+      return;
+    }
+    activeGroup = lastMenu.g;
+    goLink(lastMenu.url, null, lastMenu.name, lastMenu.id);
+  }
+
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') closeMenuDrawer();
+  });
   /* ─── Admin PW 모달 ─── */
   function openAdminPw() {
     document.getElementById('pw-inp').value = '';
@@ -633,8 +837,7 @@
     const entered = document.getElementById('pw-inp').value;
     if (entered === apw) {
       closePw();
-      const frame = document.getElementById('content-frame');
-      if (frame) frame.src = MENU_SHEET_EDIT_URL;
+      openAdmin();
     } else {
       document.getElementById('pw-err').textContent = '비밀번호가 올바르지 않습니다.';
       document.getElementById('pw-inp').value = '';
@@ -723,8 +926,7 @@
     window[cb] = function(response) {
       done = true;
       try {
-        apw = readSheetAdminPassword(response) || apw;
-        const loaded = ensureRequiredMenus(parseSheetMenus(response));
+        const loaded = parseSheetMenus(response);
         if (loaded.length) {
           menus = loaded;
           nid = Math.max(0, ...menus.map(m => Number(m.id) || 0)) + 1;
@@ -801,45 +1003,23 @@
     });
   }
 
-  function normalizeMenuKey(value) {
-    return String(value || '').trim().toLowerCase().replace(/[\s_\-]+/g, '');
-  }
-
   function isHiddenSheetMenu(item) {
-    const key = normalizeMenuKey(item.sheetId || item.id || '');
-    const name = normalizeMenuKey(item.name || '');
-    return key === 'hanai' || name === 'hanai';
+    const key = String(item.sheetId || '').trim().toLowerCase();
+    const name = String(item.name || '').trim().toLowerCase().replace(/\s+/g, '');
+    return key === 'hanai' || key === 'han_ai' || name === 'hanai' || name === 'han_ai' || name === 'hanai';
   }
 
   function ensureRequiredMenus(items) {
-    const result = (items || []).filter(function(item) { return !isHiddenSheetMenu(item); });
-    addRequiredMenu(result, 'recovery', '회생조회', 13, 30);
-    addRequiredMenu(result, 'pdf', 'PDF편집', 9, 100);
-    return result.sort(function(a, b) { return Number(a.sort || 9999) - Number(b.sort || 9999); });
-  }
-
-  function addRequiredMenu(result, sheetId, name, defaultId, sort) {
-    const exists = result.some(function(item) {
-      const key = normalizeMenuKey(item.sheetId || item.id || '');
-      const itemName = normalizeMenuKey(item.name || '');
-      return key === normalizeMenuKey(sheetId) || itemName === normalizeMenuKey(name);
+    const result = items.filter(function(item) { return !isHiddenSheetMenu(item); });
+    const hasPdf = result.some(function(item) {
+      const key = String(item.sheetId || '').trim().toLowerCase();
+      return key === 'pdf' || key === 'pdfedit' || item.name === 'PDF편집';
     });
-    if (exists) return;
-    const fallback = DEFAULT_MENUS.find(function(item) { return item.id === defaultId || item.name === name; });
-    if (fallback) result.push(Object.assign({}, fallback, { sort: sort, sheetId: sheetId, type: 'link', enabled: true }));
-  }
-
-  function readSheetAdminPassword(response) {
-    const table = response && response.table;
-    if (!table || !Array.isArray(table.rows)) return '';
-    const headers = (table.cols || []).map(function(col) { return String((col && (col.label || col.id)) || '').trim().toLowerCase(); });
-    const idCol = Math.max(0, headers.indexOf('id'));
-    const urlCol = headers.indexOf('url') >= 0 ? headers.indexOf('url') : 2;
-    for (let i = 0; i < table.rows.length; i++) {
-      const cells = table.rows[i].c || [];
-      if (cellValue(cells[idCol]) === '__admin_password') return cellValue(cells[urlCol]);
+    if (!hasPdf) {
+      const pdf = DEFAULT_MENUS.find(function(item) { return item.id === 9 || item.name === 'PDF편집'; });
+      if (pdf) result.push(Object.assign({}, pdf, { sort: 100, sheetId: 'pdf', type: 'link', enabled: true }));
     }
-    return '';
+    return result.sort(function(a, b) { return Number(a.sort || 9999) - Number(b.sort || 9999); });
   }
   function cellValue(cell) {
     if (!cell) return '';
@@ -884,11 +1064,7 @@
   document.addEventListener('dragstart',   e => e.preventDefault());
 
   /* ─── 시작 ─── */
-  function loadMenusUnlessLocalOverride() {
-    loadMenusFromGoogleSheet();
-  }
-
-  window.onload = function() { if (!AUTH_OK) return; renderNav(); goHome(); loadMenusUnlessLocalOverride(); };
+  window.onload = function() { if (!AUTH_OK) return; renderNav(); goHome(); loadMenusFromGoogleSheet(); };
 </script>
 </body>
 </html>
