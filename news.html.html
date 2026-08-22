@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CPA NEWS</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{min-height:100%;font-family:'나눔고딕','NanumGothic','함초롬돋움','HCR Dotum','Noto Sans KR','돋움체','Dotum',sans-serif;background:#f7fafc;font-size:13px;color:#1e293b;}
+html{scrollbar-width:thin;scrollbar-color:#bfeaff #fff;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-track{background:#fff;}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#f0fbff,#bfeaff);border:2px solid #fff;border-radius:99px;}
+::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#e7f8ff,#9fdcf5);}
+::-webkit-scrollbar-corner{background:#fff;}
+
+/* ── BOARD CONTROLS ── */
+.board-controls{position:sticky;top:0;z-index:40;background:rgba(247,250,252,.96);border-bottom:1px solid #dce8f1;min-height:52px;margin-bottom:14px;padding:7px 2px;display:flex;align-items:center;justify-content:flex-end;gap:8px;box-shadow:0 5px 14px rgba(30,64,93,.05);backdrop-filter:blur(8px);}
+.logo{display:flex;align-items:center;gap:5px;color:#0ea5e9;font-size:20px;font-weight:900;letter-spacing:-1px;white-space:nowrap;flex-shrink:0;line-height:20px;}
+.top-brand-logo{display:block;height:51px;width:auto;object-fit:contain;flex-shrink:0;align-self:center;vertical-align:middle;opacity:1;}
+.logo>span{display:flex;align-items:center;height:51px;line-height:20px;transform:translateY(4px);}
+#search-area{display:flex;align-items:center;gap:5px;width:480px;max-width:48vw;}
+#sq{flex:1;background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;color:#1e293b;padding:6px 10px;font-size:12px;outline:none;min-width:0;}
+#sq::placeholder{color:#c7ced8;}
+#sq:focus{background:#fff;border-color:#0d9488;box-shadow:0 0 0 2px rgba(13,148,136,0.12);}
+.sb{border:1px solid #cbd5e1;border-radius:5px;padding:5px 10px;font-size:11.5px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap;background:#f8fafc;color:#64748b;}
+#btn-and:hover,#btn-or:hover{border-color:#0d9488;color:#0f766e;}
+#btn-and.active,#btn-or.active{background:#0d9488;color:#fff;border-color:#0d9488;}
+#btn-clr:hover{background:#e2e8f0;color:#334155;}
+#ts{color:#b3bdc9;font-size:10.5px;white-space:nowrap;margin-left:auto;}
+#refresh-btn{background:#2563eb;border:none;color:#fff;border-radius:6px;padding:6px 13px;font-size:11.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+#refresh-btn:hover{background:#1d4ed8;}
+#refresh-btn.loading .spin{animation:spin .8s linear infinite;}
+.spin{display:inline-block;font-size:13px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── LAYOUT ── */
+#wrap{max-width:1380px;margin:0 auto;padding:0 20px 40px;}
+
+/* ── PANEL GRID ── */
+.panels-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+
+/* ── SEARCH RESULT PANEL (full-width) ── */
+.search-full{grid-column:1/-1;}
+
+/* ── PANEL CARD ── */
+.panel{background:#fff;border:1px solid #dde7ef;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(30,64,93,.06);display:flex;flex-direction:column;}
+
+/* ── PANEL HEADER ── */
+.ph{display:flex;align-items:center;padding:13px 15px 11px;gap:6px;border-bottom:1px dashed;}
+.ph-fsc  {border-color:#bfdbfe;}
+.ph-ord  {border-color:#bfdbfe;}
+.ph-fss  {border-color:#bfdbfe;}
+.ph-cpa  {border-color:#a7f3d0;}
+.ph-srch {border-color:#bae6fd;}
+.ph-name{font-size:14px;font-weight:800;letter-spacing:-0.5px;}
+.ph-name-fsc {color:#1a4b8c;}
+.ph-name-ord {color:#1d4ed8;}
+.ph-name-fss {color:#1e40af;}
+.ph-name-cpa {color:#0f766e;}
+#panel-cpa .ph-name-cpa{color:#0ea5e9;}
+.ph-name-srch{color:#0ea5e9;}
+.ph-cnt{font-size:10.2px;color:#9ca3af;margin-left:6px;}
+.ph-link{margin-left:auto;color:#9ca3af;font-size:13px;text-decoration:none;transition:color .1s;}
+.ph-link:hover{color:#374151;}
+.board-link{color:#0ea5e9;font-size:11px;font-weight:800;white-space:nowrap;}
+.board-link:hover{color:#0284c7;}
+
+/* ── LIST ── */
+.pl{flex:1;}
+.li{display:flex;align-items:center;gap:7px;padding:8px 14px;border-bottom:1px solid #edf2f6;min-height:38px;text-decoration:none;transition:background .1s;}
+.li:last-child{border-bottom:none;}
+.li:hover{background:#f3f8fc;}
+.li-title{flex:1;font-size:11.8px;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.45;}
+.li-title mark{background:#fef08a;color:inherit;}
+.li-date{font-size:10px;color:#9ca3af;white-space:nowrap;margin-left:10px;flex-shrink:0;}
+.li-tag{display:inline-block;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;flex-shrink:0;white-space:nowrap;line-height:1.5;vertical-align:middle;}
+.source-badge{min-width:66px;text-align:center;border:1px solid transparent;font-size:9px;font-weight:800;padding:3px 6px;border-radius:4px;flex-shrink:0;white-space:nowrap;}
+.src-fsc{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}.src-fss{background:#eef2ff;border-color:#c7d2fe;color:#4338ca}.src-kicpa{background:#ecfdf5;border-color:#a7f3d0;color:#047857}
+.fallback-badge{font-size:8.5px;color:#9a6700;background:#fffbeb;border:1px solid #fde68a;border-radius:4px;padding:2px 4px;white-space:nowrap;flex-shrink:0}
+.search-tools{margin-left:auto;display:flex;align-items:center;gap:7px}.search-sort-label{font-size:10px;color:#94a3b8}.search-sort{height:28px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;padding:0 24px 0 8px;font:700 10.5px inherit;outline:none}.search-sort:focus{border-color:#38bdf8;box-shadow:0 0 0 2px rgba(56,189,248,.12)}
+.no-items{padding:20px;text-align:center;color:#9ca3af;font-size:12px;}
+.loading-row{padding:20px;text-align:center;color:#9ca3af;font-size:12px;display:flex;align-items:center;justify-content:center;gap:6px;}
+.spinner{width:13px;height:13px;border:2px solid #e5e7eb;border-top-color:#9ca3af;border-radius:50%;animation:spin .8s linear infinite;}
+
+/* ── PAGINATION ── */
+.pager{display:flex;align-items:center;justify-content:center;gap:3px;padding:9px 0 10px;border-top:1px solid #f3f4f6;}
+.pager:empty{display:none;}
+.pg-arr{background:none;border:none;color:#9ca3af;font-size:15px;cursor:pointer;padding:3px 6px;border-radius:4px;line-height:1;}
+.pg-arr:hover:not(:disabled){background:#f3f4f6;color:#374151;}
+.pg-arr:disabled{opacity:.3;cursor:not-allowed;}
+.pg-num{background:none;border:none;color:#6b7280;font-size:12px;cursor:pointer;padding:3px 7px;border-radius:4px;min-width:26px;line-height:1.6;}
+.pg-num:hover{background:#f3f4f6;color:#374151;}
+.pg-num.active{background:#1a4b8c;color:#fff;}
+
+/* ── LOCAL WORKSPACE (3rd row) ── */
+.workspace-section{background:#fff;border:1px solid #e1eaf2;border-radius:10px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.06);min-height:200px;}
+.postit-workspace{grid-column:auto;}
+.workspace-heading{display:flex;align-items:flex-start;gap:12px;margin-bottom:13px;}
+.workspace-title{min-width:0;flex-shrink:0;}.workspace-title small{display:block;color:#94a3b8;font-size:8px;font-weight:800;letter-spacing:.13em;margin-bottom:5px;white-space:nowrap;}.workspace-title h2{color:#2a9fd8;font-size:17.333px;line-height:1.15;letter-spacing:-.5px;white-space:nowrap;}
+.local-head-actions{margin-left:auto;display:flex;align-items:center;gap:2px;transform:scale(.7);transform-origin:right top;}
+.head-action{height:16px;border:1px solid #dbe5ed;border-radius:4px;background:#fff;color:#64748b;padding:0 5px;font:700 6.5px inherit;cursor:pointer;white-space:nowrap;}
+.save-action{background:#fff;color:#1e3a5f;font-weight:800;}
+.head-action:hover{background:#f8fbfd;border-color:#bfd9ea;color:#2563eb;}.head-action.danger{color:#c2414d;}.head-action.danger:hover{background:#fff7f7;border-color:#fecaca;color:#dc2626;}
+.memo-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+.memo-column{position:relative;min-height:110px;background:transparent;border:0;border-radius:8px;padding:0;box-shadow:none;}
+.memo-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;color:#334155;font-size:11px;}
+.memo-head b{font-weight:800;}
+.memo-count{font-size:10px;color:#64748b;}
+.memo-list{display:flex;flex-direction:column;gap:7px;}
+.memo-card{position:relative;min-height:110px;border-radius:8px;padding:10px 28px 36px 10px;box-shadow:2px 3px 8px rgba(41,72,95,.07);}
+.memo-card.yellow{background:#fffce3}.memo-card.blue{background:#edf8ff}.memo-card.green{background:#f1faed}.memo-card.pink{background:#fff1f5}.memo-card.peach{background:#fff6ea}
+.memo-card.done{opacity:.68}.memo-card.done .memo-text{text-decoration:line-through;}
+.memo-text{width:100%;min-height:34px;border:0;background:transparent;resize:none;outline:0;color:#454545;font:11px/1.55 inherit;overflow:hidden;}
+.memo-delete{position:absolute;right:6px;top:6px;width:20px;height:20px;border:0;border-radius:5px;background:rgba(255,255,255,.72);color:#64748b;cursor:pointer;}
+.memo-tools{position:absolute;left:10px;bottom:8px;display:flex;align-items:center;gap:3px;}
+.memo-color{width:20px;height:20px;border:0;border-radius:5px;background:rgba(255,255,255,.75);color:#0f766e;font-size:11px;font-weight:900;cursor:pointer;}
+.memo-color[data-color="yellow"]{background:#fffde7}.memo-color[data-color="blue"]{background:#edf8ff}.memo-color[data-color="green"]{background:#f0faec}.memo-color[data-color="pink"]{background:#fff0f5}.memo-color[data-color="peach"]{background:#fff5e8}
+.memo-color.selected{box-shadow:inset 0 0 0 1px rgba(71,85,105,.13),0 1px 3px rgba(51,65,85,.08);}
+.add-memo{width:100%;margin-top:8px;border:1px dashed #b9d3e6;border-radius:8px;background:rgba(255,255,255,.72);padding:8px;color:#71869a;font:600 10px inherit;cursor:pointer;}
+.add-memo:hover{background:#fff;color:#2563eb;border-color:#93c5fd;}
+.image-board{height:110px;border:1.5px dashed #9fd3f1;border-radius:10px;background:#eef8ff;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;position:relative;color:#7292aa;}
+.image-board.drag{background:#eaf6ff;border-color:#60a5fa;}
+.image-board img{width:100%;height:100%;object-fit:contain;background:#f8fbff;}
+.image-empty{text-align:center;font-size:10px;line-height:1.7;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.image-empty b{width:32px;height:32px;display:grid;place-items:center;border-radius:11px;background:#fff;color:#178dca;font-size:20px;font-weight:400;}
+.image-empty strong{font-size:11px;color:#5f8298;}.image-empty small{font-size:9px;color:#86a3b5;}
+.local-actions{display:flex;justify-content:flex-end;gap:5px;margin-top:8px;}
+.local-btn{border:1px solid #d8e5ef;border-radius:6px;background:#fff;color:#64748b;padding:4px 8px;font:700 10px inherit;cursor:pointer;}
+.local-btn:hover{background:#eff6ff;color:#2563eb;border-color:#bfdbfe;}
+.local-btn.danger{color:#c2414d;}.local-btn.danger:hover{background:#fff5f5;border-color:#fecaca;color:#dc2626;}
+.scroll-jump{position:fixed;z-index:50;right:12px;width:32px;height:32px;border:0;border-radius:50%;background:#0d9488;color:#fff;display:grid;place-items:center;font-size:17px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(13,148,136,.25);transition:transform .15s,background .15s;}
+.scroll-jump:hover{background:#0f766e;transform:translateY(-1px);}
+.jump-down{top:10px;}
+.jump-top{bottom:14px;}
+@media(max-width:900px){.panels-grid{grid-template-columns:1fr}.board-controls{flex-wrap:wrap;position:static}#search-area{order:3;width:100%;max-width:none}.search-tools{width:100%;margin-left:0;justify-content:flex-end}.source-badge{min-width:58px}#wrap{padding:0 12px 30px}}
+</style>
+</head>
+<body>
+
+<div id="wrap">
+  <div class="board-controls" aria-label="게시판 검색 및 새로고침">
+    <div class="logo"><img class="top-brand-logo" src="https://gw.kicpa.kr/upload/img/logo/kicpa/1202//IMG_COMP_LOGO_1202.png" alt="KICPA"><span>NEWS</span></div>
+    <span id="ts"></span>
+    <div id="search-area">
+      <input type="text" id="sq" placeholder="검색어 입력 (띄어쓰기로 여러 단어)..." onkeydown="if(event.key==='Enter')doSearch(curCond)">
+      <button class="sb active" id="btn-and" onclick="doSearch('AND')">AND</button>
+      <button class="sb" id="btn-or"  onclick="doSearch('OR')">OR</button>
+      <button class="sb" id="btn-clr" onclick="clearSearch()">초기화</button>
+    </div>
+    <button id="refresh-btn" onclick="doRefresh()"><span class="spin">↻</span> 새로고침</button>
+  </div>
+  <div class="panels-grid" id="grid">
+
+    <!-- ① 검색결과 (숨김 상태) -->
+    <div class="panel search-full" id="panel-srch" style="display:none">
+      <div class="ph ph-srch">
+        <span class="ph-name ph-name-srch">검색결과</span>
+        <span class="ph-cnt" id="cnt-srch"></span>
+        <span id="srch-label" style="font-size:11px;color:#9ca3af;margin-left:4px;"></span>
+        <div class="search-tools">
+          <label class="search-sort-label" for="search-sort">정렬</label>
+          <select id="search-sort" class="search-sort" onchange="changeSearchSort(this.value)">
+            <option value="date-desc">최신 날짜순</option>
+            <option value="relevance">정확도순</option>
+            <option value="date-asc">오래된 날짜순</option>
+          </select>
+          <a href="#" class="ph-link" onclick="clearSearch();return false">✕ 닫기</a>
+        </div>
+      </div>
+      <div class="pl" id="list-srch"><div class="no-items">검색어를 입력하세요</div></div>
+      <div class="pager" id="pg-srch"></div>
+    </div>
+
+    <!-- ② KICPA NEWS -->
+    <div class="panel" id="panel-cpa">
+      <div class="ph ph-cpa">
+        <span class="ph-name ph-name-cpa">KICPA NEWS</span>
+        <span class="ph-cnt" id="cnt-cpa"></span>
+
+        <a href="https://news.kicpa.or.kr" target="NEWS" class="ph-link board-link" title="KICPA 뉴스 바로가기">게시판→</a>
+      </div>
+      <div class="pl" id="list-cpa"><div class="loading-row"><div class="spinner"></div>불러오는 중...</div></div>
+      <div class="pager" id="pg-cpa"></div>
+    </div>
+
+    <!-- ③ KICPA 공지사항 (자율행정팀) -->
+    <div class="panel" id="panel-kicpa-notice">
+      <div class="ph ph-cpa">
+        <span class="ph-name ph-name-cpa">KICPA 공지사항</span>
+        <span class="ph-cnt" id="cnt-kicpa-notice"></span>
+        <a href="https://www.kicpa.or.kr/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page" target="NEWS" class="ph-link board-link" title="KICPA 공지사항 바로가기">게시판→</a>
+      </div>
+      <div class="pl" id="list-kicpa-notice"><div class="loading-row"><div class="spinner"></div>불러오는 중...</div></div>
+      <div class="pager" id="pg-kicpa-notice"></div>
+    </div>
+
+    <!-- ④ 금융감독원 -->
+    <div class="panel" id="panel-fss">
+      <div class="ph ph-fss">
+        <span class="ph-name ph-name-fss">금융감독원</span>
+        <span class="ph-cnt" id="cnt-fss"></span>
+        <a href="https://www.fss.or.kr/fss/bbs/B0000188/list.do?menuNo=200218" target="NEWS" class="ph-link board-link" title="금융감독원 바로가기">게시판→</a>
+      </div>
+      <div class="pl" id="list-fss"><div class="loading-row"><div class="spinner"></div>불러오는 중...</div></div>
+      <div class="pager" id="pg-fss"></div>
+    </div>
+
+    <!-- ⑤ 금융위원회 제재정보 -->
+    <div class="panel" id="panel-fsc-sanction">
+      <div class="ph ph-fsc">
+        <span class="ph-name ph-name-fsc">금융위원회 제재정보</span>
+        <span class="ph-cnt" id="cnt-fsc-sanction"></span>
+        <a href="https://www.fsc.go.kr/no020101" target="NEWS" class="ph-link board-link" title="금융위원회 제재정보 바로가기">게시판→</a>
+      </div>
+      <div class="pl" id="list-fsc-sanction"><div class="loading-row"><div class="spinner"></div>불러오는 중...</div></div>
+      <div class="pager" id="pg-fsc-sanction"></div>
+    </div>
+
+    <!-- ⑥ 금융위원회 보도자료 -->
+    <div class="panel" id="panel-fsc-news">
+      <div class="ph ph-fsc">
+        <span class="ph-name ph-name-fsc">금융위원회 보도자료</span>
+        <span class="ph-cnt" id="cnt-fsc-news"></span>
+        <a href="https://www.fsc.go.kr/no010101" target="NEWS" class="ph-link board-link" title="금융위원회 보도자료 바로가기">게시판→</a>
+      </div>
+      <div class="pl" id="list-fsc-news"><div class="loading-row"><div class="spinner"></div>불러오는 중...</div></div>
+      <div class="pager" id="pg-fsc-news"></div>
+    </div>
+
+    <!-- ⑦ 금융위원회 시행령 입법예고 -->
+    <div class="panel" id="panel-ord">
+      <div class="ph ph-ord">
+        <span class="ph-name ph-name-ord">금융위원회 관련 시행령 입법예고</span>
+        <span class="ph-cnt" id="cnt-ord"></span>
+        <a href="https://www.fsc.go.kr/po040301" target="NEWS" class="ph-link board-link" title="금융위원회 입법예고 바로가기">게시판→</a>
+      </div>
+      <div class="pl" id="list-ord"><div class="loading-row"><div class="spinner"></div>불러오는 중...</div></div>
+      <div class="pager" id="pg-ord"></div>
+    </div>
+
+    <!-- ⑧ 포스트잇 -->
+    <section class="workspace-section postit-workspace">
+      <div class="workspace-heading"><div class="workspace-title"><small>LOCAL DEVICE</small><h2>포스트잇</h2></div><div class="local-head-actions"><button class="head-action" onclick="addMemo('today')" title="메모 추가">추가</button><button class="head-action save-action" onclick="saveMemoPanel()">저장</button><button class="head-action" onclick="backupMemos('today')">백업</button><button class="head-action danger" onclick="deleteLatestMemo('today')">삭제</button><button class="head-action danger" onclick="clearMemos('today')">전체 삭제</button></div></div>
+      <div class="memo-column memo-today"><div class="memo-list" id="memo-list-today"></div></div>
+      <input id="memo-restore-today" type="file" accept=".json" hidden onchange="restoreMemos('today',event)">
+    </section>
+
+    <!-- ⑨ 포스트잇 -->
+    <section class="workspace-section postit-workspace">
+      <div class="workspace-heading"><div class="workspace-title"><small>LOCAL DEVICE</small><h2>포스트잇</h2></div><div class="local-head-actions"><button class="head-action" onclick="addMemo('week')" title="메모 추가">추가</button><button class="head-action save-action" onclick="saveMemoPanel()">저장</button><button class="head-action" onclick="backupMemos('week')">백업</button><button class="head-action danger" onclick="deleteLatestMemo('week')">삭제</button><button class="head-action danger" onclick="clearMemos('week')">전체 삭제</button></div></div>
+      <div class="memo-column memo-week"><div class="memo-list" id="memo-list-week"></div></div>
+      <input id="memo-restore-week" type="file" accept=".json" hidden onchange="restoreMemos('week',event)">
+    </section>
+
+    <!-- ⑩ 이미지보드 작업영역 -->
+    <section class="workspace-section image-workspace" id="image-panel">
+      <div class="workspace-heading"><div class="workspace-title"><small>LOCAL DEVICE</small><h2>이미지보드</h2></div><div class="local-head-actions"><button class="head-action" onclick="saveImagePanel()">저장</button><button class="head-action" onclick="downloadImage()">백업</button><button class="head-action danger" onclick="clearImage()">X</button><button class="head-action danger" onclick="clearImage()">전체 삭제</button></div></div>
+      <input type="file" id="image-input" accept="image/*" hidden>
+      <div class="image-board" id="image-board" tabindex="0" role="button" aria-label="이미지 추가"><div class="image-empty"><b>＋</b><strong>이미지 1</strong><small>클릭 · 드래그 · 붙여넣기</small></div></div>
+      <button id="image-download" hidden></button><button id="image-clear" hidden></button>
+    </section>
+
+  </div>
+</div>
+
+<button class="scroll-jump jump-down" type="button" onclick="window.scrollTo({top:document.documentElement.scrollHeight,behavior:'smooth'})" title="맨 아래로" aria-label="맨 아래로 이동">↓</button>
+<button class="scroll-jump jump-top" type="button" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="맨 위로" aria-label="맨 위로 이동">↑</button>
+
+<footer style="text-align:center;color:#dce2e8;font-size:10px;padding:0 0 24px;">
+  KICPA NEWS by HEMNA
+</footer>
+
+<script>
+'use strict';
+
+// 페이지 전체에서 마우스 오른쪽 클릭 메뉴 사용 방지
+document.addEventListener('contextmenu', event => event.preventDefault());
+
+const PROXY = 'https://api.allorigins.win/raw?url=';
+const PG    = 7;
+const WIN   = 'NEWS';
+const MAX_PG_BTNS = 6;
+
+// ── BOARDS ──
+const BOARDS = [
+  { id:'fsc-press',      inst:'fsc-news',     label:'보도자료', fetchUrl:'https://www.fsc.go.kr/no010101', parser:'fsc', linkPat:'/no010101/', base:'https://www.fsc.go.kr' },
+  { id:'fsc-newsletter', inst:'fsc-news',     label:'NEWS', showTag:true, fetchUrl:'https://www.fsc.go.kr/pa050000', parser:'newsletter', base:'https://www.fsc.go.kr' },
+  { id:'fsc-kfsc',       inst:'fsc-sanction', label:'금융위',   fetchUrl:'https://www.fsc.go.kr/no020101', parser:'fsc', linkPat:'/no020101/', base:'https://www.fsc.go.kr' },
+  { id:'fsc-ksec',       inst:'fsc-sanction', label:'증선위',   fetchUrl:'https://www.fsc.go.kr/no020102', parser:'fsc', linkPat:'/no020102/', base:'https://www.fsc.go.kr' },
+  { id:'ord-fsc',   inst:'ord', label:'', showTag:false, fetchUrl:'https://www.fsc.go.kr/po040301',  parser:'fsc', linkPat:'/po040301/', base:'https://www.fsc.go.kr', panelLabel:'금융위원회 관련 시행령 입법예고' },
+  { id:'fss-press', inst:'fss', label:'보도자료',  fetchUrl:'https://www.fss.or.kr/fss/bbs/B0000188/list.do?menuNo=200218', parser:'fss', base:'https://www.fss.or.kr' },
+  { id:'fss-ref',   inst:'fss', label:'보도참고',  fetchUrl:'https://www.fss.or.kr/fss/bbs/B0000189/list.do?menuNo=200219', parser:'fss', base:'https://www.fss.or.kr' },
+  { id:'cpa-gamri', inst:'cpa', label:'감리',      fetchUrl:'https://news.kicpa.or.kr/news/articleList.html?sc_sub_section_code=S2N81&view_type=sm', parser:'cpa', base:'https://news.kicpa.or.kr' },
+  { id:'cpa-audit', inst:'cpa', label:'감사',      fetchUrl:'https://news.kicpa.or.kr/news/articleList.html?sc_sub_section_code=S2N78&view_type=sm', parser:'cpa', base:'https://news.kicpa.or.kr' },
+  { id:'cpa-std',   inst:'cpa', label:'기준',      fetchUrl:'https://news.kicpa.or.kr/news/articleList.html?sc_sub_section_code=S2N79&view_type=sm', parser:'cpa', base:'https://news.kicpa.or.kr' },
+  { id:'cpa-self',  inst:'cpa', label:'자율',      fetchUrl:'https://news.kicpa.or.kr/news/articleList.html?sc_sub_section_code=S2N80&view_type=sm', parser:'cpa', base:'https://news.kicpa.or.kr' },
+  { id:'kicpa-notice', inst:'kicpa-notice', label:'', showTag:false, cutoffDays:365, fetchUrl:'https://www.kicpa.or.kr/board/list.brd?boardId=noti&srchType=Extext_str1&srchKey=%ED%96%89%EC%A0%95', parser:'kicpaNotice', base:'https://www.kicpa.or.kr' },
+];
+
+// ── FALLBACK DATA ──
+const FB = {
+  'fsc-press': [
+    { title:'실수요자 자금애로 해소를 위한 총량관리 목표 조정방안', date:'2026-08-12', url:'https://www.fsc.go.kr/no010101/87507' },
+    { title:'2026년 하반기 디(D)-테스트베드 참여자 모집', date:'2026-08-12', url:'https://www.fsc.go.kr/no010101/87513' },
+    { title:'스크래핑 차단에 따른 국민불편 최소화를 위한 금융권 대응 방안', date:'2026-08-12', url:'https://www.fsc.go.kr/no010101/87510' },
+    { title:'8.19일부터 괴리율 관리 강화 및 모의거래 의무화', date:'2026-08-12', url:'https://www.fsc.go.kr/no010101/87512' },
+    { title:'2026년 하반기 영세·중소가맹점 선정결과 및 상반기 우수가맹점 선정', date:'2026-08-11', url:'https://www.fsc.go.kr/no010101/87498' },
+    { title:'국민참여성장펀드 조성 추진', date:'2026-08-11', url:'https://www.fsc.go.kr/no010101/87503' },
+    { title:'특정금융정보법 시행령 가상자산 관련 개정안 입법예고', date:'2026-08-11', url:'https://www.fsc.go.kr/no010101/87499' },
+    { title:'청년미래적금 138.5만명 신청 접수', date:'2026-08-11', url:'https://www.fsc.go.kr/no010101/87496' },
+    { title:'공무원 대리구매 신종피싱 주의 안내', date:'2026-08-10', url:'https://www.fsc.go.kr/no010101/87493' },
+    { title:'ASAP 보이스피싱 대응방안 발표', date:'2026-08-04', url:'https://www.fsc.go.kr/no010101/87474' },
+  ],
+  'fsc-news': [
+    { title:'금융위원회, 2026년 하반기 업무계획 발표', date:'2026-08-05', url:'https://www.fsc.go.kr' },
+    { title:'금융규제 샌드박스 2026년 상반기 혁신금융서비스 지정 현황', date:'2026-07-28', url:'https://www.fsc.go.kr' },
+    { title:'2026년 금융부문 탄소중립 추진 현황 및 계획', date:'2026-07-15', url:'https://www.fsc.go.kr' },
+    { title:'금융위원회, 디지털금융 종합혁신방안 후속조치 점검', date:'2026-07-02', url:'https://www.fsc.go.kr' },
+    { title:'2026년 상반기 금융소비자 보호 실태 평가 결과', date:'2026-06-25', url:'https://www.fsc.go.kr' },
+    { title:'금융위원회-한국은행 협력 강화 간담회 결과', date:'2026-06-10', url:'https://www.fsc.go.kr' },
+  ],
+  'fsc-newsletter': [
+    { title:'[2026-17호] 신종피싱 범죄유형별 피해사례와 행동요령을 확인하세요', date:'2026-08-12', url:'https://www.fsc.go.kr/pa050000?nlId=146' },
+  ],
+  'kicpa-notice': [
+    { title:'회계부정신고 현황 및 조치사례 등 유의사항 안내', date:'2026-08-18', url:'https://www.kicpa.or.kr/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page?action=READ&boardId=noti&bltnNo=11787027152202' },
+    { title:'2026년 재무제표 작성 시 유의사항 등 안내', date:'2026-07-08', url:'https://www.kicpa.or.kr/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page?action=READ&boardId=noti&bltnNo=11783474849722' },
+    { title:'2026년도 2분기 재무제표 회계투명성 및 감사품질 제고를 위한 유의사항 등 안내', date:'2026-07-08', url:'https://www.kicpa.or.kr/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page?action=READ&boardId=noti&bltnNo=11783474669248' },
+    { title:'2026년 비상장법인 재무제표에 대한 2027년 중점 점검분야 사전예고 안내', date:'2026-06-29', url:'https://www.kicpa.or.kr/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page?action=READ&boardId=noti&bltnNo=11782694559929' },
+    { title:'금융감독원 2026년 재무제표에 대한 중점심사 회계이슈·업종 사전예고', date:'2026-06-26', url:'https://www.kicpa.or.kr/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page?action=READ&boardId=noti&bltnNo=11782430951503' },
+    { title:'2026년도 1분기 재무제표 회계투명성 및 감사품질 제고를 위한 유의사항 등 안내', date:'2026-04-09', url:'https://www.kicpa.or.kr/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page?action=READ&boardId=noti&bltnNo=11775713692867' },
+    { title:'서울시 공동주택 관리규약 준칙 제81조(회계감사인의 선정 제한)에 대한 개정 안내', date:'2026-04-03', url:'https://www.kicpa.or.kr/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page?action=READ&boardId=noti&bltnNo=11775192503725' },
+    { title:'2025년 재무제표 작성 시 유의사항 등 안내', date:'2026-01-15', url:'https://www.kicpa.or.kr/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page?action=READ&boardId=noti&bltnNo=11768455684550' },
+    { title:'2025년도 4분기 재무제표 회계투명성 및 감사품질 제고를 위한 유의사항 등 안내', date:'2026-01-15', url:'https://www.kicpa.or.kr/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page?action=READ&boardId=noti&bltnNo=11768455330653' },
+    { title:'2025년 심사·감리 주요 지적사례 안내 및 2025년 비상장법인 재무제표에 대한 2026년 중점 점검분야 재안내', date:'2025-12-16', url:'https://www.kicpa.or.kr/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page?action=READ&boardId=noti&bltnNo=11765864272652' },
+    { title:'2025년도 3분기 재무제표 회계투명성 및 감사품질 제고를 위한 유의사항 등 안내', date:'2025-10-14', url:'https://www.kicpa.or.kr/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page?action=READ&boardId=noti&bltnNo=11760420149500' },
+  ],
+  'fsc-kfsc': [
+    { title:'2026년도 제1차 임시 금융위원회 회의결과', date:'2026-08-12', url:'https://www.fsc.go.kr/no020101/87509' },
+    { title:'2026년도 제11차 금융위원회 의사록, 안건 및 제재안건 의결서', date:'2026-08-12', url:'https://www.fsc.go.kr/no020101/87508' },
+    { title:'2026년도 제1차 금융위 서면회의 결과', date:'2026-08-05', url:'https://www.fsc.go.kr/no020101/87478' },
+    { title:'2026년도 제14차 금융위원회 회의결과', date:'2026-07-31', url:'https://www.fsc.go.kr/no020101/87460' },
+    { title:'2026년도 제10차 금융위원회 의사록, 안건 및 제재안건 의결서', date:'2026-07-24', url:'https://www.fsc.go.kr/no020101/87406' },
+    { title:'2026년도 제13차 금융위원회 회의결과', date:'2026-07-16', url:'https://www.fsc.go.kr/no020101/87349' },
+    { title:'2026년도 제9차 금융위원회 의사록, 안건 및 제재안건 의결서', date:'2026-07-10', url:'https://www.fsc.go.kr/no020101/87311' },
+    { title:'2026년도 제12차 금융위원회 회의결과', date:'2026-07-02', url:'https://www.fsc.go.kr/no020101/87243' },
+    { title:'2026년도 제8차 금융위원회 의사록, 안건 및 제재안건 의결서', date:'2026-06-26', url:'https://www.fsc.go.kr/no020101/87197' },
+    { title:'2026년도 제11차 금융위원회 회의결과', date:'2026-06-18', url:'https://www.fsc.go.kr/no020101/87147' },
+  ],
+  'fsc-ksec': [
+    { title:'2026년 제1차 증권선물위원회 임시회의 회의결과', date:'2026-08-11', url:'https://www.fsc.go.kr/no020102/87502' },
+    { title:'2026년 제10차 증권선물위원회 의사록(추가)', date:'2026-08-07', url:'https://www.fsc.go.kr/no020102/87484' },
+    { title:'2026년 제11차 증권선물위원회 안건 및 제재안건 의결서', date:'2026-08-07', url:'https://www.fsc.go.kr/no020102/87483' },
+    { title:'2026년 제14차 증권선물위원회 회의결과', date:'2026-07-23', url:'https://www.fsc.go.kr/no020102/87399' },
+    { title:'2026년 제10차 증권선물위원회 의사록, 안건 및 제재안건 의결서', date:'2026-07-16', url:'https://www.fsc.go.kr/no020102/87352' },
+    { title:'2026년 제13차 증권선물위원회 회의결과', date:'2026-07-09', url:'https://www.fsc.go.kr/no020102/87303' },
+    { title:'2026년 제9차 증권선물위원회 의사록, 안건 및 제재안건 의결서', date:'2026-07-03', url:'https://www.fsc.go.kr/no020102/87251' },
+    { title:'2026년 제12차 증권선물위원회 회의결과', date:'2026-06-25', url:'https://www.fsc.go.kr/no020102/87190' },
+    { title:'2026년 제8차 증권선물위원회 안건 및 제재안건 의결서', date:'2026-06-19', url:'https://www.fsc.go.kr/no020102/87154' },
+    { title:'2026년 제11차 증권선물위원회 회의결과', date:'2026-06-11', url:'https://www.fsc.go.kr/no020102/87087' },
+  ],
+  'ord-fsc': [
+    { title:'「금융위원회와 그 소속기관 직제 시행규칙」 일부개정령(안) 입법예고', date:'2026-08-11', url:'https://www.fsc.go.kr/po040301/view?noticeId=4164' },
+    { title:'「자본시장과 금융투자업에 관한 법률 시행령」 일부개정령안 입법예고', date:'2026-07-30', url:'https://www.fsc.go.kr/po040301/view?noticeId=4163' },
+    { title:'「증권의 발행 및 공시 등에 관한 규정」 일부개정고시안 규정변경예고', date:'2026-07-30', url:'https://www.fsc.go.kr/po040301/view?noticeId=4162' },
+    { title:'「자본시장과 금융투자업에 관한 법률 시행령」 일부개정령안 입법예고(2차)', date:'2026-07-30', url:'https://www.fsc.go.kr/po040301/view?noticeId=4161' },
+    { title:'「외부감사 및 회계 등에 관한 규정 일부개정고시안」 규정변경예고', date:'2026-07-24', url:'https://www.fsc.go.kr/po040301/view?noticeId=4160' },
+    { title:'「전기통신금융사기 피해 방지 및 피해금 환급에 관한 특별법 시행령 일부개정령안」 입법예고', date:'2026-07-15', url:'https://www.fsc.go.kr/po040301/view?noticeId=4159' },
+    { title:'「신용정보업감독규정」 일부개정고시(안) 규정변경 예고', date:'2026-07-10', url:'https://www.fsc.go.kr/po040301/view?noticeId=4158' },
+    { title:'「대부업 등의 등록 및 금융이용자 보호에 관한 법률 시행령 일부개정령(안)」 입법예고', date:'2026-07-06', url:'https://www.fsc.go.kr/po040301/view?noticeId=4157' },
+    { title:'「금융위원회와 그 소속기관 직제 시행규칙」 일부개정령(안) 입법예고', date:'2026-07-03', url:'https://www.fsc.go.kr/po040301/view?noticeId=4156' },
+    { title:'「전자금융거래법 시행령」 일부개정령안 입법예고 및 「전자금융감독규정」 일부개정고시안 규정변경예고', date:'2026-06-19', url:'https://www.fsc.go.kr/po040301/view?noticeId=4155' },
+  ],
+  'fss-press': [
+    { title:'금융소비자 보호를 위한 금융감독원 감독 방향', date:'2026-08-12', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1321&nttId=222569' },
+    { title:'2026년 상반기 금융감독원 주요 감독 실적', date:'2026-08-10', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1321&nttId=222500' },
+    { title:'기업 밸류업 지원을 위한 회계·공시 가이드라인 발표', date:'2026-08-05', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1321&nttId=222450' },
+    { title:'보험사 재무건전성 강화를 위한 감독 방향', date:'2026-07-31', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1321&nttId=222380' },
+    { title:'증권사 내부통제 실태점검 결과 및 개선 방안', date:'2026-07-28', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1321&nttId=222310' },
+    { title:'금융회사 IT 리스크 점검 결과 발표', date:'2026-07-25', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1321&nttId=222250' },
+    { title:'가계부채 동향 및 관리 방안', date:'2026-07-20', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1321&nttId=222180' },
+    { title:'2026년 2분기 금융시장 동향 및 전망', date:'2026-07-10', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1321&nttId=222050' },
+    { title:'금융감독원, 불법 사금융 특별 단속 결과 발표', date:'2026-07-03', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1321&nttId=221980' },
+    { title:'2026년 1분기 가계대출 동향', date:'2026-06-25', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1321&nttId=221800' },
+  ],
+  'fss-ref': [
+    { title:'[보도참고] 2026년 하반기 금융감독원 업무계획', date:'2026-08-11', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1322&nttId=222550' },
+    { title:'[보도참고] 금융소비자보호법 시행 5주년 성과 점검', date:'2026-07-30', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1322&nttId=222350' },
+    { title:'[보도참고] 2026년 상반기 금융민원 처리 현황', date:'2026-07-15', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1322&nttId=222100' },
+    { title:'[보도참고] 증권사 레버리지 비율 점검 결과', date:'2026-06-30', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1322&nttId=221900' },
+    { title:'[보도참고] 보험사 IFRS17 적용 현황 및 시사점', date:'2026-06-10', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1322&nttId=221650' },
+    { title:'[보도참고] 금융회사 ESG 공시 이행 현황 점검', date:'2026-05-25', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1322&nttId=221400' },
+  ],
+  'cpa-gamri': [
+    { title:'회계부정신고 현황 및 조치사례 등 유의사항 안내', date:'2026-08-19', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3739' },
+    { title:'2026년 회계법인 감사인 감리 사전간담회 개최…핵심 품질관리요소 집중점검 방안 안내', date:'2026-08-07', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3673' },
+    { title:'한국공인회계사회, 2025년 공동주택 감리 지적사례 공개', date:'2026-07-23', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3579' },
+    { title:'한국공인회계사회, 윤리적 요구사항 관련 품질관리 유의사항 사전 안내', date:'2026-07-10', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3507' },
+    { title:'한국공인회계사회, 올해 2분기 재무제표 회계투명성ㆍ감사품질 강화 유의사항 안내', date:'2026-07-09', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3506' },
+    { title:'한국공인회계사회, \'2025년 학교법인 회계감사 감리 지적사례\' 게시', date:'2026-07-03', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3477' },
+    { title:'한국공인회계사회, 올해 비상장회사 재무제표 \'중점심사 회계이슈\' 사전 예고', date:'2026-06-29', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3426' },
+    { title:'한공회, 2025년도 감리결과 증선위 보고…회계법인49개·감사반20개 점검', date:'2026-05-29', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3201' },
+    { title:'한공회, 사후심리 품질관리 유의사항 안내…감리 대비 체계적 운영 필요', date:'2026-05-28', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3174' },
+    { title:'한공회, 올해 감사반 감사인 감리 관련 사전간담회 개최', date:'2026-04-28', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=2984' },
+  ],
+  'cpa-audit': [
+    { title:'시행 앞둔 감사기준서 315·540·720 - 주요 개정사항', date:'2026-08-11', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3694' },
+    { title:'가상자산 감사 시 유의사항…실무적 접근을 중심으로', date:'2026-06-01', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3200' },
+    { title:'한공회, \'제9회 가치평가 포럼\' 개최', date:'2026-05-29', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3226' },
+    { title:'한공회 \'제9회 가치평가포럼\' 26일 개최', date:'2026-05-19', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3135' },
+    { title:'한공회, 공동품질관리제도 도입 및 SMP 지원 위한 3차 TF 본격 가동', date:'2026-05-12', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3069' },
+    { title:'한공회 \'제2회 AI혁신감사인증포럼\' 개최', date:'2026-04-30', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3009' },
+  ],
+  'cpa-std': [
+    { title:'[일반기업회계기준 해설 시리즈 ⑦] 종속기업 취득 및 처분과 관련한 일반기업회계기준과 K-IFRS의 차이', date:'2026-07-27', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3540' },
+    { title:'[K-IFRS 제1118호 시리즈 ⑤] 업종별 영업손익, 어떻게 달라지나', date:'2026-07-21', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3539' },
+    { title:'한국공인회계사회, \'전·당기 감사인 간 의견불일치 조정 협의회 운영성과 및 개선 방안\' 세미나 개최', date:'2026-07-06', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3486' },
+    { title:'[일반기업회계기준 해설 시리즈 ⑥] 자본 및 이익잉여금의 정의', date:'2026-06-29', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3344' },
+    { title:'[K-IFRS 제1118호 시리즈 ④] MPM - 자체 성과 지표, 재무제표 안으로', date:'2026-06-22', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3349' },
+    { title:'한공회, \'가상자산 감독지침 및 개선 방안\' 세미나 개최', date:'2026-06-12', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3321' },
+    { title:'경제정책 불확실성 시대, 가상자산 발행자 등의 정보공시 역할과 과제', date:'2026-06-02', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3202' },
+    { title:'[일반기업회계기준 해설 시리즈 ⑤] 동일지배거래 회계처리 적용 이슈', date:'2026-05-29', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3199' },
+    { title:'[K-IFRS 제1118호 시리즈 - ③] 영업이익의 재정의', date:'2026-05-22', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3151' },
+    { title:'회계정책연구원 2주년 기념 세미나…"회계정책 특화 연구기관 자리매김"', date:'2026-05-19', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3140' },
+  ],
+  'cpa-self': [
+    { title:'법원 "공동주택 외부회계감사 완료일, 현장감사 종료일로 단정하기 어려워"', date:'2026-07-22', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3577' },
+    { title:'"연 14조 지자체 민간위탁 사업, 회계감사 법제화 필요" 국회 입법토론회 개최', date:'2026-07-20', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3546' },
+    { title:'농협 외부감사 주기 \'1~2년\'으로 단축…주기적 감사인 지정제도 도입', date:'2026-06-24', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3418' },
+    { title:'공익법인 감사, 감리사례와 현장 쟁점 중심으로 배운다', date:'2026-06-19', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3378' },
+    { title:'"감사품질 확보가 관건"…한공회, 지역농협 감사 현장 의견 청취', date:'2026-04-30', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3006' },
+    { title:'\'현장에 필요한 교육\' 통했다…실무 해법 넓히는 한국공인회계사회', date:'2026-04-16', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=2883' },
+    { title:'용인특례시, 민간위탁 사업 외부 회계감사 도입', date:'2026-03-13', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=2662' },
+    { title:'개정 「농업협동조합법」 국회 본회의 통과...지역농협의 회계비리 해결의 길 열려', date:'2026-02-19', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=2535' },
+    { title:'"복잡한 서식은 덜고, 전문성은 더했다"… 한공회, 새마을금고 감사 솔루션 공개', date:'2025-12-11', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=2082' },
+    { title:'지방회계의 새로운 이정표, \'한국 지방자치단체 회계대상\'의 의의와 향후 과제', date:'2025-12-03', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=1957' },
+  ],
+};
+
+// ── STATE ──
+const BS = {};
+BOARDS.forEach(b => { BS[b.id]={items:[],fallback:false,loaded:false}; });
+const IS = { cpa:{page:0}, 'kicpa-notice':{page:0}, fss:{page:0}, 'fsc-sanction':{page:0}, 'fsc-news':{page:0}, ord:{page:0}, srch:{page:0} };
+
+let curCond    = 'AND';
+let srchItems  = [];
+let srchSort   = 'date-desc';
+
+// ── HELPERS ──
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function koDate(d) {
+  if (!d) return '';
+  const m = String(d).match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return d.substring(0,10);
+  const days = ['일','월','화','수','목','금','토'];
+  const dt = new Date(parseInt(m[1]), parseInt(m[2])-1, parseInt(m[3]));
+  const dow = days[dt.getDay()];
+  return `${parseInt(m[2])}/${parseInt(m[3])}(${dow})`;
+}
+
+function highlight(text, terms) {
+  let s = esc(text);
+  (terms||[]).forEach(t => {
+    const re = new RegExp(t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');
+    s = s.replace(re, x => '<mark>'+x+'</mark>');
+  });
+  return s;
+}
+
+function sourceInfo(it) {
+  if (it.inst === 'fss') return {name:'금융감독원', cls:'src-fss'};
+  if (it.inst === 'cpa' || it.inst === 'kicpa-notice') return {name:'KICPA', cls:'src-kicpa'};
+  return {name:'금융위원회', cls:'src-fsc'};
+}
+
+function relevanceScore(title, terms, rawQuery) {
+  const text = String(title||'').toLowerCase().replace(/\s+/g,' ').trim();
+  const phrase = String(rawQuery||'').toLowerCase().replace(/\s+/g,' ').trim();
+  let score = 0;
+  if (text === phrase) score += 1000;
+  if (phrase && text.startsWith(phrase)) score += 350;
+  if (phrase && text.includes(phrase)) score += 220;
+  terms.forEach(term => {
+    if (text === term) score += 150;
+    if (text.startsWith(term)) score += 55;
+    let pos = 0, count = 0;
+    while ((pos = text.indexOf(term, pos)) !== -1) { count++; pos += Math.max(1,term.length); }
+    score += Math.min(count,4) * 25;
+  });
+  if (terms.length && terms.every(term=>text.includes(term))) score += 90;
+  return score;
+}
+
+function sortSearchItems() {
+  srchItems.sort((a,b) => {
+    if (srchSort === 'relevance') return (b._score||0)-(a._score||0) || (b.date||'').localeCompare(a.date||'');
+    if (srchSort === 'date-asc') return (a.date||'9999-99-99').localeCompare(b.date||'9999-99-99') || (b._score||0)-(a._score||0);
+    return (b.date||'').localeCompare(a.date||'') || (b._score||0)-(a._score||0);
+  });
+}
+
+function changeSearchSort(value) {
+  srchSort = value;
+  sortSearchItems();
+  IS.srch.page = 0;
+  renderSearch();
+}
+
+// ── PARSERS ──
+function parseFSC(html, board) {
+  const doc = new DOMParser().parseFromString(html,'text/html');
+  const seen = new Set(), out = [];
+  doc.querySelectorAll(`a[href*="${board.linkPat}"]`).forEach(a => {
+    const href = a.getAttribute('href')||'';
+    if (!href || href===board.linkPat || href.endsWith('/')) return;
+    const url = new URL(href, board.fetchUrl).href;
+    const noticeId = new URL(url).searchParams.get('noticeId');
+    const urlBase = noticeId ? `${board.base}/po040301/view?noticeId=${encodeURIComponent(noticeId)}` : url.split('?')[0];
+    if (seen.has(urlBase)) return; seen.add(urlBase);
+    const title = (a.getAttribute('title') || a.textContent).trim().replace(/\s+/g,' ');
+    if (!title||title.length<4) return;
+    let date='';
+    const inner = a.closest('.inner') || a.closest('li') || a.closest('tr');
+    if (inner) {
+      const dayEl = inner.querySelector('.day');
+      if (dayEl) {
+        const m = dayEl.textContent.match(/(\d{4})-(\d{2})-(\d{2})/);
+        if (m) date = `${m[1]}-${m[2]}-${m[3]}`;
+      }
+    }
+    if (!date) {
+      let el = a.parentElement;
+      for (let i=0; i<8&&el; i++) {
+        const m = el.textContent.match(/(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
+        if (m) { date=`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`; break; }
+        el = el.parentElement;
+      }
+    }
+    out.push({title,date,url:urlBase});
+  });
+  return out.slice(0,60);
+}
+
+function parseNewsletter(html, board) {
+  const doc = new DOMParser().parseFromString(html,'text/html');
+  const out = [];
+  let currentDate = '';
+
+  doc.querySelectorAll('.title').forEach(el => {
+    if (currentDate) return;
+    const m = el.textContent.match(/(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
+    if (m) currentDate = `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  });
+
+  const select = doc.querySelector('select#nlId');
+  if (!select) return out;
+  const selectedId = select.value;
+  select.querySelectorAll('option[value]').forEach(option => {
+    const nlId = option.value.trim();
+    const title = option.textContent.trim().replace(/\s+/g,' ');
+    if (!nlId || !title) return;
+    out.push({
+      title,
+      date: nlId === selectedId ? currentDate : '',
+      url: `${board.base}/pa050000?nlId=${encodeURIComponent(nlId)}`,
+    });
+  });
+  return out.slice(0,60);
+}
+
+function parseKicpaNotice(html, board) {
+  const doc = new DOMParser().parseFromString(html,'text/html');
+  const seen = new Set(), out = [];
+  doc.querySelectorAll('a').forEach(a => {
+    const raw = `${a.getAttribute('href')||''} ${a.getAttribute('onclick')||''}`;
+    let idMatch = raw.match(/bltnNo(?:=|%3D|['",:\s]+)(\d{10,})/i);
+    if (!idMatch && /READ|readBulletin|actionBulletin/i.test(raw)) idMatch = raw.match(/(\d{10,})/);
+    if (!idMatch || seen.has(idMatch[1])) return;
+
+    const row = a.closest('tr') || a.closest('li') || a.parentElement;
+    const rowText = (row ? row.textContent : '').replace(/\s+/g,' ').trim();
+    const title = (a.getAttribute('title') || a.textContent).trim().replace(/\s+/g,' ');
+    if (!title || title.length < 3) return;
+    const dateMatch = rowText.match(/(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
+    const date = dateMatch ? `${dateMatch[1]}-${dateMatch[2].padStart(2,'0')}-${dateMatch[3].padStart(2,'0')}` : '';
+    const url = `${board.base}/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page?action=READ&boardId=noti&bltnNo=${idMatch[1]}`;
+    seen.add(idMatch[1]);
+    out.push({title,date,url});
+  });
+  return out.slice(0,60);
+}
+
+function parseFSS(html, board) {
+  const doc = new DOMParser().parseFromString(html,'text/html');
+  const seen = new Set(), out = [];
+  doc.querySelectorAll('a[href*="nttId"]').forEach(a => {
+    const href = a.getAttribute('href')||'';
+    const url = new URL(href, board.fetchUrl).href;
+    if (seen.has(url)) return; seen.add(url);
+    const title = a.textContent.trim().replace(/\s+/g,' ');
+    if (!title||title.length<4) return;
+    let date='';
+    const row = a.closest('tr');
+    if(row) row.querySelectorAll('td').forEach(td=>{
+      const m=td.textContent.match(/(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
+      if(m) date=`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+    });
+    out.push({title,date,url});
+  });
+  return out.slice(0,60);
+}
+
+function parseCPA(html, board) {
+  const doc = new DOMParser().parseFromString(html,'text/html');
+  const seen = new Set(), out = [];
+  doc.querySelectorAll('a[href*="articleView.html"]').forEach(a => {
+    const href = a.getAttribute('href')||'';
+    if (!href.includes('idxno=')) return;
+    const url = href.startsWith('http') ? href : board.base+href;
+    if (seen.has(url)) return; seen.add(url);
+    const title = a.textContent.trim().replace(/\s+/g,' ');
+    if (!title||title.length<4) return;
+    let date='';
+    const li = a.closest('li');
+    if (li) {
+      const byline = li.querySelector('.byline');
+      if (byline) {
+        byline.querySelectorAll('div').forEach(d => {
+          let m = d.textContent.match(/(\d{4})-(\d{2})-(\d{2})/);
+          if (m) { date=`${m[1]}-${m[2]}-${m[3]}`; return; }
+          m = d.textContent.trim().match(/^(\d{2})-(\d{2})\s/);
+          if (m) { const yr=new Date().getFullYear(); date=`${yr}-${m[1]}-${m[2]}`; }
+        });
+      }
+      if (!date) {
+        const m = li.textContent.match(/(\d{4})\.(\d{2})\.(\d{2})/);
+        if (m) date=`${m[1]}-${m[2]}-${m[3]}`;
+      }
+    }
+    out.push({title,date,url});
+  });
+  return out.slice(0,60);
+}
+
+// ── MERGED INST DATA ──
+function getInstItems(instId) {
+  const merged=[], seen=new Set();
+  BOARDS.filter(b=>b.inst===instId).forEach(board=>{
+    (BS[board.id].items||[]).forEach(item=>{
+      const key=(item.url||'')+'\x00'+(item.title||'');
+      if(seen.has(key)) return; seen.add(key);
+      merged.push({...item,boardId:board.id,label:board.label,showTag:board.showTag!==false,inst:instId,fallback:BS[board.id].fallback});
+    });
+  });
+  merged.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  return merged;
+}
+
+// ── PAGER HTML ──
+function buildPager(panelId, page, total) {
+  if (total <= 1) return '';
+  let start = Math.max(0, page - Math.floor(MAX_PG_BTNS/2));
+  let end   = Math.min(total-1, start + MAX_PG_BTNS - 1);
+  if (end - start < MAX_PG_BTNS - 1) start = Math.max(0, end - MAX_PG_BTNS + 1);
+
+  let h = `<button class="pg-arr" onclick="changePg('${panelId}',-1)" ${page===0?'disabled':''}>‹</button>`;
+  for(let i=start; i<=end; i++){
+    h += `<button class="pg-num${i===page?' active':''}" onclick="setPg('${panelId}',${i})">${i+1}</button>`;
+  }
+  h += `<button class="pg-arr" onclick="changePg('${panelId}',1)" ${page>=total-1?'disabled':''}>›</button>`;
+  return h;
+}
+
+// ── TAG COLORS ──
+const TAG_COLOR = {
+  'fsc-press':'background:#dbeafe;color:#1e40af',
+  'fsc-newsletter':'background:#e0f2fe;color:#0369a1',
+  'fsc-kfsc': 'background:#e0e7ff;color:#3730a3',
+  'fsc-ksec': 'background:#fef3c7;color:#92400e',
+  'ord-fsc':  'background:#dbeafe;color:#1e40af',
+  'fss-press':'background:#dbeafe;color:#1e40af',
+  'fss-ref':  'background:#e0e7ff;color:#3730a3',
+  'cpa-gamri':'background:#fef3c7;color:#92400e',
+  'cpa-audit':'background:#ccfbf1;color:#0f766e',
+  'cpa-std':  'background:#e0f2fe;color:#0369a1',
+  'cpa-self': 'background:#f1f5f9;color:#64748b',
+};
+
+// ── RENDER PANEL ──
+function renderInst(instId) {
+  const items = getInstItems(instId);
+  const s     = IS[instId];
+  const total = Math.max(1, Math.ceil(items.length/PG));
+  if (s.page >= total) s.page = 0;
+  const slice = items.slice(s.page*PG, s.page*PG+PG);
+
+  const listEl = document.getElementById('list-'+instId);
+  const pgEl   = document.getElementById('pg-'+instId);
+  const cntEl  = document.getElementById('cnt-'+instId);
+
+  if(cntEl) cntEl.textContent = items.length ? items.length+'건' : '';
+
+  if (!slice.length) {
+    listEl.innerHTML = '<div class="no-items">데이터 없음</div>';
+    pgEl.innerHTML = ''; return;
+  }
+
+  listEl.innerHTML = slice.map(it =>
+    `<a class="li" href="${esc(it.url||'#')}" target="${WIN}">
+      ${it.showTag ? `<span class="li-tag" style="${TAG_COLOR[it.boardId]||''}">[${esc(it.label)}]</span>` : ''}
+      <span class="li-title">${esc(it.title)}</span>
+      <span class="li-date">${koDate(it.date)}</span>
+    </a>`
+  ).join('');
+
+  pgEl.innerHTML = buildPager(instId, s.page, total);
+}
+
+// ── RENDER SEARCH ──
+function renderSearch() {
+  const s     = IS.srch;
+  const items = srchItems;
+  const total = Math.max(1, Math.ceil(items.length/PG));
+  if (s.page >= total) s.page = 0;
+  const slice = items.slice(s.page*PG, s.page*PG+PG);
+
+  const listEl = document.getElementById('list-srch');
+  const pgEl   = document.getElementById('pg-srch');
+  const cntEl  = document.getElementById('cnt-srch');
+
+  const terms = document.getElementById('sq').value.trim().split(/\s+/).filter(Boolean);
+  cntEl.textContent = items.length+'건';
+
+  if (!slice.length) {
+    listEl.innerHTML = '<div class="no-items">검색 결과가 없습니다</div>';
+    pgEl.innerHTML = ''; return;
+  }
+
+  listEl.innerHTML = slice.map(it => {
+    const src = sourceInfo(it);
+    return `<a class="li" href="${esc(it.url||'#')}" target="${WIN}">
+      <span class="source-badge ${src.cls}">${src.name}</span>
+      ${it.showTag && it.label ? `<span class="li-tag" style="${TAG_COLOR[it.boardId]||''}">${esc(it.label)}</span>` : ''}
+      ${it.fallback ? '<span class="fallback-badge" title="실시간 수집 실패로 파일에 저장된 기본자료를 표시합니다">저장자료</span>' : ''}
+      <span class="li-title">${highlight(it.title, terms)}</span>
+      <span class="li-date">${koDate(it.date)}</span>
+    </a>`;
+  }).join('');
+
+  pgEl.innerHTML = buildPager('srch', s.page, total);
+}
+
+// ── PAGINATION ──
+function changePg(instId, delta) {
+  if (instId === 'srch') {
+    const total = Math.max(1, Math.ceil(srchItems.length/PG));
+    IS.srch.page = Math.max(0, Math.min(total-1, IS.srch.page+delta));
+    renderSearch();
+  } else {
+    const items = getInstItems(instId);
+    const total = Math.max(1, Math.ceil(items.length/PG));
+    IS[instId].page = Math.max(0, Math.min(total-1, IS[instId].page+delta));
+    renderInst(instId);
+  }
+}
+function setPg(instId, page) {
+  if (instId === 'srch') {
+    IS.srch.page = page; renderSearch();
+  } else {
+    IS[instId].page = page; renderInst(instId);
+  }
+}
+
+// ── SEARCH ──
+function doSearch(cond) {
+  const q = document.getElementById('sq').value.trim();
+  if (!q) { clearSearch(); return; }
+  curCond = cond;
+  document.getElementById('btn-and').classList.toggle('active', cond==='AND');
+  document.getElementById('btn-or').classList.toggle('active',  cond==='OR');
+
+  const lower = q.split(/\s+/).filter(Boolean).map(t=>t.toLowerCase());
+  const all = [], seen = new Set();
+  ['cpa','kicpa-notice','fss','fsc-sanction','fsc-news','ord'].forEach(id => getInstItems(id).forEach(it => {
+    const key = (it.url||'')+'\x00'+(it.title||'');
+    if (!seen.has(key)) { seen.add(key); all.push(it); }
+  }));
+
+  srchItems = all.filter(it => {
+    const txt = (it.title||'').toLowerCase();
+    return cond==='AND' ? lower.every(t=>txt.includes(t)) : lower.some(t=>txt.includes(t));
+  }).map(it => ({...it,_score:relevanceScore(it.title,lower,q)}));
+  sortSearchItems();
+
+  IS.srch.page = 0;
+  document.getElementById('panel-srch').style.display = '';
+  document.getElementById('srch-label').textContent = `"${q}" · ${cond}`;
+  ['cpa','kicpa-notice','fss','fsc-sanction','fsc-news','ord'].forEach(id => document.getElementById('panel-'+id).style.display='none');
+  renderSearch();
+}
+
+function clearSearch() {
+  document.getElementById('sq').value = '';
+  document.getElementById('btn-and').classList.add('active');
+  document.getElementById('btn-or').classList.remove('active');
+  document.getElementById('panel-srch').style.display = 'none';
+  ['cpa','kicpa-notice','fss','fsc-sanction','fsc-news','ord'].forEach(id => document.getElementById('panel-'+id).style.display='');
+  srchItems = []; curCond = 'AND'; srchSort = 'date-desc';
+  const sortEl = document.getElementById('search-sort'); if(sortEl) sortEl.value = srchSort;
+}
+
+// ── FETCH (멀티 페이지, 최소 60일 필터) ──
+const MIN_CUTOFF_DAYS = 60;
+const CUTOFF_DAYS = 120;
+
+function cutoffDate(days=CUTOFF_DAYS) {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toISOString().substring(0,10); // 'YYYY-MM-DD'
+}
+
+function pageUrl(board, pageNum) {
+  if (board.parser === 'fss') return board.fetchUrl + '&pageIndex=' + pageNum;
+  if (board.parser === 'cpa') return board.fetchUrl + '&page=' + pageNum;
+  if (board.parser === 'fsc') return pageNum === 1 ? board.fetchUrl : board.fetchUrl + '?curPage=' + pageNum;
+  if (board.parser === 'kicpaNotice') return pageNum === 1 ? board.fetchUrl : board.fetchUrl + '&page=' + pageNum;
+  return board.fetchUrl;
+}
+
+function parseHtml(html, board) {
+  if (board.parser==='fsc') return parseFSC(html,board);
+  if (board.parser==='newsletter') return parseNewsletter(html,board);
+  if (board.parser==='fss') return parseFSS(html,board);
+  if (board.parser==='cpa') return parseCPA(html,board);
+  if (board.parser==='kicpaNotice') return parseKicpaNotice(html,board);
+  return [];
+}
+
+async function fetchBoard(board) {
+  // 개별 설정이 60일보다 짧으면 60일로 올리고, 더 긴 설정은 그대로 유지
+  const effectiveCutoffDays = Math.max(MIN_CUTOFF_DAYS, board.cutoffDays || CUTOFF_DAYS);
+  const cutoff = cutoffDate(effectiveCutoffDays);
+  const seen   = new Set();
+  const all    = [];
+  const MAX_PAGES = board.parser === 'newsletter' ? 1 : (board.parser === 'fsc' ? 8 : 4);
+
+  for (let pg = 1; pg <= MAX_PAGES; pg++) {
+    const url  = pageUrl(board, pg);
+    const resp = await fetch(PROXY+encodeURIComponent(url), {signal:AbortSignal.timeout(11000)});
+    if (!resp.ok) break;
+    const html  = await resp.text();
+    const items = parseHtml(html, board);
+    if (!items.length) break;
+
+    let reachedOld = false;
+    for (const it of items) {
+      const key = (it.url||'')+'\x00'+(it.title||'');
+      if (seen.has(key)) continue; seen.add(key);
+      // 날짜가 있으면 게시판별 적용 기간을 확인하고, 날짜가 없으면 포함
+      if (it.date && it.date < cutoff) { reachedOld = true; continue; }
+      all.push(it);
+    }
+    if (reachedOld) break; // 더 오래된 페이지는 불필요
+  }
+  return all;
+}
+
+async function loadBoard(board) {
+  try {
+    const items = await fetchBoard(board);
+    if (!items.length) throw new Error('empty');
+    BS[board.id].items    = items;
+    BS[board.id].fallback = false;
+    } catch(_) {
+    const fb = FB[board.id]||[];
+    BS[board.id].items = fb;
+    BS[board.id].fallback = true;
+  }
+  BS[board.id].loaded = true;
+  renderInst(board.inst);
+}
+
+async function doRefresh() {
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('loading');
+  clearSearch();
+  BOARDS.forEach(b => { BS[b.id]={items:[],fallback:false,loaded:false}; });
+  ['cpa','kicpa-notice','fss','fsc-sanction','fsc-news','ord'].forEach(id => {
+    IS[id].page = 0;
+    document.getElementById('list-'+id).innerHTML = '<div class="loading-row"><div class="spinner"></div>불러오는 중...</div>';
+    document.getElementById('pg-'+id).innerHTML = '';
+    const ce = document.getElementById('cnt-'+id); if(ce) ce.textContent='';
+  });
+  await Promise.allSettled(BOARDS.map(b => loadBoard(b)));
+  btn.classList.remove('loading');
+  updateTs();
+}
+
+function updateTs() {
+  const n=new Date(), p=x=>String(x).padStart(2,'0');
+  document.getElementById('ts').textContent =
+    `${n.getFullYear()}.${p(n.getMonth()+1)}.${p(n.getDate())} ${p(n.getHours())}:${p(n.getMinutes())} 기준`;
+}
+
+// ── LOCAL POST-ITS & IMAGE BOARD ──
+const MEMO_KEY = 'cpa-news-memos-v2';
+const MEMO_COLORS = ['yellow','blue','green','pink','peach'];
+let memoState = loadMemoState();
+let savedImage = localStorage.getItem('cpa-news-image-board') || '';
+let savedImageName = localStorage.getItem('cpa-news-image-name') || 'image.png';
+
+function newMemo(col, text='') {
+  return {id:Date.now().toString(36)+Math.random().toString(36).slice(2),text,done:false,color:col==='today'?'yellow':'blue'};
+}
+function loadMemoState() {
+  try {
+    const parsed=JSON.parse(localStorage.getItem(MEMO_KEY)||'null');
+    if (parsed && Array.isArray(parsed.today) && Array.isArray(parsed.week)) return parsed;
+  } catch(_) {}
+  const oldToday=localStorage.getItem('cpa-news-postit-1')||'';
+  const oldWeek=localStorage.getItem('cpa-news-postit-2')||'';
+  return {today:[newMemo('today',oldToday)],week:[newMemo('week',oldWeek)]};
+}
+function saveMemos() { localStorage.setItem(MEMO_KEY,JSON.stringify(memoState)); }
+function renderMemoColumn(col) {
+  const list=document.getElementById('memo-list-'+col);
+  const items=memoState[col];
+  const countEl=document.getElementById('memo-count-'+col); if(countEl) countEl.textContent=items.length;
+  list.innerHTML=items.map(m=>`<article class="memo-card ${MEMO_COLORS.includes(m.color)?m.color:'yellow'}${m.done?' done':''}" data-memo="${m.id}">
+    <button class="memo-delete" type="button" onclick="deleteMemo('${col}','${m.id}')" aria-label="메모 삭제">×</button>
+    <textarea class="memo-text" aria-label="메모 내용" oninput="updateMemo('${col}','${m.id}',this.value);this.style.height='auto';this.style.height=this.scrollHeight+'px'">${esc(m.text)}</textarea>
+    <div class="memo-tools">${MEMO_COLORS.map(c=>`<button class="memo-color${m.color===c?' selected':''}" type="button" data-color="${c}" onclick="setMemoColor('${col}','${m.id}','${c}')" title="${c}">${m.color===c?'✓':''}</button>`).join('')}</div>
+  </article>`).join('');
+  list.querySelectorAll('.memo-text').forEach(x=>{x.style.height='auto';x.style.height=Math.max(34,x.scrollHeight)+'px';});
+}
+function addMemo(col) {
+  const memo=newMemo(col); memoState[col].push(memo); saveMemos(); renderMemoColumn(col);
+  setTimeout(()=>document.querySelector(`[data-memo="${memo.id}"] .memo-text`)?.focus(),0);
+}
+function deleteMemo(col,id) { memoState[col]=memoState[col].filter(x=>x.id!==id); saveMemos(); renderMemoColumn(col); }
+function toggleMemo(col,id) { const m=memoState[col].find(x=>x.id===id); if(m){m.done=!m.done;saveMemos();renderMemoColumn(col);} }
+function setMemoColor(col,id,color) { const m=memoState[col].find(x=>x.id===id); if(m&&MEMO_COLORS.includes(color)){m.color=color;saveMemos();renderMemoColumn(col);} }
+function updateMemo(col,id,text) { const m=memoState[col].find(x=>x.id===id); if(m){m.text=text;saveMemos();} }
+function saveMemoPanel() { saveMemos(); }
+function deleteLatestMemo(col) {
+  if(!memoState[col].length || !confirm('가장 최근 메모 1개를 삭제할까요?')) return;
+  memoState[col].pop(); saveMemos(); renderMemoColumn(col);
+}
+function deleteLatestAnyMemo() {
+  const candidates=['today','week'].filter(c=>memoState[c].length).map(c=>({col:c,memo:memoState[c][memoState[c].length-1]}));
+  if(!candidates.length || !confirm('가장 최근 메모 1개를 삭제할까요?')) return;
+  candidates.sort((a,b)=>String(b.memo.id).localeCompare(String(a.memo.id)));
+  memoState[candidates[0].col].pop(); saveMemos(); renderMemoColumn('today'); renderMemoColumn('week');
+}
+function clearAllMemos() {
+  if(!confirm('포스트잇 메모를 모두 삭제할까요?')) return;
+  memoState={today:[],week:[]}; saveMemos(); renderMemoColumn('today'); renderMemoColumn('week');
+}
+
+function initLocalWorkspace() {
+  saveMemos(); renderMemoColumn('today'); renderMemoColumn('week');
+  document.addEventListener('keydown', e => { if(e.ctrlKey && e.key.toLowerCase()==='s'){ e.preventDefault(); saveMemos(); } });
+  const board = document.getElementById('image-board');
+  const input = document.getElementById('image-input');
+  board.addEventListener('click', () => input.click());
+  board.addEventListener('keydown', e => { if (e.key==='Enter' || e.key===' ') { e.preventDefault(); input.click(); } });
+  input.addEventListener('change', e => { if (e.target.files[0]) storeImage(e.target.files[0]); input.value=''; });
+  board.addEventListener('dragover', e => { e.preventDefault(); board.classList.add('drag'); });
+  board.addEventListener('dragleave', () => board.classList.remove('drag'));
+  board.addEventListener('drop', e => { e.preventDefault(); board.classList.remove('drag'); if (e.dataTransfer.files[0]) storeImage(e.dataTransfer.files[0]); });
+  document.getElementById('image-panel').addEventListener('paste', e => {
+    const item = [...e.clipboardData.items].find(x => x.type.startsWith('image/'));
+    if (item) storeImage(item.getAsFile());
+  });
+  renderSavedImage();
+}
+
+function downloadData(data, name) {
+  const a = document.createElement('a'); a.href=data; a.download=name; a.click();
+}
+function downloadNotes(col) {
+  const text = memoState[col].map(x=>(x.done?'[완료] ':'')+x.text).join('\r\n\r\n');
+  const url = URL.createObjectURL(new Blob([text], {type:'text/plain;charset=utf-8'}));
+  downloadData(url, `CPA-NEWS-${col==='today'?'Today':'This-Week'}.txt`);
+  setTimeout(() => URL.revokeObjectURL(url), 500);
+}
+function backupMemos(col) {
+  const url=URL.createObjectURL(new Blob([JSON.stringify({version:2,column:col,memos:memoState[col]},null,2)],{type:'application/json'}));
+  downloadData(url,`CPA-NEWS-${col==='today'?'Today':'This-Week'}-백업.json`);
+  setTimeout(()=>URL.revokeObjectURL(url),500);
+}
+function backupAllMemos() {
+  const url=URL.createObjectURL(new Blob([JSON.stringify({version:2,memos:memoState},null,2)],{type:'application/json'}));
+  downloadData(url,'CPA-NEWS-포스트잇-전체-백업.json'); setTimeout(()=>URL.revokeObjectURL(url),500);
+}
+function restoreMemos(col,event) {
+  const file=event.target.files?.[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try {
+      const data=JSON.parse(reader.result); const items=Array.isArray(data)?data:data.memos;
+      if(!Array.isArray(items)) throw new Error('invalid');
+      memoState[col]=items.map(x=>({id:x.id||newMemo(col).id,text:String(x.text||''),done:!!x.done,color:MEMO_COLORS.includes(x.color)?x.color:(col==='today'?'yellow':'blue')}));
+      saveMemos(); renderMemoColumn(col);
+    } catch(_) { alert('올바른 포스트잇 백업 파일이 아닙니다.'); }
+    event.target.value='';
+  };
+  reader.readAsText(file);
+}
+function clearMemos(col) {
+  if(!confirm(`${col==='today'?'Today':'This Week'} 메모를 모두 삭제할까요?`)) return;
+  memoState[col]=[]; saveMemos(); renderMemoColumn(col);
+}
+function storeImage(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const ratio = Math.min(1, 1400 / Math.max(img.width,img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(img.width*ratio)); canvas.height = Math.max(1, Math.round(img.height*ratio));
+      canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+      savedImage = canvas.toDataURL(file.type==='image/png'?'image/png':'image/jpeg',.86);
+      savedImageName = file.name || 'image.png';
+      try { localStorage.setItem('cpa-news-image-board',savedImage); localStorage.setItem('cpa-news-image-name',savedImageName); }
+      catch(_) { alert('이미지 크기가 커서 저장할 수 없습니다. 더 작은 이미지를 선택해 주세요.'); return; }
+      renderSavedImage();
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+function renderSavedImage() {
+  const board=document.getElementById('image-board');
+  board.innerHTML = savedImage ? `<img src="${savedImage}" alt="저장된 이미지">` : '<div class="image-empty"><b>＋</b><strong>이미지 1</strong><small>클릭 · 드래그 · 붙여넣기</small></div>';
+  document.getElementById('image-download').hidden=!savedImage;
+  document.getElementById('image-clear').hidden=!savedImage;
+}
+function downloadImage() { if (savedImage) downloadData(savedImage,savedImageName); }
+function saveImagePanel() {
+  if(!savedImage) return;
+  try { localStorage.setItem('cpa-news-image-board',savedImage); localStorage.setItem('cpa-news-image-name',savedImageName); }
+  catch(_) { alert('이미지를 저장할 수 없습니다.'); }
+}
+function clearImage() {
+  if (!savedImage || !confirm('이미지보드를 비울까요?')) return;
+  savedImage=''; savedImageName='image.png';
+  localStorage.removeItem('cpa-news-image-board'); localStorage.removeItem('cpa-news-image-name');
+  renderSavedImage();
+}
+
+// ── INIT ──
+updateTs();
+initLocalWorkspace();
+BOARDS.forEach(b => loadBoard(b));
+</script>
+</body>
+</html>
