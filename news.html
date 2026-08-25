@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KICPA NEWS</title>
+<title>CPA NEWS</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html,body{min-height:100%;font-family:'나눔고딕','NanumGothic','함초롬돋움','HCR Dotum','Noto Sans KR','돋움체','Dotum',sans-serif;background:#f7fafc;font-size:13px;color:#1e293b;}
@@ -77,7 +77,6 @@ html{scrollbar-width:thin;scrollbar-color:#bfeaff #fff;}
 .li-tag{display:inline-block;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;flex-shrink:0;white-space:nowrap;line-height:1.5;vertical-align:middle;}
 .source-badge{min-width:66px;text-align:center;border:1px solid transparent;font-size:9px;font-weight:800;padding:3px 6px;border-radius:4px;flex-shrink:0;white-space:nowrap;}
 .src-fsc{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}.src-fss{background:#eef2ff;border-color:#c7d2fe;color:#4338ca}.src-kicpa{background:#ecfdf5;border-color:#a7f3d0;color:#047857}
-.fallback-badge{font-size:8.5px;color:#9a6700;background:#fffbeb;border:1px solid #fde68a;border-radius:4px;padding:2px 4px;white-space:nowrap;flex-shrink:0}
 .search-tools{margin-left:auto;display:flex;align-items:center;gap:7px}.search-sort-label{font-size:10px;color:#94a3b8}.search-sort{height:28px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;padding:0 24px 0 8px;font:700 10.5px inherit;outline:none}.search-sort:focus{border-color:#38bdf8;box-shadow:0 0 0 2px rgba(56,189,248,.12)}
 .no-items{padding:20px;text-align:center;color:#9ca3af;font-size:12px;}
 .loading-row{padding:20px;text-align:center;color:#9ca3af;font-size:12px;display:flex;align-items:center;justify-content:center;gap:6px;}
@@ -111,7 +110,7 @@ html{scrollbar-width:thin;scrollbar-color:#bfeaff #fff;}
 .memo-card{position:relative;min-height:110px;border-radius:8px;padding:10px 28px 36px 10px;box-shadow:2px 3px 8px rgba(41,72,95,.07);}
 .memo-card.yellow{background:#fffce3}.memo-card.blue{background:#edf8ff}.memo-card.green{background:#f1faed}.memo-card.pink{background:#fff1f5}.memo-card.peach{background:#fff6ea}
 .memo-card.done{opacity:.68}.memo-card.done .memo-text{text-decoration:line-through;}
-.memo-text{width:100%;min-height:34px;border:0;background:transparent;resize:none;outline:0;color:#454545;font:11px/1.55 inherit;overflow:hidden;}
+.memo-text{width:100%;min-height:34px;border:0;background:transparent;resize:none;outline:0;color:#454545;font-family:'나눔고딕','NanumGothic','함초롬돋움','HCR Dotum','Noto Sans KR','돋움체','Dotum',sans-serif;font-size:11.8px;font-weight:400;line-height:1.45;letter-spacing:-.15px;overflow:hidden;}
 .memo-delete{position:absolute;right:6px;top:6px;width:20px;height:20px;border:0;border-radius:5px;background:rgba(255,255,255,.72);color:#64748b;cursor:pointer;}
 .memo-tools{position:absolute;left:10px;bottom:8px;display:flex;align-items:center;gap:3px;}
 .memo-color{width:20px;height:20px;border:0;border-radius:5px;background:rgba(255,255,255,.75);color:#0f766e;font-size:11px;font-weight:900;cursor:pointer;}
@@ -119,9 +118,11 @@ html{scrollbar-width:thin;scrollbar-color:#bfeaff #fff;}
 .memo-color.selected{box-shadow:inset 0 0 0 1px rgba(71,85,105,.13),0 1px 3px rgba(51,65,85,.08);}
 .add-memo{width:100%;margin-top:8px;border:1px dashed #b9d3e6;border-radius:8px;background:rgba(255,255,255,.72);padding:8px;color:#71869a;font:600 10px inherit;cursor:pointer;}
 .add-memo:hover{background:#fff;color:#2563eb;border-color:#93c5fd;}
-.image-board{height:110px;border:1.5px dashed #9fd3f1;border-radius:10px;background:#eef8ff;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;position:relative;color:#7292aa;}
+.image-board{min-height:110px;height:auto;border:1.5px dashed #9fd3f1;border-radius:10px;background:#eef8ff;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;position:relative;color:#7292aa;}
 .image-board.drag{background:#eaf6ff;border-color:#60a5fa;}
-.image-board img{width:100%;height:100%;object-fit:contain;background:#f8fbff;}
+.image-board img{display:block;width:100%;height:auto;max-width:100%;object-fit:contain;background:#f8fbff;}
+.ph-status{font-size:9px;white-space:nowrap;flex-shrink:0;margin-left:2px;font-weight:700;}
+.ph-status.ok{color:#10b981;}.ph-status.cache{color:#f59e0b;}.ph-status.fail{color:#ef4444;}
 .image-empty{text-align:center;font-size:10px;line-height:1.7;display:flex;flex-direction:column;align-items:center;gap:3px;}
 .image-empty b{width:32px;height:32px;display:grid;place-items:center;border-radius:11px;background:#fff;color:#178dca;font-size:20px;font-weight:400;}
 .image-empty strong{font-size:11px;color:#5f8298;}.image-empty small{font-size:9px;color:#86a3b5;}
@@ -134,11 +135,58 @@ html{scrollbar-width:thin;scrollbar-color:#bfeaff #fff;}
 .jump-down{top:10px;}
 .jump-top{bottom:14px;}
 @media(max-width:900px){.panels-grid{grid-template-columns:1fr}.board-controls{flex-wrap:wrap;position:static}#search-area{order:3;width:100%;max-width:none}.search-tools{width:100%;margin-left:0;justify-content:flex-end}.source-badge{min-width:58px}#wrap{padding:0 12px 30px}}
+
+/* ── URL CONFIG PANEL ── */
+.url-cfg-toggle{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:5px 11px;font-size:11px;font-weight:700;cursor:pointer;color:#64748b;white-space:nowrap;transition:all .15s;}
+.url-cfg-toggle:hover{background:#eff6ff;border-color:#93c5fd;color:#2563eb;}
+.url-cfg-toggle.open{background:#eff6ff;border-color:#93c5fd;color:#2563eb;}
+#url-cfg-panel{display:none;background:#f8fbff;border:1px solid #dde7ef;border-radius:8px;padding:14px 18px;margin-bottom:14px;}
+#url-cfg-panel.open{display:block;}
+.url-cfg-title{font-size:11.5px;font-weight:800;color:#334155;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #e8eff5;}
+.url-cfg-grid{display:grid;grid-template-columns:190px 1fr auto;gap:7px 12px;align-items:center;}
+.url-cfg-label{font-size:11px;font-weight:700;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.url-cfg-input{border:1px solid #e2e8f0;border-radius:5px;padding:5px 8px;font-size:10.5px;color:#334155;background:#fff;outline:none;width:100%;font-family:monospace;}
+.url-cfg-input:focus{border-color:#0d9488;box-shadow:0 0 0 2px rgba(13,148,136,.1);}
+.url-cfg-btns{display:flex;gap:4px;}
+.url-cfg-apply{border:1px solid #0d9488;border-radius:5px;background:#fff;color:#0d9488;font:700 10px inherit;padding:4px 9px;cursor:pointer;white-space:nowrap;}
+.url-cfg-apply:hover{background:#0d9488;color:#fff;}
+.url-cfg-reset-btn{border:1px solid #e2e8f0;border-radius:5px;background:#fff;color:#94a3b8;font:700 10px inherit;padding:4px 9px;cursor:pointer;white-space:nowrap;}
+.url-cfg-reset-btn:hover{border-color:#f87171;color:#ef4444;}
+.url-cfg-divider{grid-column:1/-1;border:0;border-top:1px dashed #e8eff5;margin:2px 0;}
+.url-cfg-title-input{font-family:inherit;font-weight:700;color:#1e3a5f;background:#fdfefe;}
+.url-cfg-label-input{font-family:inherit;font-weight:700;color:#475569;}
+.url-cfg-group-head{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:2px;color:#334155;font-size:11.5px;font-weight:800;}
+.url-cfg-add{border:1px dashed #38bdf8;border-radius:5px;background:#f0f9ff;color:#0284c7;font:800 10px inherit;padding:4px 9px;cursor:pointer;}
+.url-cfg-delete{border:1px solid #fecaca;border-radius:5px;background:#fff;color:#dc2626;font:700 10px inherit;padding:4px 9px;cursor:pointer;white-space:nowrap;}
+.url-cfg-footer{margin-top:15px;padding-top:13px;border-top:1px solid #dce8f1;display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+.admin-password-change{display:flex;align-items:flex-end;gap:6px;flex-wrap:wrap;}
+.admin-password-field{display:flex;flex-direction:column;gap:4px;}
+.admin-password-field label{font-size:9.5px;font-weight:700;color:#64748b;}
+.admin-password-field input{width:130px;border:1px solid #dbe5ed;border-radius:5px;padding:5px 8px;font-size:10.5px;outline:none;}
+.url-cfg-final-actions{display:flex;gap:7px;margin-left:auto;}
+.url-cfg-save-all,.url-cfg-cancel-all{border:0;border-radius:6px;padding:7px 18px;font:800 11px inherit;cursor:pointer;}
+.url-cfg-save-all{background:#0d9488;color:#fff;}.url-cfg-save-all:hover{background:#0f766e;}
+.url-cfg-cancel-all{background:#e9eff5;color:#64748b;}.url-cfg-cancel-all:hover{background:#dce6ef;color:#334155;}
+
+/* ── 관리자 인증 ── */
+.admin-auth-backdrop[hidden]{display:none!important;}
+.admin-auth-backdrop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:rgba(15,23,42,.28);padding:20px;}
+.admin-auth-modal{width:min(360px,calc(100vw - 40px));background:#fff;border:1px solid #66d7cd;border-radius:18px;padding:27px 34px 24px;box-shadow:0 18px 55px rgba(15,23,42,.2);text-align:center;}
+.admin-auth-modal h3{font-size:16px;color:#0f766e;margin-bottom:8px;}
+.admin-auth-modal p{font-size:11.5px;color:#94a3b8;margin-bottom:17px;}
+.admin-auth-modal input{width:100%;height:42px;border:1px solid #0d9488;border-radius:12px;background:#f8fffe;padding:0 14px;text-align:center;font:700 15px/1 inherit;letter-spacing:.28em;color:#334155;outline:none;}
+.admin-auth-modal input:focus{box-shadow:0 0 0 3px rgba(13,148,136,.13);}
+.admin-auth-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:22px;}
+.admin-auth-actions button{height:40px;border:0;border-radius:11px;font:800 12px inherit;cursor:pointer;}
+.admin-auth-cancel{background:#eef3f8;color:#64748b;}
+.admin-auth-confirm{background:#1198a5;color:#fff;}
+.admin-auth-confirm:hover{background:#0f7f8a;}
 </style>
 </head>
 <body>
-<br><br>
+
 <div id="wrap">
+  <br><br><br>
   <div class="board-controls" aria-label="게시판 검색 및 새로고침">
     <div class="logo"><img class="top-brand-logo" src="https://gw.kicpa.kr/upload/img/logo/kicpa/1202//IMG_COMP_LOGO_1202.png" alt="KICPA"><span>NEWS</span></div>
     <span id="ts"></span>
@@ -148,8 +196,29 @@ html{scrollbar-width:thin;scrollbar-color:#bfeaff #fff;}
       <button class="sb" id="btn-or"  onclick="doSearch('OR')">OR</button>
       <button class="sb" id="btn-clr" onclick="clearSearch()">초기화</button>
     </div>
+    <button class="url-cfg-toggle" id="url-cfg-btn" onclick="toggleUrlCfg()" title="게시판 타이틀 및 URL 설정">⚙ URL 설정</button>
     <button id="refresh-btn" onclick="doRefresh()"><span class="spin">↻</span> 새로고침</button>
   </div>
+
+
+  <!-- URL 설정 패널 -->
+  <div id="url-cfg-panel">
+    <div class="url-cfg-title">📌 게시판 관리 — 편집 후 [저장 후 열기]를 누르면 다운로드 폴더에서 저장 위치를 확인하고, 설정이 포함된 HTML을 저장한 뒤 새 화면으로 엽니다. 다음 저장부터는 허용된 같은 파일에 바로 반영됩니다.</div>
+    <div class="url-cfg-grid" id="url-cfg-grid"><!-- JS로 채워짐 --></div>
+    <div class="url-cfg-footer">
+      <div class="admin-password-change">
+        <div class="admin-password-field"><label for="admin-current-password">현재 암호</label><input type="password" id="admin-current-password" autocomplete="current-password"></div>
+        <div class="admin-password-field"><label for="admin-new-password">새 암호</label><input type="password" id="admin-new-password" autocomplete="new-password"></div>
+        <div class="admin-password-field"><label for="admin-confirm-password">새 암호 확인</label><input type="password" id="admin-confirm-password" autocomplete="new-password"></div>
+        <button type="button" class="url-cfg-apply" onclick="stageAdminPasswordChange()">암호 변경</button>
+      </div>
+      <div class="url-cfg-final-actions">
+        <button type="button" class="url-cfg-cancel-all" onclick="cancelAdminSettings()">취소</button>
+        <button type="button" class="url-cfg-save-all" onclick="saveAdminSettings()">저장 후 열기</button>
+      </div>
+    </div>
+  </div>
+
   <div class="panels-grid" id="grid">
 
     <!-- ① 검색결과 (숨김 상태) -->
@@ -175,9 +244,9 @@ html{scrollbar-width:thin;scrollbar-color:#bfeaff #fff;}
     <!-- ② KICPA NEWS -->
     <div class="panel" id="panel-cpa">
       <div class="ph ph-cpa">
-        <span class="ph-name ph-name-cpa">KICPA NEWS</span>
+        <span class="ph-name ph-name-cpa" id="title-cpa">KICPA NEWS</span>
         <span class="ph-cnt" id="cnt-cpa"></span>
-
+        <span class="ph-status" id="status-cpa"></span>
         <a href="https://news.kicpa.or.kr" target="NEWS" class="ph-link board-link" title="KICPA 뉴스 바로가기">게시판→</a>
       </div>
       <div class="pl" id="list-cpa"><div class="loading-row"><div class="spinner"></div>불러오는 중...</div></div>
@@ -187,8 +256,9 @@ html{scrollbar-width:thin;scrollbar-color:#bfeaff #fff;}
     <!-- ③ KICPA 공지사항 (자율행정팀) -->
     <div class="panel" id="panel-kicpa-notice">
       <div class="ph ph-cpa">
-        <span class="ph-name ph-name-cpa">KICPA 공지사항</span>
+        <span class="ph-name ph-name-cpa" id="title-kicpa-notice">KICPA 공지사항</span>
         <span class="ph-cnt" id="cnt-kicpa-notice"></span>
+        <span class="ph-status" id="status-kicpa-notice"></span>
         <a href="https://www.kicpa.or.kr/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page" target="NEWS" class="ph-link board-link" title="KICPA 공지사항 바로가기">게시판→</a>
       </div>
       <div class="pl" id="list-kicpa-notice"><div class="loading-row"><div class="spinner"></div>불러오는 중...</div></div>
@@ -198,8 +268,9 @@ html{scrollbar-width:thin;scrollbar-color:#bfeaff #fff;}
     <!-- ④ 금융감독원 -->
     <div class="panel" id="panel-fss">
       <div class="ph ph-fss">
-        <span class="ph-name ph-name-fss">금융감독원</span>
+        <span class="ph-name ph-name-fss" id="title-fss">금융감독원</span>
         <span class="ph-cnt" id="cnt-fss"></span>
+        <span class="ph-status" id="status-fss"></span>
         <a href="https://www.fss.or.kr/fss/bbs/B0000188/list.do?menuNo=200218" target="NEWS" class="ph-link board-link" title="금융감독원 바로가기">게시판→</a>
       </div>
       <div class="pl" id="list-fss"><div class="loading-row"><div class="spinner"></div>불러오는 중...</div></div>
@@ -209,8 +280,9 @@ html{scrollbar-width:thin;scrollbar-color:#bfeaff #fff;}
     <!-- ⑤ 금융위원회 제재정보 -->
     <div class="panel" id="panel-fsc-sanction">
       <div class="ph ph-fsc">
-        <span class="ph-name ph-name-fsc">금융위원회 제재정보</span>
+        <span class="ph-name ph-name-fsc" id="title-fsc-sanction">금융위원회 제재정보</span>
         <span class="ph-cnt" id="cnt-fsc-sanction"></span>
+        <span class="ph-status" id="status-fsc-sanction"></span>
         <a href="https://www.fsc.go.kr/no020101" target="NEWS" class="ph-link board-link" title="금융위원회 제재정보 바로가기">게시판→</a>
       </div>
       <div class="pl" id="list-fsc-sanction"><div class="loading-row"><div class="spinner"></div>불러오는 중...</div></div>
@@ -220,8 +292,9 @@ html{scrollbar-width:thin;scrollbar-color:#bfeaff #fff;}
     <!-- ⑥ 금융위원회 보도자료 -->
     <div class="panel" id="panel-fsc-news">
       <div class="ph ph-fsc">
-        <span class="ph-name ph-name-fsc">금융위원회 보도자료</span>
+        <span class="ph-name ph-name-fsc" id="title-fsc-news">금융위원회 보도자료</span>
         <span class="ph-cnt" id="cnt-fsc-news"></span>
+        <span class="ph-status" id="status-fsc-news"></span>
         <a href="https://www.fsc.go.kr/no010101" target="NEWS" class="ph-link board-link" title="금융위원회 보도자료 바로가기">게시판→</a>
       </div>
       <div class="pl" id="list-fsc-news"><div class="loading-row"><div class="spinner"></div>불러오는 중...</div></div>
@@ -231,8 +304,9 @@ html{scrollbar-width:thin;scrollbar-color:#bfeaff #fff;}
     <!-- ⑦ 금융위원회 시행령 입법예고 -->
     <div class="panel" id="panel-ord">
       <div class="ph ph-ord">
-        <span class="ph-name ph-name-ord">금융위원회 관련 시행령 입법예고</span>
+        <span class="ph-name ph-name-ord" id="title-ord">금융위원회 관련 시행령 입법예고</span>
         <span class="ph-cnt" id="cnt-ord"></span>
+        <span class="ph-status" id="status-ord"></span>
         <a href="https://www.fsc.go.kr/po040301" target="NEWS" class="ph-link board-link" title="금융위원회 입법예고 바로가기">게시판→</a>
       </div>
       <div class="pl" id="list-ord"><div class="loading-row"><div class="spinner"></div>불러오는 중...</div></div>
@@ -255,12 +329,24 @@ html{scrollbar-width:thin;scrollbar-color:#bfeaff #fff;}
 
     <!-- ⑩ 이미지보드 작업영역 -->
     <section class="workspace-section image-workspace" id="image-panel">
-      <div class="workspace-heading"><div class="workspace-title"><small>LOCAL DEVICE</small><h2>이미지보드</h2></div><div class="local-head-actions"><button class="head-action" onclick="saveImagePanel()">저장</button><button class="head-action" onclick="downloadImage()">백업</button><button class="head-action danger" onclick="clearImage()">X</button><button class="head-action danger" onclick="clearImage()">전체 삭제</button></div></div>
+      <div class="workspace-heading"><div class="workspace-title"><small>LOCAL DEVICE</small><h2>이미지보드</h2></div><div class="local-head-actions"><button class="head-action" onclick="saveImagePanel()">저장</button><button class="head-action" onclick="downloadImage()">백업</button><button class="head-action danger" onclick="clearImage()">삭제</button><button class="head-action danger" onclick="clearImage()">전체 삭제</button></div></div>
       <input type="file" id="image-input" accept="image/*" hidden>
       <div class="image-board" id="image-board" tabindex="0" role="button" aria-label="이미지 추가"><div class="image-empty"><b>＋</b><strong>이미지 1</strong><small>클릭 · 드래그 · 붙여넣기</small></div></div>
       <button id="image-download" hidden></button><button id="image-clear" hidden></button>
     </section>
 
+  </div>
+</div>
+
+<div class="admin-auth-backdrop" id="admin-auth-modal" hidden onclick="if(event.target===this)closeAdminAuth()">
+  <div class="admin-auth-modal" role="dialog" aria-modal="true" aria-labelledby="admin-auth-title">
+    <h3 id="admin-auth-title">🔐 관리자 인증</h3>
+    <p>Admin 비밀번호를 입력하세요</p>
+    <input type="password" id="admin-password" autocomplete="current-password" aria-label="관리자 비밀번호" onkeydown="if(event.key==='Enter')verifyAdminPassword()">
+    <div class="admin-auth-actions">
+      <button type="button" class="admin-auth-cancel" onclick="closeAdminAuth()">취소</button>
+      <button type="button" class="admin-auth-confirm" onclick="verifyAdminPassword()">확인</button>
+    </div>
   </div>
 </div>
 
@@ -271,176 +357,119 @@ html{scrollbar-width:thin;scrollbar-color:#bfeaff #fff;}
   KICPA NEWS by HEMNA
 </footer>
 
+<!-- 관리자 [저장]으로 내려받은 HTML에는 아래 JSON에 설정이 내장됩니다. -->
+<script type="application/json" id="embedded-admin-config">{}</script>
 <script>
 'use strict';
 
 // 페이지 전체에서 마우스 오른쪽 클릭 메뉴 사용 방지
 document.addEventListener('contextmenu', event => event.preventDefault());
 
+// ── CORS 프록시 전략 ──
+// 동작이 검증된 3개만 사용 — 모두 동시에 시도, 첫 번째 유효 응답 사용 (Promise.any)
+const PROXIES = [
+  u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+  u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+  u => `https://thingproxy.freeboard.io/fetch/${u}`,
+];
+// 하위 호환
 const PROXY = 'https://api.allorigins.win/raw?url=';
 const PG    = 7;
 const WIN   = 'NEWS';
 const MAX_PG_BTNS = 6;
 
+// ── 금융감독원 보도자료 공식 OPEN API ──
+// 아래 따옴표 안의 문구만 발급받은 32자리 인증키로 교체하세요.
+// 인증키가 비어 있거나 호출에 실패하면 기존 게시판 수집 방식으로 자동 전환됩니다.
+// 보안을 위해 이 인증키는 공개 CORS 프록시로 전송하지 않고 금융감독원 서버에만 직접 보냅니다.
+const FSS_BODO_API_KEY = '여기에_금융감독원_32자리_API_KEY_입력';
+const FSS_BODO_API_URL = 'https://www.fss.or.kr/fss/kr/openApi/api/bodoInfo.jsp';
+
 // ── BOARDS ──
 const BOARDS = [
-  { id:'fsc-press',      inst:'fsc-news',     label:'보도자료', fetchUrl:'https://www.fsc.go.kr/no010101', parser:'fsc', linkPat:'/no010101/', base:'https://www.fsc.go.kr' },
-  { id:'fsc-newsletter', inst:'fsc-news',     label:'NEWS', showTag:true, fetchUrl:'https://www.fsc.go.kr/pa050000', parser:'newsletter', base:'https://www.fsc.go.kr' },
+  { id:'fsc-press',      inst:'fsc-news',     label:'보도자료', cutoffDays:60, fetchUrl:'https://www.fsc.go.kr/no010101', parser:'fsc', linkPat:'/no010101/', base:'https://www.fsc.go.kr' },
+  { id:'fsc-newsletter', inst:'fsc-news',     label:'NEWS', showTag:true, cutoffDays:60, fetchUrl:'https://www.fsc.go.kr/pa050000', parser:'newsletter', base:'https://www.fsc.go.kr' },
   { id:'fsc-kfsc',       inst:'fsc-sanction', label:'금융위',   fetchUrl:'https://www.fsc.go.kr/no020101', parser:'fsc', linkPat:'/no020101/', base:'https://www.fsc.go.kr' },
   { id:'fsc-ksec',       inst:'fsc-sanction', label:'증선위',   fetchUrl:'https://www.fsc.go.kr/no020102', parser:'fsc', linkPat:'/no020102/', base:'https://www.fsc.go.kr' },
   { id:'ord-fsc',   inst:'ord', label:'', showTag:false, fetchUrl:'https://www.fsc.go.kr/po040301',  parser:'fsc', linkPat:'/po040301/', base:'https://www.fsc.go.kr', panelLabel:'금융위원회 관련 시행령 입법예고' },
-  { id:'fss-press', inst:'fss', label:'보도자료',  fetchUrl:'https://www.fss.or.kr/fss/bbs/B0000188/list.do?menuNo=200218', parser:'fss', base:'https://www.fss.or.kr' },
-  { id:'fss-ref',   inst:'fss', label:'보도참고',  fetchUrl:'https://www.fss.or.kr/fss/bbs/B0000189/list.do?menuNo=200219', parser:'fss', base:'https://www.fss.or.kr' },
-  { id:'cpa-gamri', inst:'cpa', label:'감리',      fetchUrl:'https://news.kicpa.or.kr/news/articleList.html?sc_sub_section_code=S2N81&view_type=sm', parser:'cpa', base:'https://news.kicpa.or.kr' },
-  { id:'cpa-audit', inst:'cpa', label:'감사',      fetchUrl:'https://news.kicpa.or.kr/news/articleList.html?sc_sub_section_code=S2N78&view_type=sm', parser:'cpa', base:'https://news.kicpa.or.kr' },
-  { id:'cpa-std',   inst:'cpa', label:'기준',      fetchUrl:'https://news.kicpa.or.kr/news/articleList.html?sc_sub_section_code=S2N79&view_type=sm', parser:'cpa', base:'https://news.kicpa.or.kr' },
-  { id:'cpa-self',  inst:'cpa', label:'자율',      fetchUrl:'https://news.kicpa.or.kr/news/articleList.html?sc_sub_section_code=S2N80&view_type=sm', parser:'cpa', base:'https://news.kicpa.or.kr' },
+  { id:'fss-press',   inst:'fss', label:'보도자료', cutoffDays:30, fetchUrl:'https://www.fss.or.kr/fss/bbs/B0000188/list.do?menuNo=200218', parser:'fss', base:'https://www.fss.or.kr' },
+  { id:'fss-kifrs',   inst:'fss', label:'K-IFRS', cutoffDays:30, fetchUrl:'https://www.fss.or.kr/fss/bbs/B0000132/list.do?menuNo=200442', parser:'fss', base:'https://www.fss.or.kr' },
+  { id:'fss-general', inst:'fss', label:'일반질의', cutoffDays:30, fetchUrl:'https://www.fss.or.kr/fss/bbs/B0000133/list.do?menuNo=200443', parser:'fss', base:'https://www.fss.or.kr' },
+  { id:'cpa-s78', inst:'cpa', label:'감사', showTag:true, cutoffDays:60, fetchUrl:'https://news.kicpa.or.kr/news/articleList.html?sc_sub_section_code=S2N78', parser:'cpa', base:'https://news.kicpa.or.kr' },
+  { id:'cpa-s79', inst:'cpa', label:'기준', showTag:true, cutoffDays:60, fetchUrl:'https://news.kicpa.or.kr/news/articleList.html?sc_sub_section_code=S2N79', parser:'cpa', base:'https://news.kicpa.or.kr' },
+  { id:'cpa-s80', inst:'cpa', label:'자율', showTag:true, cutoffDays:60, fetchUrl:'https://news.kicpa.or.kr/news/articleList.html?sc_sub_section_code=S2N80', parser:'cpa', base:'https://news.kicpa.or.kr' },
+  { id:'cpa-s81', inst:'cpa', label:'감리', showTag:true, cutoffDays:60, fetchUrl:'https://news.kicpa.or.kr/news/articleList.html?sc_sub_section_code=S2N81', parser:'cpa', base:'https://news.kicpa.or.kr' },
   { id:'kicpa-notice', inst:'kicpa-notice', label:'', showTag:false, cutoffDays:365, fetchUrl:'https://www.kicpa.or.kr/board/list.brd?boardId=noti&srchType=Extext_str1&srchKey=%ED%96%89%EC%A0%95', parser:'kicpaNotice', base:'https://www.kicpa.or.kr' },
 ];
 
-// ── FALLBACK DATA ──
-const FB = {
-  'fsc-press': [
-    { title:'실수요자 자금애로 해소를 위한 총량관리 목표 조정방안', date:'2026-08-12', url:'https://www.fsc.go.kr/no010101/87507' },
-    { title:'2026년 하반기 디(D)-테스트베드 참여자 모집', date:'2026-08-12', url:'https://www.fsc.go.kr/no010101/87513' },
-    { title:'스크래핑 차단에 따른 국민불편 최소화를 위한 금융권 대응 방안', date:'2026-08-12', url:'https://www.fsc.go.kr/no010101/87510' },
-    { title:'8.19일부터 괴리율 관리 강화 및 모의거래 의무화', date:'2026-08-12', url:'https://www.fsc.go.kr/no010101/87512' },
-    { title:'2026년 하반기 영세·중소가맹점 선정결과 및 상반기 우수가맹점 선정', date:'2026-08-11', url:'https://www.fsc.go.kr/no010101/87498' },
-    { title:'국민참여성장펀드 조성 추진', date:'2026-08-11', url:'https://www.fsc.go.kr/no010101/87503' },
-    { title:'특정금융정보법 시행령 가상자산 관련 개정안 입법예고', date:'2026-08-11', url:'https://www.fsc.go.kr/no010101/87499' },
-    { title:'청년미래적금 138.5만명 신청 접수', date:'2026-08-11', url:'https://www.fsc.go.kr/no010101/87496' },
-    { title:'공무원 대리구매 신종피싱 주의 안내', date:'2026-08-10', url:'https://www.fsc.go.kr/no010101/87493' },
-    { title:'ASAP 보이스피싱 대응방안 발표', date:'2026-08-04', url:'https://www.fsc.go.kr/no010101/87474' },
-  ],
-  'fsc-news': [
-    { title:'금융위원회, 2026년 하반기 업무계획 발표', date:'2026-08-05', url:'https://www.fsc.go.kr' },
-    { title:'금융규제 샌드박스 2026년 상반기 혁신금융서비스 지정 현황', date:'2026-07-28', url:'https://www.fsc.go.kr' },
-    { title:'2026년 금융부문 탄소중립 추진 현황 및 계획', date:'2026-07-15', url:'https://www.fsc.go.kr' },
-    { title:'금융위원회, 디지털금융 종합혁신방안 후속조치 점검', date:'2026-07-02', url:'https://www.fsc.go.kr' },
-    { title:'2026년 상반기 금융소비자 보호 실태 평가 결과', date:'2026-06-25', url:'https://www.fsc.go.kr' },
-    { title:'금융위원회-한국은행 협력 강화 간담회 결과', date:'2026-06-10', url:'https://www.fsc.go.kr' },
-  ],
-  'fsc-newsletter': [
-    { title:'[2026-17호] 신종피싱 범죄유형별 피해사례와 행동요령을 확인하세요', date:'2026-08-12', url:'https://www.fsc.go.kr/pa050000?nlId=146' },
-  ],
-  'kicpa-notice': [
-    { title:'회계부정신고 현황 및 조치사례 등 유의사항 안내', date:'2026-08-18', url:'https://www.kicpa.or.kr/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page?action=READ&boardId=noti&bltnNo=11787027152202' },
-    { title:'2026년 재무제표 작성 시 유의사항 등 안내', date:'2026-07-08', url:'https://www.kicpa.or.kr/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page?action=READ&boardId=noti&bltnNo=11783474849722' },
-    { title:'2026년도 2분기 재무제표 회계투명성 및 감사품질 제고를 위한 유의사항 등 안내', date:'2026-07-08', url:'https://www.kicpa.or.kr/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page?action=READ&boardId=noti&bltnNo=11783474669248' },
-    { title:'2026년 비상장법인 재무제표에 대한 2027년 중점 점검분야 사전예고 안내', date:'2026-06-29', url:'https://www.kicpa.or.kr/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page?action=READ&boardId=noti&bltnNo=11782694559929' },
-    { title:'금융감독원 2026년 재무제표에 대한 중점심사 회계이슈·업종 사전예고', date:'2026-06-26', url:'https://www.kicpa.or.kr/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page?action=READ&boardId=noti&bltnNo=11782430951503' },
-    { title:'2026년도 1분기 재무제표 회계투명성 및 감사품질 제고를 위한 유의사항 등 안내', date:'2026-04-09', url:'https://www.kicpa.or.kr/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page?action=READ&boardId=noti&bltnNo=11775713692867' },
-    { title:'서울시 공동주택 관리규약 준칙 제81조(회계감사인의 선정 제한)에 대한 개정 안내', date:'2026-04-03', url:'https://www.kicpa.or.kr/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page?action=READ&boardId=noti&bltnNo=11775192503725' },
-    { title:'2025년 재무제표 작성 시 유의사항 등 안내', date:'2026-01-15', url:'https://www.kicpa.or.kr/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page?action=READ&boardId=noti&bltnNo=11768455684550' },
-    { title:'2025년도 4분기 재무제표 회계투명성 및 감사품질 제고를 위한 유의사항 등 안내', date:'2026-01-15', url:'https://www.kicpa.or.kr/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page?action=READ&boardId=noti&bltnNo=11768455330653' },
-    { title:'2025년 심사·감리 주요 지적사례 안내 및 2025년 비상장법인 재무제표에 대한 2026년 중점 점검분야 재안내', date:'2025-12-16', url:'https://www.kicpa.or.kr/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page?action=READ&boardId=noti&bltnNo=11765864272652' },
-    { title:'2025년도 3분기 재무제표 회계투명성 및 감사품질 제고를 위한 유의사항 등 안내', date:'2025-10-14', url:'https://www.kicpa.or.kr/portal/default/kicpa/gnb/kr_pc/menu05/menu01.page?action=READ&boardId=noti&bltnNo=11760420149500' },
-  ],
-  'fsc-kfsc': [
-    { title:'2026년도 제1차 임시 금융위원회 회의결과', date:'2026-08-12', url:'https://www.fsc.go.kr/no020101/87509' },
-    { title:'2026년도 제11차 금융위원회 의사록, 안건 및 제재안건 의결서', date:'2026-08-12', url:'https://www.fsc.go.kr/no020101/87508' },
-    { title:'2026년도 제1차 금융위 서면회의 결과', date:'2026-08-05', url:'https://www.fsc.go.kr/no020101/87478' },
-    { title:'2026년도 제14차 금융위원회 회의결과', date:'2026-07-31', url:'https://www.fsc.go.kr/no020101/87460' },
-    { title:'2026년도 제10차 금융위원회 의사록, 안건 및 제재안건 의결서', date:'2026-07-24', url:'https://www.fsc.go.kr/no020101/87406' },
-    { title:'2026년도 제13차 금융위원회 회의결과', date:'2026-07-16', url:'https://www.fsc.go.kr/no020101/87349' },
-    { title:'2026년도 제9차 금융위원회 의사록, 안건 및 제재안건 의결서', date:'2026-07-10', url:'https://www.fsc.go.kr/no020101/87311' },
-    { title:'2026년도 제12차 금융위원회 회의결과', date:'2026-07-02', url:'https://www.fsc.go.kr/no020101/87243' },
-    { title:'2026년도 제8차 금융위원회 의사록, 안건 및 제재안건 의결서', date:'2026-06-26', url:'https://www.fsc.go.kr/no020101/87197' },
-    { title:'2026년도 제11차 금융위원회 회의결과', date:'2026-06-18', url:'https://www.fsc.go.kr/no020101/87147' },
-  ],
-  'fsc-ksec': [
-    { title:'2026년 제1차 증권선물위원회 임시회의 회의결과', date:'2026-08-11', url:'https://www.fsc.go.kr/no020102/87502' },
-    { title:'2026년 제10차 증권선물위원회 의사록(추가)', date:'2026-08-07', url:'https://www.fsc.go.kr/no020102/87484' },
-    { title:'2026년 제11차 증권선물위원회 안건 및 제재안건 의결서', date:'2026-08-07', url:'https://www.fsc.go.kr/no020102/87483' },
-    { title:'2026년 제14차 증권선물위원회 회의결과', date:'2026-07-23', url:'https://www.fsc.go.kr/no020102/87399' },
-    { title:'2026년 제10차 증권선물위원회 의사록, 안건 및 제재안건 의결서', date:'2026-07-16', url:'https://www.fsc.go.kr/no020102/87352' },
-    { title:'2026년 제13차 증권선물위원회 회의결과', date:'2026-07-09', url:'https://www.fsc.go.kr/no020102/87303' },
-    { title:'2026년 제9차 증권선물위원회 의사록, 안건 및 제재안건 의결서', date:'2026-07-03', url:'https://www.fsc.go.kr/no020102/87251' },
-    { title:'2026년 제12차 증권선물위원회 회의결과', date:'2026-06-25', url:'https://www.fsc.go.kr/no020102/87190' },
-    { title:'2026년 제8차 증권선물위원회 안건 및 제재안건 의결서', date:'2026-06-19', url:'https://www.fsc.go.kr/no020102/87154' },
-    { title:'2026년 제11차 증권선물위원회 회의결과', date:'2026-06-11', url:'https://www.fsc.go.kr/no020102/87087' },
-  ],
-  'ord-fsc': [
-    { title:'「금융위원회와 그 소속기관 직제 시행규칙」 일부개정령(안) 입법예고', date:'2026-08-11', url:'https://www.fsc.go.kr/po040301/view?noticeId=4164' },
-    { title:'「자본시장과 금융투자업에 관한 법률 시행령」 일부개정령안 입법예고', date:'2026-07-30', url:'https://www.fsc.go.kr/po040301/view?noticeId=4163' },
-    { title:'「증권의 발행 및 공시 등에 관한 규정」 일부개정고시안 규정변경예고', date:'2026-07-30', url:'https://www.fsc.go.kr/po040301/view?noticeId=4162' },
-    { title:'「자본시장과 금융투자업에 관한 법률 시행령」 일부개정령안 입법예고(2차)', date:'2026-07-30', url:'https://www.fsc.go.kr/po040301/view?noticeId=4161' },
-    { title:'「외부감사 및 회계 등에 관한 규정 일부개정고시안」 규정변경예고', date:'2026-07-24', url:'https://www.fsc.go.kr/po040301/view?noticeId=4160' },
-    { title:'「전기통신금융사기 피해 방지 및 피해금 환급에 관한 특별법 시행령 일부개정령안」 입법예고', date:'2026-07-15', url:'https://www.fsc.go.kr/po040301/view?noticeId=4159' },
-    { title:'「신용정보업감독규정」 일부개정고시(안) 규정변경 예고', date:'2026-07-10', url:'https://www.fsc.go.kr/po040301/view?noticeId=4158' },
-    { title:'「대부업 등의 등록 및 금융이용자 보호에 관한 법률 시행령 일부개정령(안)」 입법예고', date:'2026-07-06', url:'https://www.fsc.go.kr/po040301/view?noticeId=4157' },
-    { title:'「금융위원회와 그 소속기관 직제 시행규칙」 일부개정령(안) 입법예고', date:'2026-07-03', url:'https://www.fsc.go.kr/po040301/view?noticeId=4156' },
-    { title:'「전자금융거래법 시행령」 일부개정령안 입법예고 및 「전자금융감독규정」 일부개정고시안 규정변경예고', date:'2026-06-19', url:'https://www.fsc.go.kr/po040301/view?noticeId=4155' },
-  ],
-  'fss-press': [
-    { title:'금융소비자 보호를 위한 금융감독원 감독 방향', date:'2026-08-12', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1321&nttId=222569' },
-    { title:'2026년 상반기 금융감독원 주요 감독 실적', date:'2026-08-10', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1321&nttId=222500' },
-    { title:'기업 밸류업 지원을 위한 회계·공시 가이드라인 발표', date:'2026-08-05', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1321&nttId=222450' },
-    { title:'보험사 재무건전성 강화를 위한 감독 방향', date:'2026-07-31', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1321&nttId=222380' },
-    { title:'증권사 내부통제 실태점검 결과 및 개선 방안', date:'2026-07-28', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1321&nttId=222310' },
-    { title:'금융회사 IT 리스크 점검 결과 발표', date:'2026-07-25', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1321&nttId=222250' },
-    { title:'가계부채 동향 및 관리 방안', date:'2026-07-20', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1321&nttId=222180' },
-    { title:'2026년 2분기 금융시장 동향 및 전망', date:'2026-07-10', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1321&nttId=222050' },
-    { title:'금융감독원, 불법 사금융 특별 단속 결과 발표', date:'2026-07-03', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1321&nttId=221980' },
-    { title:'2026년 1분기 가계대출 동향', date:'2026-06-25', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1321&nttId=221800' },
-  ],
-  'fss-ref': [
-    { title:'[보도참고] 2026년 하반기 금융감독원 업무계획', date:'2026-08-11', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1322&nttId=222550' },
-    { title:'[보도참고] 금융소비자보호법 시행 5주년 성과 점검', date:'2026-07-30', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1322&nttId=222350' },
-    { title:'[보도참고] 2026년 상반기 금융민원 처리 현황', date:'2026-07-15', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1322&nttId=222100' },
-    { title:'[보도참고] 증권사 레버리지 비율 점검 결과', date:'2026-06-30', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1322&nttId=221900' },
-    { title:'[보도참고] 보험사 IFRS17 적용 현황 및 시사점', date:'2026-06-10', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1322&nttId=221650' },
-    { title:'[보도참고] 금융회사 ESG 공시 이행 현황 점검', date:'2026-05-25', url:'https://www.fss.or.kr/fss/kr/bbs/view.do?bbsid=1322&nttId=221400' },
-  ],
-  'cpa-gamri': [
-    { title:'회계부정신고 현황 및 조치사례 등 유의사항 안내', date:'2026-08-19', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3739' },
-    { title:'2026년 회계법인 감사인 감리 사전간담회 개최…핵심 품질관리요소 집중점검 방안 안내', date:'2026-08-07', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3673' },
-    { title:'한국공인회계사회, 2025년 공동주택 감리 지적사례 공개', date:'2026-07-23', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3579' },
-    { title:'한국공인회계사회, 윤리적 요구사항 관련 품질관리 유의사항 사전 안내', date:'2026-07-10', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3507' },
-    { title:'한국공인회계사회, 올해 2분기 재무제표 회계투명성ㆍ감사품질 강화 유의사항 안내', date:'2026-07-09', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3506' },
-    { title:'한국공인회계사회, \'2025년 학교법인 회계감사 감리 지적사례\' 게시', date:'2026-07-03', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3477' },
-    { title:'한국공인회계사회, 올해 비상장회사 재무제표 \'중점심사 회계이슈\' 사전 예고', date:'2026-06-29', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3426' },
-    { title:'한공회, 2025년도 감리결과 증선위 보고…회계법인49개·감사반20개 점검', date:'2026-05-29', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3201' },
-    { title:'한공회, 사후심리 품질관리 유의사항 안내…감리 대비 체계적 운영 필요', date:'2026-05-28', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3174' },
-    { title:'한공회, 올해 감사반 감사인 감리 관련 사전간담회 개최', date:'2026-04-28', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=2984' },
-  ],
-  'cpa-audit': [
-    { title:'시행 앞둔 감사기준서 315·540·720 - 주요 개정사항', date:'2026-08-11', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3694' },
-    { title:'가상자산 감사 시 유의사항…실무적 접근을 중심으로', date:'2026-06-01', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3200' },
-    { title:'한공회, \'제9회 가치평가 포럼\' 개최', date:'2026-05-29', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3226' },
-    { title:'한공회 \'제9회 가치평가포럼\' 26일 개최', date:'2026-05-19', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3135' },
-    { title:'한공회, 공동품질관리제도 도입 및 SMP 지원 위한 3차 TF 본격 가동', date:'2026-05-12', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3069' },
-    { title:'한공회 \'제2회 AI혁신감사인증포럼\' 개최', date:'2026-04-30', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3009' },
-  ],
-  'cpa-std': [
-    { title:'[일반기업회계기준 해설 시리즈 ⑦] 종속기업 취득 및 처분과 관련한 일반기업회계기준과 K-IFRS의 차이', date:'2026-07-27', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3540' },
-    { title:'[K-IFRS 제1118호 시리즈 ⑤] 업종별 영업손익, 어떻게 달라지나', date:'2026-07-21', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3539' },
-    { title:'한국공인회계사회, \'전·당기 감사인 간 의견불일치 조정 협의회 운영성과 및 개선 방안\' 세미나 개최', date:'2026-07-06', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3486' },
-    { title:'[일반기업회계기준 해설 시리즈 ⑥] 자본 및 이익잉여금의 정의', date:'2026-06-29', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3344' },
-    { title:'[K-IFRS 제1118호 시리즈 ④] MPM - 자체 성과 지표, 재무제표 안으로', date:'2026-06-22', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3349' },
-    { title:'한공회, \'가상자산 감독지침 및 개선 방안\' 세미나 개최', date:'2026-06-12', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3321' },
-    { title:'경제정책 불확실성 시대, 가상자산 발행자 등의 정보공시 역할과 과제', date:'2026-06-02', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3202' },
-    { title:'[일반기업회계기준 해설 시리즈 ⑤] 동일지배거래 회계처리 적용 이슈', date:'2026-05-29', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3199' },
-    { title:'[K-IFRS 제1118호 시리즈 - ③] 영업이익의 재정의', date:'2026-05-22', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3151' },
-    { title:'회계정책연구원 2주년 기념 세미나…"회계정책 특화 연구기관 자리매김"', date:'2026-05-19', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3140' },
-  ],
-  'cpa-self': [
-    { title:'법원 "공동주택 외부회계감사 완료일, 현장감사 종료일로 단정하기 어려워"', date:'2026-07-22', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3577' },
-    { title:'"연 14조 지자체 민간위탁 사업, 회계감사 법제화 필요" 국회 입법토론회 개최', date:'2026-07-20', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3546' },
-    { title:'농협 외부감사 주기 \'1~2년\'으로 단축…주기적 감사인 지정제도 도입', date:'2026-06-24', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3418' },
-    { title:'공익법인 감사, 감리사례와 현장 쟁점 중심으로 배운다', date:'2026-06-19', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3378' },
-    { title:'"감사품질 확보가 관건"…한공회, 지역농협 감사 현장 의견 청취', date:'2026-04-30', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=3006' },
-    { title:'\'현장에 필요한 교육\' 통했다…실무 해법 넓히는 한국공인회계사회', date:'2026-04-16', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=2883' },
-    { title:'용인특례시, 민간위탁 사업 외부 회계감사 도입', date:'2026-03-13', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=2662' },
-    { title:'개정 「농업협동조합법」 국회 본회의 통과...지역농협의 회계비리 해결의 길 열려', date:'2026-02-19', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=2535' },
-    { title:'"복잡한 서식은 덜고, 전문성은 더했다"… 한공회, 새마을금고 감사 솔루션 공개', date:'2025-12-11', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=2082' },
-    { title:'지방회계의 새로운 이정표, \'한국 지방자치단체 회계대상\'의 의의와 향후 과제', date:'2025-12-03', url:'https://news.kicpa.or.kr/news/articleView.html?idxno=1957' },
-  ],
-};
+const ADMIN_CONFIG_KEY = 'cpanews-v7-admin-config';
+const ADMIN_PASSWORD_KEY = 'cpanews-v7-admin-password';
+const DEFAULT_ADMIN_PASSWORD = '1234';
+const ADMIN_INST_ORDER = ['cpa','kicpa-notice','fss','fsc-sanction','fsc-news','ord'];
+const DEFAULT_BOARDS = BOARDS.map(b => ({...b}));
+
+function readEmbeddedAdminConfig() {
+  try {
+    const raw = document.getElementById('embedded-admin-config')?.textContent?.trim();
+    return raw ? JSON.parse(raw) : {};
+  } catch(_) { return {}; }
+}
+
+function readSavedAdminConfig() {
+  try {
+    const local = localStorage.getItem(ADMIN_CONFIG_KEY);
+    return local ? JSON.parse(local) : readEmbeddedAdminConfig();
+  } catch(_) { return readEmbeddedAdminConfig(); }
+}
+
+function inferBoardParser(inst, url, priorParser='') {
+  if (inst === 'cpa') return 'cpa';
+  if (inst === 'kicpa-notice') return 'kicpaNotice';
+  if (inst === 'fss') return 'fss';
+  if (inst === 'fsc-news' && /\/pa050000/i.test(url)) return 'newsletter';
+  return 'fsc';
+}
+
+function normalizeAdminBoard(raw, index=0) {
+  const inst = ADMIN_INST_ORDER.includes(raw?.inst) ? raw.inst : 'cpa';
+  const fetchUrl = String(raw?.fetchUrl || '').trim();
+  let parsedUrl;
+  try { parsedUrl = new URL(fetchUrl); } catch(_) { return null; }
+  if (!/^https?:$/.test(parsedUrl.protocol)) return null;
+  const parser = inferBoardParser(inst, fetchUrl, raw?.parser || '');
+  const defaultDays = inst === 'fss' ? 30 : (inst === 'kicpa-notice' ? 365 : 60);
+  return {
+    ...raw,
+    id: String(raw?.id || `custom-${inst}-${Date.now()}-${index}`).replace(/[^a-zA-Z0-9_-]/g,'-'),
+    inst,
+    label: String(raw?.label || '').trim(),
+    showTag: raw?.showTag !== false,
+    cutoffDays: Number(raw?.cutoffDays) > 0 ? Number(raw.cutoffDays) : defaultDays,
+    fetchUrl,
+    parser,
+    base: parsedUrl.origin,
+    linkPat: parser === 'fsc' ? parsedUrl.pathname : raw?.linkPat,
+  };
+}
+
+function normalizeAdminBoards(list) {
+  const used = new Set();
+  return (Array.isArray(list) ? list : []).map((b,i) => normalizeAdminBoard(b,i)).filter(Boolean).map((b,i) => {
+    let id = b.id;
+    while (used.has(id)) id = `${b.id}-${i+1}`;
+    used.add(id);
+    return {...b,id};
+  });
+}
+
+let ACTIVE_ADMIN_CONFIG = readSavedAdminConfig();
+const bootBoards = normalizeAdminBoards(ACTIVE_ADMIN_CONFIG.boards);
+if (Array.isArray(ACTIVE_ADMIN_CONFIG.boards)) BOARDS.splice(0, BOARDS.length, ...bootBoards);
 
 // ── STATE ──
 const BS = {};
-BOARDS.forEach(b => { BS[b.id]={items:[],fallback:false,loaded:false}; });
+BOARDS.forEach(b => { BS[b.id]={items:[],loaded:false,fromCache:false,failed:false}; });
 const IS = { cpa:{page:0}, 'kicpa-notice':{page:0}, fss:{page:0}, 'fsc-sanction':{page:0}, 'fsc-news':{page:0}, ord:{page:0}, srch:{page:0} };
 
 let curCond    = 'AND';
@@ -546,13 +575,7 @@ function parseFSC(html, board) {
 function parseNewsletter(html, board) {
   const doc = new DOMParser().parseFromString(html,'text/html');
   const out = [];
-  let currentDate = '';
-
-  doc.querySelectorAll('.title').forEach(el => {
-    if (currentDate) return;
-    const m = el.textContent.match(/(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
-    if (m) currentDate = `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
-  });
+  const currentDate = parseNewsletterDate(html);
 
   const select = doc.querySelector('select#nlId');
   if (!select) return out;
@@ -568,6 +591,52 @@ function parseNewsletter(html, board) {
     });
   });
   return out.slice(0,60);
+}
+
+// 금융위원회 NEWS 상세화면에서 발행일을 찾아 YYYY-MM-DD로 정규화한다.
+function parseNewsletterDate(html) {
+  const doc = new DOMParser().parseFromString(html,'text/html');
+  const normalize = text => {
+    const m = String(text||'').match(/(20\d{2})[.\-\/]\s*(\d{1,2})[.\-\/]\s*(\d{1,2})/);
+    return m ? `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}` : '';
+  };
+
+  const meta = doc.querySelector('meta[property="article:published_time"],meta[name="date"],meta[name="publish-date"],meta[name="datePublished"]');
+  const metaDate = normalize(meta?.getAttribute('content'));
+  if (metaDate) return metaDate;
+
+  const jsonDate = String(html||'').match(/["']datePublished["']\s*:\s*["']([^"']+)["']/i);
+  const structuredDate = normalize(jsonDate?.[1]);
+  if (structuredDate) return structuredDate;
+
+  const selectors = ['time[datetime]','.date','.day','.view_info','.view-info','.board_info','.board-info','.title'];
+  for (const selector of selectors) {
+    for (const el of doc.querySelectorAll(selector)) {
+      const found = normalize(el.getAttribute?.('datetime') || el.textContent);
+      if (found) return found;
+    }
+  }
+  return normalize(doc.body?.textContent);
+}
+
+// 목록의 과거 NEWS 호수에는 날짜가 없으므로 상세화면에서 발행일을 보충한다.
+// 날짜를 확인할 수 있는 항목만 반환해 60일 기준이 흐려지지 않도록 한다.
+async function fetchNewsletterItems(board) {
+  const listHtml = await fetchWithProxy(board.fetchUrl);
+  const listed = parseNewsletter(listHtml, board).slice(0,16);
+  const cutoff = cutoffDate(getBoardCutoffDays(board));
+
+  await Promise.allSettled(listed.map(async item => {
+      if (item.date) return;
+      try {
+        const detailHtml = await fetchWithProxy(item.url);
+        item.date = parseNewsletterDate(detailHtml);
+      } catch(_) {}
+  }));
+
+  return listed
+    .filter(item => item.date && item.date >= cutoff)
+    .sort((a,b) => b.date.localeCompare(a.date));
 }
 
 function parseKicpaNotice(html, board) {
@@ -595,53 +664,257 @@ function parseKicpaNotice(html, board) {
 function parseFSS(html, board) {
   const doc = new DOMParser().parseFromString(html,'text/html');
   const seen = new Set(), out = [];
-  doc.querySelectorAll('a[href*="nttId"]').forEach(a => {
-    const href = a.getAttribute('href')||'';
-    const url = new URL(href, board.fetchUrl).href;
-    if (seen.has(url)) return; seen.add(url);
-    const title = a.textContent.trim().replace(/\s+/g,' ');
+  const boardId = (board.fetchUrl.match(/\/bbs\/(B\d+)\//i) || [])[1] || '';
+  const menuNo = (board.fetchUrl.match(/[?&]menuNo=(\d+)/i) || [])[1] || '';
+
+  // 보도자료와 회계질의 게시판은 링크 마크업이 서로 달라 행 단위로 제목·nttId를 찾는다.
+  doc.querySelectorAll('tr').forEach(row => {
+    const links = [...row.querySelectorAll('a')];
+    const a = links.find(link => {
+      const raw = `${link.getAttribute('href')||''} ${link.getAttribute('onclick')||''}`;
+      const text = (link.getAttribute('title') || link.textContent || '').trim();
+      return text.length >= 4 && (/nttId\s*[=,:('\"%]/i.test(raw) || /\/view\.do/i.test(raw) || /(?:view|detail|select)\s*\(/i.test(raw));
+    });
+    if (!a) return;
+
+    const raw = `${a.getAttribute('href')||''} ${a.getAttribute('onclick')||''}`.replace(/&amp;/gi,'&');
+    let nttId = (raw.match(/nttId(?:=|%3D|['",:\s(]+)(\d{5,})/i) || [])[1] || '';
+    if (!nttId) {
+      const nums = [...raw.matchAll(/(?:['"(,]\s*)(\d{5,})(?=\s*['"),])/g)].map(m=>m[1]);
+      nttId = nums.sort((a,b)=>b.length-a.length)[0] || '';
+    }
+    if (!nttId) return;
+
+    const url = `${board.base}/fss/bbs/${boardId}/view.do?nttId=${encodeURIComponent(nttId)}${menuNo ? `&menuNo=${encodeURIComponent(menuNo)}` : ''}`;
+    if (seen.has(url)) return;
+
+    let title = (a.getAttribute('title')||a.textContent).trim().replace(/\s+/g,' ');
+    // 제목 앞 분류가 현재 배지와 같을 때만 중복 표시를 제거한다.
+    if (board.label) {
+      const labelRe = board.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      title = title.replace(new RegExp(`^\\[\\s*${labelRe}\\s*\\]\\s*`, 'i'), '').trim();
+    }
     if (!title||title.length<4) return;
     let date='';
-    const row = a.closest('tr');
-    if(row) row.querySelectorAll('td').forEach(td=>{
-      const m=td.textContent.match(/(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
-      if(m) date=`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
-    });
+    const dm = row.textContent.match(/(20\d{2})[.\-\/]\s*(\d{1,2})[.\-\/]\s*(\d{1,2})/);
+    if (dm) {
+      date = `${dm[1]}-${dm[2].padStart(2,'0')}-${dm[3].padStart(2,'0')}`;
+    }
+    seen.add(url);
     out.push({title,date,url});
   });
   return out.slice(0,60);
 }
 
+// 읽기용 텍스트 변환 경로가 반환한 Markdown에서도 FSS 게시물을 추출한다.
+function parseFssReaderText(text, board) {
+  const boardId = (board.fetchUrl.match(/\/bbs\/(B\d+)\//i) || [])[1] || '';
+  const menuNo = (board.fetchUrl.match(/[?&]menuNo=(\d+)/i) || [])[1] || '';
+  const seen = new Set(), out = [];
+  const linkRe = /\[((?:\\.|[^\]\n]){3,500})\]\(([^)\s]*?(?:nttId(?:=|%3D)\d+)[^)\s]*)\)/gi;
+  let match;
+  while ((match = linkRe.exec(String(text || ''))) !== null) {
+    const rawHref = match[2].replace(/\\([&?_=])/g, '$1').replace(/&amp;/gi, '&');
+    const hrefBoardId = (rawHref.match(/\/bbs\/(B\d+)\/view\.do/i) || [])[1] || '';
+    if (boardId && hrefBoardId && hrefBoardId.toUpperCase() !== boardId.toUpperCase()) continue;
+    const nttId = (rawHref.match(/nttId(?:=|%3D)(\d+)/i) || [])[1] || '';
+    if (!nttId) continue;
+    const url = `${board.base}/fss/bbs/${boardId}/view.do?nttId=${encodeURIComponent(nttId)}${menuNo ? `&menuNo=${encodeURIComponent(menuNo)}` : ''}`;
+    if (seen.has(url)) continue;
+
+    let title = match[1]
+      .replace(/\\([\[\]_*`])/g, '$1')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (board.label) {
+      const labelRe = board.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      title = title.replace(new RegExp(`^\\[\\s*${labelRe}\\s*\\]\\s*`, 'i'), '').trim();
+    }
+    if (title.length < 4) continue;
+
+    // 변환된 표에서는 날짜가 제목 링크 뒤쪽 셀에 나오므로 같은 행 범위에서 찾는다.
+    const tail = text.slice(linkRe.lastIndex, linkRe.lastIndex + 1400);
+    const dm = tail.match(/\b(20\d{2})[.\-\/](\d{1,2})[.\-\/](\d{1,2})\b/);
+    const date = dm ? `${dm[1]}-${dm[2].padStart(2,'0')}-${dm[3].padStart(2,'0')}` : '';
+    seen.add(url);
+    out.push({title,date,url});
+  }
+  return out.slice(0,60);
+}
+
+// KICPA NEWS 파서
+// S2N78~S2N81 전용 게시판 HTML 구조:
+//   <ul class="section-list-sm">
+//     <li>
+//       <a class="thumb" href="/news/articleView.html?idxno=NNNN">  ← 텍스트 없음
+//       <div class="view-cont">
+//         <H2 class="titles"><a href="/news/articleView.html?idxno=NNNN">제목</a></H2>
+//         <div class="byline"><div>저자</div><div>MM-DD HH:MM</div></div>
+//       </div>
+//     </li>
 function parseCPA(html, board) {
   const doc = new DOMParser().parseFromString(html,'text/html');
   const seen = new Set(), out = [];
-  doc.querySelectorAll('a[href*="articleView.html"]').forEach(a => {
+  // 지정된 하위 게시판의 본문 목록만 읽는다. 사이드바·인기기사 링크는 제외한다.
+  const rows = doc.querySelectorAll('.section-list-sm > li');
+  rows.forEach(li => {
+    const a = li.querySelector('h2.titles a[href*="articleView.html"], .titles a[href*="articleView.html"]');
+    if (!a) return;
     const href = a.getAttribute('href')||'';
     if (!href.includes('idxno=')) return;
-    const url = href.startsWith('http') ? href : board.base+href;
-    if (seen.has(url)) return; seen.add(url);
+    let url;
+    try { url = new URL(href, board.base).href; } catch(_) { return; }
+    if (seen.has(url)) return;
+
+    // 제목 추출 — 썸네일 <a>는 텍스트 없으므로 먼저 건너뜀
     const title = a.textContent.trim().replace(/\s+/g,' ');
-    if (!title||title.length<4) return;
-    let date='';
-    const li = a.closest('li');
+    if (!title || title.length < 4) return;  // 빈 썸네일 링크 건너뜀
+
+    seen.add(url);  // 제목 확인 후 중복 등록
+
+    // 날짜 추출 — .byline > div 형식: "08-19 09:00" 또는 "2026-08-19"
+    let date = '';
     if (li) {
       const byline = li.querySelector('.byline');
       if (byline) {
-        byline.querySelectorAll('div').forEach(d => {
-          let m = d.textContent.match(/(\d{4})-(\d{2})-(\d{2})/);
-          if (m) { date=`${m[1]}-${m[2]}-${m[3]}`; return; }
-          m = d.textContent.trim().match(/^(\d{2})-(\d{2})\s/);
-          if (m) { const yr=new Date().getFullYear(); date=`${yr}-${m[1]}-${m[2]}`; }
+        byline.querySelectorAll('div,span').forEach(d => {
+          if (date) return;
+          const t = d.textContent.trim();
+          let m = t.match(/(\d{4})-(\d{2})-(\d{2})/);
+          if (m) { date = `${m[1]}-${m[2]}-${m[3]}`; return; }
+          m = t.match(/^(\d{2})-(\d{2})(?:\s|$)/);
+          if (m) { date = inferRecentYearDate(m[1],m[2]); }
         });
       }
       if (!date) {
-        const m = li.textContent.match(/(\d{4})\.(\d{2})\.(\d{2})/);
-        if (m) date=`${m[1]}-${m[2]}-${m[3]}`;
+        const t = li.textContent;
+        let m = t.match(/(\d{4})[.\-](\d{2})[.\-](\d{2})/);
+        if (m) date = `${m[1]}-${m[2]}-${m[3]}`;
+        else {
+          m = t.match(/(\d{2})-(\d{2})(?:\s|$)/);
+          if (m) date = inferRecentYearDate(m[1],m[2]);
+        }
       }
     }
-    out.push({title,date,url});
+    out.push({ title, date, url });
   });
-  return out.slice(0,60);
+  return out.slice(0, 80);
+}
+
+function inferRecentYearDate(month, day) {
+  const now = new Date();
+  let year = now.getFullYear();
+  let candidate = new Date(year, Number(month)-1, Number(day));
+  if (candidate.getTime() > now.getTime() + 7*86400000) year--;
+  return `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+}
+
+function isCorrectCpaSectionPage(html, board) {
+  const code = (board.fetchUrl.match(/sc_sub_section_code=(S2N\d+)/i) || [])[1]?.toUpperCase();
+  const expected = ({S2N78:'감사인증',S2N79:'회계기준',S2N80:'공공비영리',S2N81:'감리'})[code] || board.sectionTitle || board.label;
+  if (!expected) return false;
+  const doc = new DOMParser().parseFromString(html,'text/html');
+  const pageTitle = (doc.querySelector('title')?.textContent || '').replace(/\s+/g,' ').trim();
+  return pageTitle.includes(expected);
+}
+
+// KICPA RSS 파서 (allArticle.xml)
+// <item>에 <author>연합뉴스</author>인 기사는 제외
+// pubDate 형식: "2026-08-21 11:22:30"
+function parseCpaRss(xml, board) {
+  let doc;
+  try {
+    doc = new DOMParser().parseFromString(xml, 'text/xml');
+    // XML 파싱 오류 감지
+    if (doc.querySelector('parsererror')) throw new Error('xml parse error');
+  } catch(_) {
+    // XML 파싱 실패 시 HTML로 재시도 (프록시가 잘못된 인코딩 반환할 때)
+    doc = new DOMParser().parseFromString(xml, 'text/html');
+  }
+  const out = [];
+  const items = doc.querySelectorAll('item');
+  items.forEach(item => {
+    // author 추출 (CDATA 포함)
+    const authorEl = item.querySelector('author');
+    const author = (authorEl ? authorEl.textContent : '').trim();
+    if (author === '연합뉴스') return; // 연합뉴스 기사 제외
+
+    // 제목
+    const titleEl = item.querySelector('title');
+    const title = (titleEl ? titleEl.textContent : '').trim().replace(/\s+/g,' ');
+    if (!title || title.length < 4) return;
+
+    // URL — <link> 다음 텍스트 노드 (RSS link 태그는 XML에서 특수하게 처리됨)
+    let url = '';
+    const linkEl = item.querySelector('link');
+    if (linkEl) {
+      // link 태그 자체의 텍스트
+      url = linkEl.textContent.trim();
+      // 텍스트가 비어있으면 nextSibling(텍스트 노드) 시도
+      if (!url && linkEl.nextSibling) url = linkEl.nextSibling.textContent.trim();
+    }
+    if (!url) return;
+    if (!url.startsWith('http')) url = board.base + url;
+
+    // 날짜: "2026-08-21 11:22:30" 또는 RFC 2822 "Fri, 21 Aug 2026 11:22:30 +0900"
+    const pubEl = item.querySelector('pubDate');
+    const pubRaw = pubEl ? pubEl.textContent.trim() : '';
+    let date = '';
+    const dateM = pubRaw.match(/(\d{4}-\d{2}-\d{2})/);
+    if (dateM) { date = dateM[1]; }
+    else if (pubRaw) {
+      try {
+        const d = new Date(pubRaw);
+        if (!isNaN(d.getTime())) date = d.toISOString().substring(0, 10);
+      } catch(_) {}
+    }
+
+    out.push({ title, url, date });
+  });
+  return out.slice(0, 80);
+}
+
+// ── LOCALSTORGAE CACHE ──
+// 일반 게시판 캐시는 유지하되, KICPA 하위 게시판은 오염된 이전 캐시와 분리한다.
+const CACHE_NS = 'cpanews-v4-';
+const CPA_CACHE_NS = 'cpanews-v7-cpa-category-';
+
+function cacheKey(boardId) {
+  return (/^(?:cpa-s|custom-cpa)/.test(String(boardId)) ? CPA_CACHE_NS : CACHE_NS) + boardId;
+}
+
+function saveCache(boardId, items) {
+  try {
+    const entry = JSON.stringify({ items, ts: new Date().toISOString() });
+    localStorage.setItem(cacheKey(boardId), entry);
+  } catch(_) {}
+}
+
+function loadCache(boardId) {
+  try {
+    const raw = localStorage.getItem(cacheKey(boardId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed.items) && parsed.items.length) {
+      // 이전 버전 캐시에 google.com/archive.org URL이 남아있으면 제거
+      const clean = parsed.items.filter(it => {
+        const u = it.url || '';
+        return !u.includes('google.com') && !u.includes('web.archive.org');
+      });
+      if (clean.length) return { ...parsed, items: clean };
+    }
+  } catch(_) {}
+  return null;
+}
+
+function formatCacheTs(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  const p = x => String(x).padStart(2,'0');
+  return `${p(d.getMonth()+1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
 // ── MERGED INST DATA ──
@@ -651,7 +924,9 @@ function getInstItems(instId) {
     (BS[board.id].items||[]).forEach(item=>{
       const key=(item.url||'')+'\x00'+(item.title||'');
       if(seen.has(key)) return; seen.add(key);
-      merged.push({...item,boardId:board.id,label:board.label,showTag:board.showTag!==false,inst:instId,fallback:BS[board.id].fallback});
+      // item.label(파서가 감지한 카테고리) 우선, 없으면 board.label 사용
+      const label = item.label||board.label||'';
+      merged.push({boardId:board.id,showTag:board.showTag!==false,inst:instId,...item,label});
     });
   });
   merged.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
@@ -681,12 +956,46 @@ const TAG_COLOR = {
   'fsc-ksec': 'background:#fef3c7;color:#92400e',
   'ord-fsc':  'background:#dbeafe;color:#1e40af',
   'fss-press':'background:#dbeafe;color:#1e40af',
-  'fss-ref':  'background:#e0e7ff;color:#3730a3',
-  'cpa-gamri':'background:#fef3c7;color:#92400e',
-  'cpa-audit':'background:#ccfbf1;color:#0f766e',
-  'cpa-std':  'background:#e0f2fe;color:#0369a1',
-  'cpa-self': 'background:#f1f5f9;color:#64748b',
+  'fss-kifrs':'background:#e0e7ff;color:#3730a3',
+  'fss-general':'background:#fef3c7;color:#92400e',
+  // KICPA 서브섹션 ID 기반 색상
+  'cpa-s78':'background:#ccfbf1;color:#0f766e',
+  'cpa-s79':'background:#e0f2fe;color:#0369a1',
+  'cpa-s80':'background:#ede9fe;color:#6d28d9',
+  'cpa-s81':'background:#fef3c7;color:#92400e',
+  // KICPA 카테고리 이름 기반 색상 (폴백)
+  '감리':'background:#fef3c7;color:#92400e',
+  '감사':'background:#ccfbf1;color:#0f766e',
+  '기준':'background:#e0f2fe;color:#0369a1',
+  '자율':'background:#ede9fe;color:#6d28d9',
+  '기고':'background:#fce7f3;color:#9d174d',
 };
+
+// ── PANEL STATUS ──
+function setPanelStatus(instId) {
+  const boards = BOARDS.filter(b => b.inst === instId);
+  const statusEl = document.getElementById('status-' + instId);
+  if (!statusEl) return;
+  if (!boards.length) {
+    statusEl.className = 'ph-status';
+    statusEl.textContent = '게시판 없음';
+    return;
+  }
+  // 해당 inst의 boards 중 하나라도 fromCache면 캐시, 전부 failed면 실패, 그 외 실시간
+  const anyFail  = boards.every(b  => BS[b.id]?.failed);
+  const anyCache = boards.some(b   => BS[b.id]?.fromCache);
+  const cacheTs  = boards.map(b => BS[b.id]?.cacheTs).filter(Boolean).sort().pop();
+  if (anyFail && !anyCache) {
+    statusEl.className = 'ph-status fail';
+    statusEl.textContent = '⚠ 수집실패';
+  } else if (anyCache) {
+    statusEl.className = 'ph-status cache';
+    statusEl.textContent = '';
+  } else {
+    statusEl.className = 'ph-status ok';
+    statusEl.textContent = '';
+  }
+}
 
 // ── RENDER PANEL ──
 function renderInst(instId) {
@@ -701,19 +1010,25 @@ function renderInst(instId) {
   const cntEl  = document.getElementById('cnt-'+instId);
 
   if(cntEl) cntEl.textContent = items.length ? items.length+'건' : '';
+  setPanelStatus(instId);
 
   if (!slice.length) {
-    listEl.innerHTML = '<div class="no-items">데이터 없음</div>';
+    const boards = BOARDS.filter(b => b.inst === instId);
+    const allFailed = boards.length && boards.every(b => BS[b.id]?.failed);
+    listEl.innerHTML = allFailed
+      ? '<div class="no-items">접속 실패 · 상단 새로고침으로 다시 시도해주세요</div>'
+      : '<div class="no-items">데이터 없음</div>';
     pgEl.innerHTML = ''; return;
   }
 
-  listEl.innerHTML = slice.map(it =>
-    `<a class="li" href="${esc(it.url||'#')}" target="${WIN}">
-      ${it.showTag ? `<span class="li-tag" style="${TAG_COLOR[it.boardId]||''}">[${esc(it.label)}]</span>` : ''}
+  listEl.innerHTML = slice.map(it => {
+    const tagStyle = TAG_COLOR[it.boardId]||TAG_COLOR[it.label]||'background:#f1f5f9;color:#64748b';
+    return `<a class="li" href="${esc(it.url||'#')}" target="${WIN}">
+      ${it.showTag && it.label ? `<span class="li-tag" style="${tagStyle}">[${esc(it.label)}]</span>` : ''}
       <span class="li-title">${esc(it.title)}</span>
       <span class="li-date">${koDate(it.date)}</span>
-    </a>`
-  ).join('');
+    </a>`;
+  }).join('');
 
   pgEl.innerHTML = buildPager(instId, s.page, total);
 }
@@ -742,8 +1057,7 @@ function renderSearch() {
     const src = sourceInfo(it);
     return `<a class="li" href="${esc(it.url||'#')}" target="${WIN}">
       <span class="source-badge ${src.cls}">${src.name}</span>
-      ${it.showTag && it.label ? `<span class="li-tag" style="${TAG_COLOR[it.boardId]||''}">${esc(it.label)}</span>` : ''}
-      ${it.fallback ? '<span class="fallback-badge" title="실시간 수집 실패로 파일에 저장된 기본자료를 표시합니다">저장자료</span>' : ''}
+      ${it.showTag && it.label ? `<span class="li-tag" style="${TAG_COLOR[it.boardId]||TAG_COLOR[it.label]||'background:#f1f5f9;color:#64748b'}">[${esc(it.label)}]</span>` : ''}
       <span class="li-title">${highlight(it.title, terms)}</span>
       <span class="li-date">${koDate(it.date)}</span>
     </a>`;
@@ -821,9 +1135,19 @@ function cutoffDate(days=CUTOFF_DAYS) {
   return d.toISOString().substring(0,10); // 'YYYY-MM-DD'
 }
 
+function getBoardCutoffDays(board) {
+  // 금융감독원 3개 유형은 하나의 패널에 합쳐 표시하되 최근 30일만 수집한다.
+  if (board.inst === 'fss') return board.cutoffDays || 30;
+  return Math.max(MIN_CUTOFF_DAYS, board.cutoffDays || CUTOFF_DAYS);
+}
+
 function pageUrl(board, pageNum) {
-  if (board.parser === 'fss') return board.fetchUrl + '&pageIndex=' + pageNum;
-  if (board.parser === 'cpa') return board.fetchUrl + '&page=' + pageNum;
+  if (board.parser === 'fss') {
+    const u = new URL(board.fetchUrl);
+    u.searchParams.set('pageIndex', pageNum);
+    return u.href;
+  }
+  if (board.parser === 'cpa') return pageNum === 1 ? board.fetchUrl : board.fetchUrl + '&page=' + pageNum;
   if (board.parser === 'fsc') return pageNum === 1 ? board.fetchUrl : board.fetchUrl + '?curPage=' + pageNum;
   if (board.parser === 'kicpaNotice') return pageNum === 1 ? board.fetchUrl : board.fetchUrl + '&page=' + pageNum;
   return board.fetchUrl;
@@ -838,32 +1162,554 @@ function parseHtml(html, board) {
   return [];
 }
 
+// 브라우저 호환 타임아웃 신호 (AbortSignal.timeout 미지원 브라우저 대비)
+function mkSignal(ms) {
+  if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) return AbortSignal.timeout(ms);
+  const c = new AbortController();
+  setTimeout(() => c.abort(), ms);
+  return c.signal;
+}
+
+// 프록시가 실제 콘텐츠를 반환했는지 검증 (오류 페이지·빈 응답 제외)
+function isRealContent(text) {
+  if (!text || text.length < 500) return false;   // 오류 한 줄 응답 차단
+  const low = text.toLowerCase();
+  const errWords = ['bad gateway','503 service','access denied','429 too many',
+                    'gateway timeout','connection refused','error 403','error 502',
+                    'proxy error','error 520','robots_disallowed','disallowed by robots'];
+  if (errWords.some(w => low.includes(w))) return false;
+  // Cloudflare 오류 페이지 감지 (Ray ID + error)
+  if (low.includes('ray id') && (low.includes('cloudflare') || low.includes('error'))) return false;
+  return true;
+}
+
+// allorigins JSON 엔드포인트 (contents 필드)
+async function tryAllOriginsJson(targetUrl) {
+  const resp = await fetch(
+    `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`,
+    {signal: mkSignal(25000)}
+  );
+  if (!resp.ok) throw new Error('http' + resp.status);
+  const data = await resp.json();
+  if (!isRealContent(data.contents)) throw new Error('empty-json');
+  return data.contents;
+}
+
+// 단일 프록시 시도 (Raw)
+async function tryProxy(proxyFn, targetUrl) {
+  const resp = await fetch(proxyFn(targetUrl), {signal: mkSignal(25000)});
+  if (!resp.ok) throw new Error('http' + resp.status);
+  const text = await resp.text();
+  // RSS XML은 200자 이상이면 유효 콘텐츠로 간주 (짧은 XML도 있음)
+  const isRss = targetUrl.includes('.xml') || targetUrl.includes('/rss');
+  if (isRss ? (!text || text.length < 200) : !isRealContent(text)) throw new Error('empty-raw');
+  return text;
+}
+
+// 대상 사이트가 CORS를 허용하는 환경에서는 중계 없이 바로 사용한다.
+async function tryDirect(targetUrl) {
+  const resp = await fetch(targetUrl, {signal: mkSignal(15000), cache:'no-store'});
+  if (!resp.ok) throw new Error('direct http' + resp.status);
+  const text = await resp.text();
+  if (!isRealContent(text)) throw new Error('direct empty');
+  return text;
+}
+
+// 원문 접근이 차단될 때 읽기용 텍스트 변환 서비스를 통해 내용을 요청한다.
+async function tryFssReader(targetUrl, targetScheme='https') {
+  const noScheme = targetUrl.replace(/^https?:\/\//i, '');
+  const readerUrl = `https://r.jina.ai/${targetScheme}://${noScheme}`;
+  const resp = await fetch(readerUrl, {signal: mkSignal(25000), cache:'no-store'});
+  if (!resp.ok) throw new Error('reader http' + resp.status);
+  const text = await resp.text();
+  if (!text || text.length < 300) throw new Error('reader empty');
+  return text;
+}
+
+// 직접 접속과 모든 중계 경로를 동시에 시도 → 첫 번째 유효 응답 사용
+async function fetchWithProxy(targetUrl) {
+  const attempts = [
+    tryDirect(targetUrl),
+    ...PROXIES.map(fn => tryProxy(fn, targetUrl)),
+    tryAllOriginsJson(targetUrl),
+  ];
+
+  // Promise.any: 하나라도 성공하면 즉시 반환
+  if (typeof Promise.any === 'function') {
+    try {
+      return await Promise.any(attempts);
+    } catch(_) {
+      throw new Error('all fetch routes failed: ' + targetUrl);
+    }
+  }
+
+  // 구형 브라우저 폴백: 순차 시도
+  try { return await tryDirect(targetUrl); } catch(_) {}
+  for (const fn of PROXIES) {
+    try { return await tryProxy(fn, targetUrl); } catch(_) {}
+  }
+  try { return await tryAllOriginsJson(targetUrl); } catch(_) {}
+  throw new Error('all fetch routes failed: ' + targetUrl);
+}
+
+// FSS는 차단 안내 HTML이 200으로 반환될 수 있어, 실제 게시물이 파싱되는 응답만 성공으로 본다.
+async function fetchFssItems(targetUrl, board) {
+  const validate = async promise => {
+    const html = await promise;
+    const items = parseFSS(html, board);
+    if (!items.length) throw new Error('FSS posts not found');
+    return items;
+  };
+  const validateReader = async promise => {
+    const text = await promise;
+    const items = parseFssReaderText(text, board);
+    if (!items.length) throw new Error('FSS reader posts not found');
+    return items;
+  };
+  if (typeof Promise.any === 'function') {
+    return await Promise.any([
+      validate(tryDirect(targetUrl)),
+      ...PROXIES.map(fn => validate(tryProxy(fn, targetUrl))),
+      validate(tryAllOriginsJson(targetUrl)),
+      validateReader(tryFssReader(targetUrl, 'https')),
+      validateReader(tryFssReader(targetUrl, 'http')),
+    ]);
+  }
+
+  const routes = [
+    {fetch:() => tryDirect(targetUrl), parser:parseFSS},
+    ...PROXIES.map(fn => ({fetch:() => tryProxy(fn, targetUrl), parser:parseFSS})),
+    {fetch:() => tryAllOriginsJson(targetUrl), parser:parseFSS},
+    {fetch:() => tryFssReader(targetUrl, 'https'), parser:parseFssReaderText},
+    {fetch:() => tryFssReader(targetUrl, 'http'), parser:parseFssReaderText},
+  ];
+  for (const route of routes) {
+    try {
+      const items = route.parser(await route.fetch(), board);
+      if (items.length) return items;
+    } catch (_) {}
+  }
+  throw new Error('all FSS routes failed');
+}
+
+function _parsePubDateShared(pub) {
+  if (!pub) return '';
+  const iso = pub.match(/(\d{4}-\d{2}-\d{2})/);
+  if (iso) return iso[1];
+  try { const d = new Date(pub); if (!isNaN(d)) return d.toISOString().substring(0,10); } catch(_){}
+  return '';
+}
+
+// RSS XML 블록 배열을 아이템 배열로 파싱 (내부 공통 함수)
+function _parseRssBlocks(xml) {
+  const items = [];
+  const blocks = xml.match(/<item[\s>][\s\S]*?<\/item>/gi) || [];
+  for (const b of blocks) {
+    const title  = (b.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/)  || b.match(/<title>([\s\S]*?)<\/title>/))?.[1]?.trim()  || '';
+    const link   = (b.match(/<link>([\s\S]*?)<\/link>/))?.[1]?.trim()   || '';
+    const pub    = (b.match(/<pubDate>([\s\S]*?)<\/pubDate>/))?.[1]?.trim()  || '';
+    const author = (b.match(/<author>([\s\S]*?)<\/author>/))?.[1]?.trim()   || '';
+    const cats   = [...b.matchAll(/<category\b[^>]*>(?:<!\[CDATA\[([\s\S]*?)\]\]>|([\s\S]*?))<\/category>/gi)].map(m=>(m[1]||m[2]||'').trim());
+    if (title && link) items.push({title, link, pubDate:pub, categories:cats, author});
+  }
+  return items;
+}
+
+// KICPA 회계감사 RSS 원본은 여러 하위 분류를 함께 제공할 수 있으므로
+// RSS category가 요청한 하위 게시판과 일치하는 항목만 허용한다.
+const CPA_RSS_ITEMS_CACHE = new Map();
+const CPA_ARTICLE_CATEGORY_CACHE = new Map();
+
+function cpaCategoryTargets(board) {
+  const code = (board.fetchUrl.match(/sc_sub_section_code=(S2N\d+)/i) || [])[1]?.toUpperCase();
+  return ({
+    S2N78:['감사인증'],
+    S2N79:['회계기준'],
+    S2N80:['공공비영리','공공·비영리'],
+    S2N81:['감리'],
+  })[code] || [board.sectionTitle || board.label].filter(Boolean);
+}
+
+function normalizeCpaCategory(value) {
+  return String(value||'').toLowerCase().replace(/&[^;]+;/g,'').replace(/[\s·ㆍ/\\>|<:：_-]+/g,'');
+}
+
+function cpaItemMatchesBoard(item, board) {
+  const targets = cpaCategoryTargets(board).map(normalizeCpaCategory).filter(Boolean);
+  if (!targets.length || !Array.isArray(item.categories) || !item.categories.length) return false;
+  return item.categories.some(category => {
+    const normalized = normalizeCpaCategory(category);
+    return targets.some(target => normalized === target || normalized.endsWith(target));
+  });
+}
+
+async function fetchCpaArticleCategories(articleUrl) {
+  if (CPA_ARTICLE_CATEGORY_CACHE.has(articleUrl)) return CPA_ARTICLE_CATEGORY_CACHE.get(articleUrl);
+  const promise = (async () => {
+    const categories = [];
+    try {
+      const html = await fetchWithProxy(articleUrl);
+      const doc = new DOMParser().parseFromString(html,'text/html');
+      doc.querySelectorAll('meta[property="article:section1"],meta[name="Classification"]').forEach(meta => {
+        const content = String(meta.getAttribute('content')||'').trim();
+        if (!content) return;
+        if ((meta.getAttribute('name')||'').toLowerCase() === 'classification') {
+          content.split(/(?:&gt;|>)/).forEach(x=>{ if(x.trim()) categories.push(x.trim()); });
+        } else categories.push(content);
+      });
+      const subCode = (doc.querySelector('#user-menu')?.getAttribute('data-sub-code') || '').toUpperCase();
+      const mapped = ({S2N78:'감사인증',S2N79:'회계기준',S2N80:'공공비영리',S2N81:'감리'})[subCode];
+      if (mapped) categories.push(mapped);
+    } catch(_) {}
+    if (!categories.length) {
+      try {
+        const readerText = await tryFssReader(articleUrl,'https');
+        const breadcrumb = readerText.match(/^\[CPA뉴스\].*?\[회계감사\].*?\[(감사인증|회계기준|공공비영리|감리)\]\(/m);
+        if (breadcrumb) categories.push(breadcrumb[1]);
+      } catch(_) {}
+    }
+    const unique = [...new Set(categories)];
+    if (!unique.length) throw new Error('KICPA article category missing');
+    return unique;
+  })();
+  CPA_ARTICLE_CATEGORY_CACHE.set(articleUrl,promise);
+  return promise;
+}
+
+async function enrichCpaItemsWithCategories(items) {
+  const settled = await Promise.allSettled(items.map(async item => {
+    const known = ['감사인증','회계기준','공공비영리','감리'].map(normalizeCpaCategory);
+    const alreadySpecific = (item.categories||[]).some(category => {
+      const normalized = normalizeCpaCategory(category);
+      return known.some(target => normalized === target || normalized.endsWith(target));
+    });
+    if (alreadySpecific) return item;
+    const categories = await fetchCpaArticleCategories(item.link);
+    return {...item,categories:[...(item.categories||[]),...categories]};
+  }));
+  return settled.filter(x=>x.status==='fulfilled').map(x=>x.value);
+}
+
+async function fetchCpaRssItems(rssUrl) {
+  if (CPA_RSS_ITEMS_CACHE.has(rssUrl)) return CPA_RSS_ITEMS_CACHE.get(rssUrl);
+  const promise = (async () => {
+    const fromXml = async () => {
+      const xml = await fetchWithProxy(rssUrl);
+      const items = _parseRssBlocks(xml);
+      if (!items.length) throw new Error('empty KICPA RSS XML');
+      return items;
+    };
+    const fromJson = async () => {
+      const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+      const resp = await fetch(apiUrl,{signal:mkSignal(20000),cache:'no-store'});
+      if (!resp.ok) throw new Error('KICPA rss2json http '+resp.status);
+      const data = await resp.json();
+      if (data.status !== 'ok' || !Array.isArray(data.items)) throw new Error('KICPA rss2json invalid');
+      return data.items.map(it => ({
+        title:String(it.title||'').trim(),
+        link:String(it.link||'').trim(),
+        pubDate:String(it.pubDate||''),
+        author:String(it.author||''),
+        categories:Array.isArray(it.categories) ? it.categories : [],
+      })).filter(it=>it.title&&it.link);
+    };
+    if (typeof Promise.any === 'function') return await Promise.any([fromXml(),fromJson()]);
+    try { return await fromXml(); } catch(_) { return await fromJson(); }
+  })();
+  CPA_RSS_ITEMS_CACHE.set(rssUrl,promise);
+  return promise;
+}
+
+async function fetchCpaCategorizedRss(board) {
+  const code = (board.fetchUrl.match(/sc_sub_section_code=(S2N\d+)/i) || [])[1]?.toUpperCase();
+  if (!code) throw new Error('KICPA subsection code missing');
+  const rssUrls = [
+    'https://cdn.news.kicpa.or.kr/rss/gn_rss_S1N36.xml',
+    'https://news.kicpa.or.kr/rss/gn_rss_S1N36.xml',
+  ];
+  const cutoff = cutoffDate(getBoardCutoffDays(board));
+  const attempts = rssUrls.map(async rssUrl => {
+    const rawItems = await fetchCpaRssItems(rssUrl);
+    const recentItems = rawItems.filter(it => {
+      const date = _parsePubDateShared(it.pubDate);
+      return it.title && it.link && date && date >= cutoff;
+    }).slice(0,60);
+    const categorizedItems = await enrichCpaItemsWithCategories(recentItems);
+    const seen = new Set();
+    const filtered = categorizedItems.filter(it => String(it.author||'').trim() !== '연합뉴스')
+      .filter(it => cpaItemMatchesBoard(it,board))
+      .map(it => ({
+        title:String(it.title||'').replace(/<[^>]+>/g,'').trim().replace(/\s+/g,' '),
+        url:String(it.link||'').replace(/&amp;/g,'&'),
+        date:_parsePubDateShared(it.pubDate),
+      }))
+      .filter(it => it.title && it.url && it.date && it.date >= cutoff)
+      .filter(it => { const key=it.url+'\x00'+it.title; if(seen.has(key)) return false; seen.add(key); return true; })
+      .sort((a,b)=>b.date.localeCompare(a.date));
+    if (!filtered.length) throw new Error('no category-matched KICPA RSS items');
+    return filtered;
+  });
+  if (typeof Promise.any === 'function') return await Promise.any(attempts);
+  for (const attempt of attempts) { try { return await attempt; } catch(_) {} }
+  throw new Error('all categorized KICPA RSS routes failed');
+}
+
+/// ── KICPA RSS 전용 fetch: CDN RSS + rss2json API + 직접 RSS 동시 시도 ──
+async function fetchCpaRssViaApi(board) {
+  const rssUrl = board.fetchUrl; // https://news.kicpa.or.kr/rss/allArticle.xml
+  // CDN 도메인은 Cloudflare 규칙이 다를 수 있음 → 우선 시도
+  const cdnUrl = 'https://cdn.news.kicpa.or.kr/rss/gn_rss_allArticle.xml';
+  const cutoff = cutoffDate(Math.max(MIN_CUTOFF_DAYS, board.cutoffDays || CUTOFF_DAYS));
+
+  // pubDate 공통 파서: "2026-08-21 11:22:30" 또는 RFC 2822 "Fri, 21 Aug 2026 11:22:30 +0900"
+  function parsePubDate(pub) {
+    if (!pub) return '';
+    const iso = pub.match(/(\d{4}-\d{2}-\d{2})/);
+    if (iso) return iso[1];
+    try {
+      const d = new Date(pub);
+      if (!isNaN(d.getTime())) return d.toISOString().substring(0, 10);
+    } catch(_) {}
+    return '';
+  }
+
+  // rss2json.com JSON 결과 공통 처리
+  function parseRss2JsonData(data) {
+    if (data.status !== 'ok' || !Array.isArray(data.items) || !data.items.length)
+      throw new Error('rss2json err: ' + data.status);
+    const items = data.items
+      .filter(it => (it.author || '').trim() !== '연합뉴스')
+      .filter(it => it.title && it.link)
+      .map(it => ({
+        title: (it.title || '').trim().replace(/\s+/g, ' '),
+        url  : it.link,
+        date : parsePubDate(it.pubDate)
+      }));
+    if (!items.length) throw new Error('rss2json: no items after filter');
+    return items;
+  }
+
+  // rss2json API — CDN URL (Cloudflare 우회 가능성 높음)
+  async function tryRss2JsonCdn() {
+    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(cdnUrl)}`;
+    const resp = await fetch(apiUrl, {signal: mkSignal(20000)});
+    if (!resp.ok) throw new Error('rss2json-cdn http ' + resp.status);
+    return parseRss2JsonData(await resp.json());
+  }
+
+  // rss2json API — 원본 URL
+  // ※ count 파라미터 없이 사용해야 함 — 무료 티어에서 count 지정 시 422 오류
+  async function tryRss2Json() {
+    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+    const resp = await fetch(apiUrl, {signal: mkSignal(20000)});
+    if (!resp.ok) throw new Error('rss2json http ' + resp.status);
+    return parseRss2JsonData(await resp.json());
+  }
+
+  // 직접 CDN RSS fetch
+  async function tryDirectCdn() {
+    const resp = await fetch(cdnUrl, {signal: mkSignal(20000)});
+    if (!resp.ok) throw new Error('cdn-direct http ' + resp.status);
+    const text = await resp.text();
+    if (!text || text.length < 200) throw new Error('cdn-direct empty');
+    const items = parseCpaRss(text, board);
+    if (!items.length) throw new Error('cdn-direct: no items after filter');
+    return items;
+  }
+
+  // 직접 원본 RSS fetch (Cloudflare가 RSS에 대해 CORS 허용 시 동작)
+  async function tryDirectRss() {
+    const resp = await fetch(rssUrl, {signal: mkSignal(20000)});
+    if (!resp.ok) throw new Error('direct http ' + resp.status);
+    const text = await resp.text();
+    if (!text || text.length < 200) throw new Error('direct empty');
+    const items = parseCpaRss(text, board);
+    if (!items.length) throw new Error('direct: no items after filter');
+    return items;
+  }
+
+  let items;
+  if (typeof Promise.any === 'function') {
+    items = await Promise.any([tryRss2JsonCdn(), tryRss2Json(), tryDirectCdn(), tryDirectRss()]);
+  } else {
+    for (const fn of [tryRss2JsonCdn, tryRss2Json, tryDirectCdn, tryDirectRss]) {
+      try { items = await fn(); break; } catch(_) {}
+    }
+    if (!items) throw new Error('all KICPA RSS methods failed');
+  }
+  return items.filter(it => !it.date || it.date >= cutoff).slice(0, 80);
+}
+
+// ── Wayback Machine 폴백: FSS 등 Cloudflare 차단 사이트용 ──
+// archive.org는 CORS 허용 + Cloudflare 미사용 → 직접 fetch 가능
+// 최신 스냅샷 기준이며 수 시간 ~ 수일 전 캐시일 수 있음
+async function fetchViaWayback(targetUrl) {
+  // 오늘 날짜 타임스탬프 → 가장 최신 스냅샷 우선 검색
+  const ts = new Date().toISOString().replace(/[-:T.Z]/g,'').substring(0,14);
+  const avApi = `https://archive.org/wayback/available?url=${encodeURIComponent(targetUrl)}&timestamp=${ts}`;
+  const avResp = await fetch(avApi, {signal: mkSignal(15000)});
+  if (!avResp.ok) throw new Error('wayback avail ' + avResp.status);
+  const avData = await avResp.json();
+  const snap = avData?.archived_snapshots?.closest;
+  if (!snap?.available || !snap?.url) throw new Error('no wayback snapshot');
+  // id_ 접미사: Wayback Machine 툴바 제거하여 원본 HTML만 반환
+  const rawUrl = snap.url.replace(/\/web\/(\d+)\//, `/web/$1id_/`);
+  const resp = await fetch(rawUrl, {signal: mkSignal(25000)});
+  if (!resp.ok) throw new Error('wayback snapshot http ' + resp.status);
+  const html = await resp.text();
+  if (!html || html.length < 1000) throw new Error('wayback snapshot empty');
+  return html;
+}
+
+function hasFssBodoApiKey() {
+  const key = String(FSS_BODO_API_KEY || '').trim();
+  return key.length === 32 && !/여기에|API_KEY|입력/i.test(key);
+}
+
+function normalizeFssApiDate(value) {
+  const text = String(value || '').trim();
+  const match = text.match(/(20\d{2})[.\-/년\s]+(\d{1,2})[.\-/월\s]+(\d{1,2})/);
+  return match ? `${match[1]}-${match[2].padStart(2,'0')}-${match[3].padStart(2,'0')}` : '';
+}
+
+function collectFssBodoApiRows(payload) {
+  const rows = [];
+  const visited = new Set();
+  const walk = value => {
+    if (!value || typeof value !== 'object' || visited.has(value)) return;
+    visited.add(value);
+    if (!Array.isArray(value) && typeof value.subject === 'string') rows.push(value);
+    Object.values(value).forEach(walk);
+  };
+  walk(payload);
+  return rows;
+}
+
+async function fetchFssBodoApi(board) {
+  if (!hasFssBodoApiKey()) throw new Error('FSS API key not configured');
+
+  const cutoff = cutoffDate(getBoardCutoffDays(board));
+  const endDate = new Date().toISOString().substring(0,10);
+  const url = new URL(FSS_BODO_API_URL);
+  url.searchParams.set('apiType','json');
+  url.searchParams.set('startDate',cutoff);
+  url.searchParams.set('endDate',endDate);
+  url.searchParams.set('authKey',String(FSS_BODO_API_KEY).trim());
+
+  // 인증키가 제3자에게 노출되지 않도록 공식 금융감독원 주소에만 직접 요청한다.
+  const response = await fetch(url.href,{signal:mkSignal(20000),cache:'no-store',mode:'cors'});
+  if (!response.ok) throw new Error('FSS API HTTP '+response.status);
+  const text = await response.text();
+  let payload;
+  try { payload = JSON.parse(text); }
+  catch(_) { throw new Error('FSS API returned non-JSON data'); }
+
+  const seen = new Set();
+  const items = collectFssBodoApiRows(payload).map(row => ({
+    title:String(row.subject || '').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim(),
+    url:String(row.originUrl || '').replace(/&amp;/gi,'&').trim(),
+    date:normalizeFssApiDate(row.regDate),
+  })).filter(item => item.title && item.url && item.date && item.date >= cutoff)
+    .filter(item => {
+      const key = item.url+'\x00'+item.title;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).sort((a,b)=>b.date.localeCompare(a.date));
+
+  if (!items.length) throw new Error('FSS API returned no usable press releases');
+  return items;
+}
+
 async function fetchBoard(board) {
-  // 개별 설정이 60일보다 짧으면 60일로 올리고, 더 긴 설정은 그대로 유지
-  const effectiveCutoffDays = Math.max(MIN_CUTOFF_DAYS, board.cutoffDays || CUTOFF_DAYS);
+  // 금융위원회 NEWS는 목록에 날짜가 없는 과거 호수의 상세화면을 확인한다.
+  if (board.parser === 'newsletter') return fetchNewsletterItems(board);
+
+  // 금융감독원 보도자료는 공식 OPEN API를 우선 사용한다.
+  // API 미설정·CORS·인증·응답 오류 시 아래의 기존 HTML 수집 경로로 계속 진행한다.
+  if (board.parser === 'fss' && (board.id === 'fss-press' || /\/B0000188\//i.test(board.fetchUrl))) {
+    try { return await fetchFssBodoApi(board); } catch(_) {}
+  }
+
+  // ── CPA 서브섹션: 정확한 목록과 상세분류 RSS 경로를 동시에 시도 ──
+  if (board.parser === 'cpa') {
+    const cutoff = cutoffDate(getBoardCutoffDays(board));
+    const exactPage = async () => {
+      const html = await fetchWithProxy(board.fetchUrl);
+      if (!isCorrectCpaSectionPage(html, board)) throw new Error('wrong KICPA subsection page');
+      const items = parseCPA(html, board).filter(it=>it.date && it.date>=cutoff);
+      if (!items.length) throw new Error('empty exact KICPA subsection');
+      return items;
+    };
+    const archivedPage = async () => {
+      const html = await fetchViaWayback(board.fetchUrl);
+      if (!isCorrectCpaSectionPage(html, board)) throw new Error('wrong archived KICPA subsection page');
+      const items = parseCPA(html, board).filter(it=>it.date && it.date>=cutoff);
+      if (!items.length) throw new Error('empty archived KICPA subsection');
+      return items;
+    };
+    const categorizedRss = async () => {
+      const items = await fetchCpaCategorizedRss(board);
+      if (!items.length) throw new Error('empty categorized KICPA RSS');
+      return items;
+    };
+    if (typeof Promise.any === 'function') return await Promise.any([exactPage(),categorizedRss(),archivedPage()]);
+    for (const attempt of [exactPage,categorizedRss,archivedPage]) {
+      try { return await attempt(); } catch(_) {}
+    }
+    throw new Error('KICPA subsection fetch failed');
+  }
+
+  // ── 일반 보드: 모든 게시판은 최소 60일 기준을 유지한다. ──
+  const effectiveCutoffDays = getBoardCutoffDays(board);
   const cutoff = cutoffDate(effectiveCutoffDays);
   const seen   = new Set();
   const all    = [];
-  const MAX_PAGES = board.parser === 'newsletter' ? 1 : (board.parser === 'fsc' ? 8 : 4);
+  const MAX_PAGES = board.parser === 'fsc' ? 8 : (board.parser === 'fss' ? 12 : 4);
+  const isFss = board.parser === 'fss';
 
   for (let pg = 1; pg <= MAX_PAGES; pg++) {
     const url  = pageUrl(board, pg);
-    const resp = await fetch(PROXY+encodeURIComponent(url), {signal:AbortSignal.timeout(11000)});
-    if (!resp.ok) break;
-    const html  = await resp.text();
-    const items = parseHtml(html, board);
+    let html, items = [], proxyOk = false;
+    try {
+      if (isFss) {
+        items = await fetchFssItems(url, board);
+      } else {
+        html = await fetchWithProxy(url);
+        items = parseHtml(html, board);
+      }
+      proxyOk = items.length > 0;
+    } catch(_) {}
+
+    // FSS: 프록시 실패 또는 CF 챌린지 반환(items=0) → Wayback Machine 시도 (pg1만)
+    if (isFss && pg === 1 && (!proxyOk || !items.length)) {
+      try {
+        const wbHtml = await fetchViaWayback(url);
+        const wbItems = parseHtml(wbHtml, board);
+        if (wbItems.length) {
+          for (const it of wbItems) {
+            const key = (it.url||'')+'\x00'+(it.title||'');
+            if (seen.has(key)) continue; seen.add(key);
+            if (it.date && it.date < cutoff) continue;
+            all.push(it);
+          }
+        }
+      } catch(_) {}
+      break; // Wayback은 pg=1 1회만
+    }
+
     if (!items.length) break;
 
     let reachedOld = false;
     for (const it of items) {
       const key = (it.url||'')+'\x00'+(it.title||'');
       if (seen.has(key)) continue; seen.add(key);
-      // 날짜가 있으면 게시판별 적용 기간을 확인하고, 날짜가 없으면 포함
       if (it.date && it.date < cutoff) { reachedOld = true; continue; }
       all.push(it);
     }
-    if (reachedOld) break; // 더 오래된 페이지는 불필요
+    if (reachedOld) break;
   }
+
   return all;
 }
 
@@ -871,12 +1717,28 @@ async function loadBoard(board) {
   try {
     const items = await fetchBoard(board);
     if (!items.length) throw new Error('empty');
-    BS[board.id].items    = items;
-    BS[board.id].fallback = false;
-    } catch(_) {
-    const fb = FB[board.id]||[];
-    BS[board.id].items = fb;
-    BS[board.id].fallback = true;
+    BS[board.id].items     = items;
+    BS[board.id].fromCache = false;
+    BS[board.id].failed    = false;
+    saveCache(board.id, items);                  // ✅ 성공 시 캐시 저장
+  } catch(_) {
+    const cached = loadCache(board.id);          // ⬇ 실패 시 캐시 로드
+    if (cached && cached.items.length) {
+      const cutoff = cutoffDate(getBoardCutoffDays(board));
+      const cachedItems = cached.items.filter(it => {
+        // NEWS 항목은 날짜가 확인되어야 60일 이내인지 판단할 수 있다.
+        if (board.parser === 'newsletter') return !!it.date && it.date >= cutoff;
+        return !it.date || it.date >= cutoff;
+      });
+      BS[board.id].items     = cachedItems;
+      BS[board.id].fromCache = true;
+      BS[board.id].cacheTs   = cached.ts;
+      BS[board.id].failed    = cachedItems.length === 0;
+    } else {
+      BS[board.id].items     = [];
+      BS[board.id].fromCache = false;
+      BS[board.id].failed    = true;
+    }
   }
   BS[board.id].loaded = true;
   renderInst(board.inst);
@@ -885,8 +1747,10 @@ async function loadBoard(board) {
 async function doRefresh() {
   const btn = document.getElementById('refresh-btn');
   btn.classList.add('loading');
+  CPA_RSS_ITEMS_CACHE.clear();
+  CPA_ARTICLE_CATEGORY_CACHE.clear();
   clearSearch();
-  BOARDS.forEach(b => { BS[b.id]={items:[],fallback:false,loaded:false}; });
+  BOARDS.forEach(b => { BS[b.id]={items:[],loaded:false,fromCache:false,failed:false}; });
   ['cpa','kicpa-notice','fss','fsc-sanction','fsc-news','ord'].forEach(id => {
     IS[id].page = 0;
     document.getElementById('list-'+id).innerHTML = '<div class="loading-row"><div class="spinner"></div>불러오는 중...</div>';
@@ -1046,15 +1910,346 @@ function saveImagePanel() {
   catch(_) { alert('이미지를 저장할 수 없습니다.'); }
 }
 function clearImage() {
-  if (!savedImage || !confirm('이미지보드를 비울까요?')) return;
   savedImage=''; savedImageName='image.png';
   localStorage.removeItem('cpa-news-image-board'); localStorage.removeItem('cpa-news-image-name');
+  const input=document.getElementById('image-input'); if(input) input.value='';
   renderSavedImage();
+}
+
+// ── 진단 패널 ──
+
+// ── URL CONFIG PANEL ──
+const URL_CFG_NS  = 'cpanews-v4-url-';
+const PANEL_TITLE_NS = 'cpanews-v4-title-';
+const URL_CFG_PANEL_NAMES = {
+  'fsc-news':     '금융위원회 보도자료',
+  'fsc-sanction': '금융위원회 제재정보',
+  'ord':          '금융위원회 관련 시행령 입법예고',
+  'fss':          '금융감독원',
+  'cpa':          'KICPA NEWS',
+  'kicpa-notice': 'KICPA 공지사항',
+};
+let adminDraft = null;
+
+function getPanelTitle(inst) {
+  try { return localStorage.getItem(PANEL_TITLE_NS + inst) || ACTIVE_ADMIN_CONFIG?.titles?.[inst] || URL_CFG_PANEL_NAMES[inst] || inst; }
+  catch(_) { return ACTIVE_ADMIN_CONFIG?.titles?.[inst] || URL_CFG_PANEL_NAMES[inst] || inst; }
+}
+
+function applyPanelTitles() {
+  Object.keys(URL_CFG_PANEL_NAMES).forEach(inst => {
+    const el = document.getElementById('title-' + inst);
+    const title = getPanelTitle(inst);
+    if (el) el.textContent = title;
+    const link = document.querySelector(`#panel-${inst} .board-link`);
+    const firstBoard = BOARDS.find(b => b.inst === inst);
+    if (link && firstBoard) {
+      link.href = firstBoard.fetchUrl;
+      link.title = `${title} 바로가기`;
+    } else if (link) {
+      link.href = '#';
+      link.title = '등록된 게시판 없음';
+    }
+  });
+}
+
+// 새 통합 설정이 없을 때만 이전 버전의 개별 URL 설정을 불러온다.
+function loadUrlCfg() {
+  if (Array.isArray(ACTIVE_ADMIN_CONFIG?.boards)) return;
+  BOARDS.forEach(b => {
+    try {
+      const saved = localStorage.getItem(URL_CFG_NS + b.id);
+      if (saved) b.fetchUrl = saved;
+    } catch(_) {}
+  });
+}
+
+function toggleUrlCfg() {
+  const btn   = document.getElementById('url-cfg-btn');
+  const panel = document.getElementById('url-cfg-panel');
+  const open  = panel.classList.contains('open');
+  if (open) {
+    cancelAdminSettings();
+    return;
+  }
+  openAdminAuth();
+}
+
+function getAdminPassword() {
+  try { return localStorage.getItem(ADMIN_PASSWORD_KEY) || ACTIVE_ADMIN_CONFIG?.password || DEFAULT_ADMIN_PASSWORD; }
+  catch(_) { return ACTIVE_ADMIN_CONFIG?.password || DEFAULT_ADMIN_PASSWORD; }
+}
+
+function openAdminAuth() {
+  const modal = document.getElementById('admin-auth-modal');
+  const input = document.getElementById('admin-password');
+  if (!modal || !input) return;
+  input.value = '';
+  modal.hidden = false;
+  setTimeout(() => input.focus(), 0);
+}
+
+function closeAdminAuth() {
+  const modal = document.getElementById('admin-auth-modal');
+  const input = document.getElementById('admin-password');
+  if (modal) modal.hidden = true;
+  if (input) input.value = '';
+}
+
+function verifyAdminPassword() {
+  const input = document.getElementById('admin-password');
+  if (!input || input.value !== getAdminPassword()) {
+    closeAdminAuth();
+    alert('비밀번호가 틀립니다.');
+    return;
+  }
+  closeAdminAuth();
+  openUrlCfgPanel();
+}
+
+function openUrlCfgPanel() {
+  const btn   = document.getElementById('url-cfg-btn');
+  const panel = document.getElementById('url-cfg-panel');
+  adminDraft = {
+    titles: Object.fromEntries(ADMIN_INST_ORDER.map(inst => [inst,getPanelTitle(inst)])),
+    boards: BOARDS.map(b => ({...b})),
+    password: getAdminPassword(),
+  };
+  renderUrlCfgGrid();
+  panel.classList.add('open');
+  btn.classList.add('open');
+  btn.textContent = '⚙ URL 설정 ✕';
+}
+
+function renderUrlCfgGrid() {
+  const grid = document.getElementById('url-cfg-grid');
+  if (!adminDraft) return;
+  let html = '';
+  ADMIN_INST_ORDER.forEach((inst, gi) => {
+    const indexedBoards = adminDraft.boards.map((b,index)=>({b,index})).filter(x => x.b.inst === inst);
+    if (gi > 0) html += '<hr class="url-cfg-divider">';
+    const pname = adminDraft.titles[inst] || URL_CFG_PANEL_NAMES[inst] || inst;
+    html += `
+      <div class="url-cfg-group-head">
+        <span>${esc(URL_CFG_PANEL_NAMES[inst] || inst)}</span>
+        <button type="button" class="url-cfg-add" onclick="addAdminBoard('${inst}')">＋ 게시판 추가</button>
+      </div>
+      <label class="url-cfg-label" for="title-input-${inst}">표시 타이틀</label>
+      <input class="url-cfg-input url-cfg-title-input" id="title-input-${inst}" value="${esc(pname)}" spellcheck="false" oninput="updateAdminDraftTitle('${inst}',this.value)">
+      <div></div>
+    `;
+    indexedBoards.forEach(({b,index}) => {
+      html += `
+        <input class="url-cfg-input url-cfg-label-input" aria-label="분류명" value="${esc(b.label || '')}" placeholder="분류명" oninput="updateAdminDraftBoard(${index},'label',this.value)">
+        <input class="url-cfg-input" aria-label="게시판 URL" value="${esc(b.fetchUrl || '')}" placeholder="https://..." spellcheck="false" oninput="updateAdminDraftBoard(${index},'fetchUrl',this.value)">
+        <div class="url-cfg-btns">
+          <button type="button" class="url-cfg-delete" onclick="deleteAdminBoard(${index})">삭제</button>
+        </div>
+      `;
+    });
+  });
+  grid.innerHTML = html;
+}
+
+function updateAdminDraftTitle(inst, value) {
+  if (adminDraft) adminDraft.titles[inst] = value;
+}
+
+function updateAdminDraftBoard(index, field, value) {
+  if (adminDraft?.boards[index]) adminDraft.boards[index][field] = value;
+}
+
+function addAdminBoard(inst) {
+  if (!adminDraft) return;
+  const defaultDays = inst === 'fss' ? 30 : (inst === 'kicpa-notice' ? 365 : 60);
+  adminDraft.boards.push({
+    id:`custom-${inst}-${Date.now().toString(36)}`,
+    inst,label:'',fetchUrl:'',parser:'',showTag:true,cutoffDays:defaultDays,
+  });
+  renderUrlCfgGrid();
+}
+
+function deleteAdminBoard(index) {
+  if (!adminDraft?.boards[index]) return;
+  adminDraft.boards.splice(index,1);
+  renderUrlCfgGrid();
+}
+
+function stageAdminPasswordChange() {
+  if (!adminDraft) return;
+  const current = document.getElementById('admin-current-password')?.value || '';
+  const next = document.getElementById('admin-new-password')?.value || '';
+  const confirmNext = document.getElementById('admin-confirm-password')?.value || '';
+  if (current !== getAdminPassword()) { alert('현재 비밀번호가 틀립니다.'); return; }
+  if (!next) { alert('새 비밀번호를 입력하세요.'); return; }
+  if (next !== confirmNext) { alert('새 비밀번호가 서로 다릅니다.'); return; }
+  adminDraft.password = next;
+  ['admin-current-password','admin-new-password','admin-confirm-password'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  alert('새 비밀번호가 준비되었습니다. 아래 [저장]을 눌러 확정하세요.');
+}
+
+function closeAdminPanel() {
+  const panel = document.getElementById('url-cfg-panel');
+  const btn = document.getElementById('url-cfg-btn');
+  panel?.classList.remove('open');
+  btn?.classList.remove('open');
+  if (btn) btn.textContent = '⚙ URL 설정';
+  ['admin-current-password','admin-new-password','admin-confirm-password'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+}
+
+function cancelAdminSettings() {
+  adminDraft = null;
+  closeAdminPanel();
+}
+
+function persistEmbeddedConfig(config) {
+  const el = document.getElementById('embedded-admin-config');
+  if (el) el.textContent = JSON.stringify(config).replace(/</g,'\\u003c');
+}
+
+function buildConfiguredHtml(config) {
+  const clone = document.documentElement.cloneNode(true);
+  const embedded = clone.querySelector('#embedded-admin-config');
+  if (embedded) embedded.textContent = JSON.stringify(config).replace(/</g,'\\u003c');
+  clone.querySelector('#url-cfg-panel')?.classList.remove('open');
+  clone.querySelector('#url-cfg-btn')?.classList.remove('open');
+  const grid = clone.querySelector('#url-cfg-grid');
+  if (grid) grid.innerHTML = '<!-- JS로 채워짐 -->';
+  const modal = clone.querySelector('#admin-auth-modal');
+  if (modal) modal.setAttribute('hidden','');
+  clone.querySelectorAll('#admin-current-password,#admin-new-password,#admin-confirm-password,#admin-password').forEach(el => {
+    el.removeAttribute('value');
+  });
+  return '<!DOCTYPE html>\n' + clone.outerHTML;
+}
+
+const FILE_HANDLE_DB = 'cpanews-local-file-v1';
+const FILE_HANDLE_STORE = 'handles';
+const FILE_HANDLE_KEY = 'configured-html';
+
+function openFileHandleDb() {
+  return new Promise((resolve,reject) => {
+    if (!window.indexedDB) { reject(new Error('indexedDB unavailable')); return; }
+    const req = indexedDB.open(FILE_HANDLE_DB,1);
+    req.onupgradeneeded = () => req.result.createObjectStore(FILE_HANDLE_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function getSavedFileHandle() {
+  try {
+    const db = await openFileHandleDb();
+    return await new Promise((resolve,reject) => {
+      const req = db.transaction(FILE_HANDLE_STORE,'readonly').objectStore(FILE_HANDLE_STORE).get(FILE_HANDLE_KEY);
+      req.onsuccess=()=>resolve(req.result||null); req.onerror=()=>reject(req.error);
+    });
+  } catch(_) { return null; }
+}
+
+async function rememberFileHandle(handle) {
+  try {
+    const db = await openFileHandleDb();
+    await new Promise((resolve,reject) => {
+      const req = db.transaction(FILE_HANDLE_STORE,'readwrite').objectStore(FILE_HANDLE_STORE).put(handle,FILE_HANDLE_KEY);
+      req.onsuccess=()=>resolve(); req.onerror=()=>reject(req.error);
+    });
+  } catch(_) {}
+}
+
+async function fileHandleCanWrite(handle) {
+  if (!handle) return false;
+  try {
+    if ((await handle.queryPermission({mode:'readwrite'})) === 'granted') return true;
+    return (await handle.requestPermission({mode:'readwrite'})) === 'granted';
+  } catch(_) { return false; }
+}
+
+async function chooseDownloadFileHandle() {
+  if (!window.showSaveFilePicker) return null;
+  const options = {
+    suggestedName:'KICPA_NEWS_dashboard.html',
+    startIn:'downloads',
+    types:[{description:'HTML 파일',accept:{'text/html':['.html']}}],
+  };
+  try {
+    return await window.showSaveFilePicker(options);
+  } catch(err) {
+    if (err?.name === 'AbortError') throw err;
+    const fallbackOptions = {...options}; delete fallbackOptions.startIn;
+    return await window.showSaveFilePicker(fallbackOptions);
+  }
+}
+
+async function saveConfiguredHtmlToDevice(config) {
+  const html = buildConfiguredHtml(config);
+  const blob = new Blob([html],{type:'text/html;charset=utf-8'});
+  const preview = window.open('about:blank','KICPA_NEWS_SAVED');
+  try {
+    let handle = await getSavedFileHandle();
+    if (!(await fileHandleCanWrite(handle))) handle = await chooseDownloadFileHandle();
+
+    if (handle) {
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      await rememberFileHandle(handle);
+    } else {
+      const downloadUrl = URL.createObjectURL(blob);
+      downloadData(downloadUrl,'KICPA_NEWS_dashboard.html');
+      setTimeout(()=>URL.revokeObjectURL(downloadUrl),2000);
+    }
+
+    const previewUrl = URL.createObjectURL(blob);
+    if (preview) preview.location.href = previewUrl;
+    else window.open(previewUrl,'_blank');
+    setTimeout(()=>URL.revokeObjectURL(previewUrl),60000);
+    return true;
+  } catch(err) {
+    if (preview) preview.close();
+    if (err?.name !== 'AbortError') alert('HTML 파일을 저장하지 못했습니다. 브라우저의 다운로드 권한을 확인해 주세요.');
+    return false;
+  }
+}
+
+async function saveAdminSettings() {
+  if (!adminDraft) return;
+  const normalized = normalizeAdminBoards(adminDraft.boards);
+  if (normalized.length !== adminDraft.boards.length) {
+    alert('비어 있거나 올바르지 않은 게시판 URL이 있습니다. http:// 또는 https:// 주소를 입력하세요.');
+    return;
+  }
+  const titles = {};
+  ADMIN_INST_ORDER.forEach(inst => {
+    titles[inst] = String(adminDraft.titles[inst] || '').trim() || URL_CFG_PANEL_NAMES[inst];
+  });
+  const config = {version:1,titles,boards:normalized,password:adminDraft.password || getAdminPassword()};
+  const deviceSaved = await saveConfiguredHtmlToDevice(config);
+  if (!deviceSaved) return;
+  let browserSaved = true;
+  try {
+    localStorage.setItem(ADMIN_CONFIG_KEY,JSON.stringify(config));
+    localStorage.setItem(ADMIN_PASSWORD_KEY,config.password);
+    ADMIN_INST_ORDER.forEach(inst => localStorage.setItem(PANEL_TITLE_NS+inst,titles[inst]));
+  } catch(_) { browserSaved = false; }
+
+  ACTIVE_ADMIN_CONFIG = config;
+  BOARDS.splice(0,BOARDS.length,...normalized.map(b=>({...b})));
+  Object.keys(BS).forEach(k=>delete BS[k]);
+  BOARDS.forEach(b => { BS[b.id]={items:[],loaded:false,fromCache:false,failed:false}; });
+  persistEmbeddedConfig(config);
+  applyPanelTitles();
+  adminDraft = null;
+  closeAdminPanel();
+  await doRefresh();
+  if (!browserSaved) alert('HTML 파일은 저장했지만 현재 브라우저 저장공간에는 기록하지 못했습니다. 새로 열린 화면을 사용해 주세요.');
 }
 
 // ── INIT ──
 updateTs();
 initLocalWorkspace();
+loadUrlCfg();          // 저장된 URL 설정 먼저 적용
+applyPanelTitles();    // 저장된 화면 타이틀 반영
 BOARDS.forEach(b => loadBoard(b));
 </script>
 </body>
