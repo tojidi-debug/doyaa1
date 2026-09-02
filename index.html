@@ -601,7 +601,7 @@ html,body{min-width:1360px;overflow-x:auto}
     requestEmailAuth(false);
   });
   /* ─── 상수 ─── */
-  const HOME_URL = 'https://tojidi-debug.github.io/kicpadb/search.html';
+  const HOME_URL = 'https://tojidi-debug.github.io/doyaa1/search.html';
   const VER      = 'v10-sheet-auth';   // 버전 올리면 localStorage 자동 초기화
   const MENU_SHEET_ID = '19SmDDYNJTcKXNNB73MIuWGrQMRCFI2a59WYwBXG4xGQ';
   const MENU_SHEET_NAME = 'list';
@@ -640,12 +640,12 @@ html,body{min-width:1360px;overflow-x:auto}
   /* ─── 기본 메뉴 ─── */
   const DEFAULT_MENUS = [
     { id:1,  g:1, name:'휴폐업',     url:'https://script.google.com/macros/s/AKfycbz1E0D17-PeAJlvAjiLeiZh2rzQ2W23SuheSR6nQv_T53N7HgCzq0V_aujW2Rq0E48Ejg/exec' },
-    { id:2,  g:1, name:'소송',       url:'https://tojidi-debug.github.io/home/court_search.html' },
+    { id:2,  g:1, name:'소송',       url:'https://tojidi-debug.github.io/doyaa1/court_search.html' },
     { id:21,  g:1, name:'환율금리',       url:'https://tojidi-debug.github.io/stitch/ecos.html' },
     { id:22,  g:1, name:'예비심사청구',       url:'https://krx-ipo-search.doyaa.workers.dev' },
-    { id:25,  g:1, name:'독립성',       url:'https://tojidi-debug.github.io/issue/index2.html' },
+    { id:25,  g:1, name:'독립성',       url:'https://tojidi-debug.github.io/doyaa1/index2.html' },
     { id:26,  g:1, name:'보고서Down',       url:'https://script.google.com/macros/s/AKfycbyU8L2srdNx6YT7B07xnpBU0WoK22R-Xhf53BMdBLSoUN6I3nZwehumKp51P0I3aOsmZQ/exec' },
-    { id:14,  g:1, name:'EXCEL함수',       url:'https://tojidi-debug.github.io/doyaa3/excel.html' },
+    { id:14,  g:1, name:'EXCEL함수',       url:'https://tojidi-debug.github.io/doyaa1/excel.html' },
     { id:13, g:1, name:'회생조회',   url:'https://script.google.com/macros/s/AKfycbxPPRl9Z2jFukCyURSnUkl-0YIlfREmZ-ftYcki2bLdh7ccPM7Ef6oeRexTLP3um3Ir/exec' },
     { id:15, g:1, name:'수출입·특허',   url:'https://script.google.com/macros/s/AKfycbxZN8uxl4yH1qP9OJdVTm4_Y4NKeGxrUtixCRWAwHoUAfP8bUpWVwHBcQFJGs9vBjTABQ/exec' },    
     { id:156, g:1, name:'NEWS',   url:'https://tojidi-debug.github.io/doyaa1/news.html' },   
@@ -654,12 +654,12 @@ html,body{min-width:1360px;overflow-x:auto}
     { id:5,  g:2, name:'KICPA',      url:'https://script.google.com/macros/s/AKfycbw8s2lGpHf6IbIMuzyO5oOHIL4KLBtraFJKO7zRiCMDiWW8peIes1f0GYRm6IR0pjpBZg/exec' },
     { id:6,  g:2, name:'전당기',     url:'https://script.google.com/macros/s/AKfycbwdcfrZnl1WPDgapy-asAZijutW6vUZRZ7HIndimvuM9Rn0C634JxkcEasmqp_lvooR/exec' },
     { id:7,  g:2, name:'금융위',     url:'https://script.google.com/macros/s/AKfycbwpZ_9dOOiSq_vj7dfx33Lqopw3KKczXCO1ikkVstWME-NVABXDJ_HZ1HxkLOrfo-s7Mw/exec' },
-    { id:8,  g:3, name:'기준서 검색', url:'https://tojidi-debug.github.io/kicpadb/search.html' },
+    { id:8,  g:3, name:'기준서 검색', url:'https://tojidi-debug.github.io/doyaa1/search.html' },
     { id:15,  g:3, name:'양정산출', url:'https://script.google.com/macros/s/AKfycbzifRnS24zodwRzwtw2OUymmbxXcOU-pZIreRX6Sf-KkgFBdQxbTWDma40g1uSOL7Zg/exec' },
-    { id:9,  g:4, name:'PDF편집',    url:'https://tojidi-debug.github.io/kicpadb/pdf.html' },
+    { id:9,  g:4, name:'PDF편집',    url:'https://tojidi-debug.github.io/doyaa1/pdf.html' },
     { id:10, g:4, name:'PROMPT',     url:'https://script.google.com/macros/s/AKfycbynvCGxjeJL2PYwLJFepLBY-rnH0g-rvfBxMlVfh0EBrDdAYUAgFl1Z7zjThdNWP5Y0tw/exec' },
     { id:11, g:4, name:'포스트잇',   url:'https://script.google.com/macros/s/AKfycbyieDb30eK8mAC0D9Z4sNT91ovmD4iUMcRpC2EmQC5HA5lLG2EYGx3TaRdpInMS94hu/exec' },
-    { id:12, g:4, name:'이미지보드', url:'https://tojidi-debug.github.io/kicpadb/menu.html' },
+    { id:12, g:4, name:'이미지보드', url:'https://tojidi-debug.github.io/doyaa1/menu.html' },
   ];
 
   /* ─── localStorage 초기화 (VER 변경 시 menus + 비밀번호 모두 초기화) ─── */
