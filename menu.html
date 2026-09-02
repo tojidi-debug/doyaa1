@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>㈜한에스시스템</title>
+  <style>
+    /* 기본 초기화 */
+    * {
+      margin: 0; padding: 0; box-sizing: border-box;
+      -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
+    }
+    
+    body, html { 
+      width: 100%; height: 100%; 
+      font-family: 'Nanum Gothic', sans-serif; 
+      background: linear-gradient(135deg, #ffffff 0%, #eef7ff 100%);
+      font-size: 13.3px; /* 2pt 축소 반영 */
+    }
+
+    #main-content { min-height: 100vh; padding: 20px; }
+    
+    .top-bar {
+      max-width: 1200px; margin: 0 auto 30px; display: flex; justify-content: space-between; align-items: center;
+      background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(5px);
+      padding: 12px 20px; border-radius: 12px; border: 1px solid rgba(0, 0, 0, 0.05);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+    }
+    
+    .top-bar h2 { color: #333; font-size: 1.2rem; }
+    .btn-group { display: flex; gap: 8px; }
+    .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px; transition: 0.2s; }
+    .btn-save { background: #1cb5e0; color: white; }
+    .btn-clear { background: #ff6b6b; color: white; }
+
+    .image-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1200px; margin: 0 auto; }
+
+    /* 아주 연한 포스트잇 색상 (투명도 40~60%) */
+    .post-it {
+      position: relative; min-height: 350px; border-radius: 4px;
+      box-shadow: 2px 4px 10px rgba(0,0,0,0.05); display: flex; flex-direction: column;
+      transition: transform 0.2s; overflow: hidden; border: 1px solid rgba(0, 0, 0, 0.03);
+    }
+    .bg-yellow { background-color: rgba(255, 253, 230, 0.7); }
+    .bg-blue   { background-color: rgba(240, 248, 255, 0.7); }
+    .bg-purple { background-color: rgba(250, 240, 255, 0.7); }
+    .bg-orange { background-color: rgba(255, 247, 235, 0.7); }
+
+    .upload-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #777; cursor: pointer; padding: 20px; }
+    .pin-icon { font-size: 24px; margin-bottom: 8px; } /* 핀 크기 축소 */
+    .upload-area p { font-size: 11px; color: #888; }
+    
+    .display-img { width: 100%; height: auto; display: block; }
+    .remove-btn {
+      position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.2); color: white;
+      border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 12px;
+      display: none; z-index: 5;
+    }
+    .post-it:hover .remove-btn { display: block; }
+    .file-input { display: none; }
+
+    /* 저장 성공 알림 토스트 */
+    #toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.7); color: white; padding: 10px 20px; border-radius: 20px;
+      font-size: 12px; display: none; z-index: 1000;
+    }
+  </style>
+</head>
+<body oncontextmenu="return false">
+
+  <div id="main-content">
+    <div class="top-bar">
+      <h2>㈜한에스시스템 Image Board</h2>
+      <div class="btn-group">
+        <button class="btn btn-save" onclick="saveToLocal()">Save (Ctrl+S)</button>
+        <button class="btn btn-clear" onclick="clearBoard()">Clear All</button>
+      </div>
+    </div>
+    <div class="image-grid" id="imageGrid"></div>
+  </div>
+
+  <div id="toast">성공적으로 저장되었습니다!</div>
+
+  <script>
+    let boardItems = ["", "", "", ""]; 
+    const colors = ['bg-yellow', 'bg-blue', 'bg-purple', 'bg-orange'];
+    const STORAGE_KEY = 'H_SYSTEM_BOARD_DATA';
+
+    function renderBoard() {
+      const grid = document.getElementById('imageGrid');
+      grid.innerHTML = '';
+      boardItems.forEach((src, idx) => {
+        const card = document.createElement('div');
+        card.className = `post-it ${colors[idx % 4]}`;
+        card.innerHTML = `
+          <button class="remove-btn" onclick="deleteItem(${idx})">✕</button>
+          ${src ? `<img src="${src}" class="display-img">` : `
+            <div class="upload-area" onclick="document.getElementById('file-${idx}').click()" ondrop="dropFile(event, ${idx})" ondragover="return false">
+              <span class="pin-icon">📌</span>
+              <p>클릭/드래그/붙여넣기</p>
+            </div>
+          `}
+          <input type="file" id="file-${idx}" class="file-input" accept="image/*" onchange="inputFile(this, ${idx})">
+        `;
+        card.tabIndex = 0;
+        card.addEventListener('paste', (e) => handlePaste(e, idx));
+        grid.appendChild(card);
+      });
+    }
+
+    // 이미지 처리 및 자동 확장
+    function processImage(file, idx) {
+      if(!file || !file.type.startsWith('image/')) return;
+      
+      // 용량 문제 해결을 위한 간단한 압축 처리 (Canvas 활용)
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          // 최대 가로폭 1200px로 제한하여 용량 최적화
+          if (width > 1200) { height *= 1200 / width; width = 1200; }
+          canvas.width = width; canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          
+          boardItems[idx] = canvas.toDataURL('image/jpeg', 0.8); // 80% 화질로 압축
+          
+          // 모든 슬롯이 차면 2개 자동 추가
+          if (boardItems.filter(item => item !== "").length === boardItems.length) {
+            boardItems.push("", "");
+          }
+          renderBoard();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function inputFile(el, idx) { processImage(el.files[0], idx); }
+    function dropFile(e, idx) { e.preventDefault(); processImage(e.dataTransfer.files[0], idx); }
+    function handlePaste(e, idx) {
+      const items = (e.clipboardData || window.clipboardData).items;
+      for(let item of items) { if(item.type.indexOf("image") !== -1) processImage(item.getAsFile(), idx); }
+    }
+
+    function deleteItem(idx) { boardItems[idx] = ""; renderBoard(); }
+
+    // 저장 함수 강화
+    function saveToLocal() {
+      try {
+        const data = JSON.stringify(boardItems);
+        localStorage.setItem(STORAGE_KEY, data);
+        showToast("안전하게 저장되었습니다.");
+      } catch (e) {
+        alert("저장 공간이 부족합니다! 너무 큰 이미지는 지워주세요.");
+      }
+    }
+
+    function clearBoard() {
+      if(confirm("모든 데이터를 지울까요?")) {
+        boardItems = ["", "", "", ""];
+        localStorage.removeItem(STORAGE_KEY);
+        renderBoard();
+      }
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.innerText = msg; t.style.display = 'block';
+      setTimeout(() => { t.style.display = 'none'; }, 2000);
+    }
+
+    window.onload = () => {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if(saved) boardItems = JSON.parse(saved);
+      renderBoard();
+    };
+
+    // Ctrl+S 완벽 차단 및 저장 실행
+    window.addEventListener('keydown', (e) => {
+      if((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault(); // 브라우저 저장창 방지
+        saveToLocal();
+      }
+    });
+  </script>
+</body>
+</html>
