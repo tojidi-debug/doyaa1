@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>대법원 나의사건검색</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" as="style" crossorigin
+        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+  <style>
+    :root {
+      --bg:           #f5f4ef;
+      --surface:      #ffffff;
+      --surface-alt:  #faf9f5;
+      --border:       #e5e2d8;
+      --border-strong:#c9c4b3;
+      --navy:         #0f2942;
+      --navy-soft:    #1e3a5f;
+      --ink:          #0f172a;
+      --text:         #1e293b;
+      --muted:        #64748b;
+      --muted-2:      #94a3b8;
+      --accent:       #0d4a8e;
+      --success:      #047857;
+      --success-bg:   #ecfdf5;
+      --danger:       #b91c1c;
+      --danger-bg:    #fef2f2;
+      --warning:      #b45309;
+      --warning-bg:   #fffbeb;
+      --shadow-sm:    0 1px 2px rgba(15,41,66,.04);
+      --shadow-md:    0 4px 12px rgba(15,41,66,.07), 0 1px 3px rgba(15,41,66,.04);
+      --radius-sm: 6px;
+      --radius:    10px;
+      --radius-lg: 14px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      font-family: 'Pretendard Variable', Pretendard, -apple-system,
+                   'Malgun Gothic', '맑은 고딕', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      font-feature-settings: "tnum";
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* ===== 상단 바 ===== */
+    .topbar { background: var(--navy); border-bottom: 1px solid rgba(255,255,255,.06); }
+    .topbar-inner {
+      max-width: 900px; margin: 0 auto; padding: 10px 24px;
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 12px; flex-wrap: wrap;
+    }
+    .topbar-brand {
+      display: flex; align-items: center; gap: 10px;
+      color: #fff; font-weight: 600; font-size: 13px; letter-spacing: -.01em;
+    }
+    .brand-mark {
+      width: 22px; height: 22px; border-radius: 4px;
+      background: linear-gradient(135deg,#1e3a5f,#3a5a85);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 800; color: #fff; letter-spacing: .02em;
+    }
+    .topbar-badge {
+      font-size: 11px; color: #94a3b8; padding: 2px 8px;
+      border: 1px solid rgba(255,255,255,.1); border-radius: 999px;
+    }
+    #usageBadge { font-size:11px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .badge {
+      display:inline-flex; align-items:center; padding:2px 9px; border-radius:999px;
+      font-size:11px; font-weight:600; font-variant-numeric:tabular-nums;
+    }
+    .badge-ok     { background:#065f46; color:#a7f3d0; border:1px solid #047857; }
+    .badge-warn   { background:#78350f; color:#fde68a; border:1px solid #b45309; }
+    .badge-danger { background:#7f1d1d; color:#fecaca; border:1px solid #b91c1c; }
+    .badge-dim    { background:rgba(255,255,255,.08); color:#94a3b8; border:1px solid rgba(255,255,255,.1); }
+
+    /* ===== 컨테이너 ===== */
+    .container { max-width: 900px; margin: 0 auto; padding: 32px 24px 56px; }
+    .page-header { margin-bottom: 24px; }
+    .page-eyebrow {
+      font-size:11px; font-weight:600; letter-spacing:.12em; text-transform:uppercase;
+      color:var(--muted); margin-bottom:6px;
+    }
+    .page-title { font-size:24px; font-weight:700; color:var(--ink); letter-spacing:-.02em; }
+
+    /* ===== 카드 ===== */
+    .card {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius-lg); box-shadow:var(--shadow-sm);
+      padding:28px; margin-bottom:16px;
+    }
+    .card-title {
+      font-size:14px; font-weight:700; color:var(--ink); letter-spacing:-.01em;
+      margin-bottom:20px; display:flex; align-items:center; gap:8px;
+    }
+    .card-title-dot { width:4px; height:16px; border-radius:2px; background:var(--navy); flex-shrink:0; }
+
+    /* ===== 폼 ===== */
+    .form-group { margin-bottom:16px; }
+    .form-label {
+      display:block; font-size:12px; font-weight:600; color:var(--muted);
+      text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px;
+    }
+    .req { color:#ea580c; margin-left:3px; }
+    .form-control, .form-select {
+      width:100%; padding:10px 13px; border:1px solid var(--border);
+      border-radius:var(--radius-sm); background:var(--surface-alt);
+      color:var(--ink); font-family:inherit; font-size:14px;
+      transition:border-color .15s ease, box-shadow .15s ease;
+      outline:none; appearance:none; -webkit-appearance:none;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color:var(--accent); box-shadow:0 0 0 3px rgba(13,74,142,.12); background:#fff;
+    }
+    .form-control::placeholder { color:var(--muted-2); }
+    .select-wrap { position:relative; }
+    .select-wrap::after {
+      content:''; position:absolute; right:13px; top:50%; transform:translateY(-50%);
+      width:0; height:0; border-left:4px solid transparent; border-right:4px solid transparent;
+      border-top:5px solid var(--muted); pointer-events:none;
+    }
+    .form-select { padding-right:34px; cursor:pointer; }
+    .form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .form-grid-4 { display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:14px; align-items:end; }
+    @media (max-width:640px) {
+      .form-grid-2 { grid-template-columns:1fr; }
+      .form-grid-4 { grid-template-columns:1fr 1fr; }
+    }
+
+    /* ===== 버튼 ===== */
+    .btn {
+      display:inline-flex; align-items:center; justify-content:center;
+      gap:7px; padding:10px 18px; border-radius:var(--radius-sm);
+      font-family:inherit; font-size:13px; font-weight:600;
+      cursor:pointer; transition:all .15s ease; border:1px solid transparent;
+      letter-spacing:-.01em; white-space:nowrap;
+    }
+    .btn-primary {
+      background:var(--navy); color:#fff; border-color:var(--navy);
+      padding:12px 36px; font-size:14px;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background:var(--navy-soft); border-color:var(--navy-soft); box-shadow:var(--shadow-md);
+    }
+    .btn-primary:disabled { opacity:.5; cursor:not-allowed; }
+    .btn-ghost { background:transparent; color:var(--muted); border-color:var(--border-strong); }
+    .btn-ghost:hover { background:var(--surface-alt); color:var(--ink); }
+    .btn-sm { padding:7px 13px; font-size:12px; }
+    .btn-reset {
+      background:var(--surface-alt); color:var(--muted); border:1px solid var(--border);
+      height:40px; width:100%; border-radius:var(--radius-sm);
+      font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; transition:all .15s;
+    }
+    .btn-reset:hover { border-color:var(--danger); color:var(--danger); background:var(--danger-bg); }
+    .form-action { display:flex; justify-content:center; margin-top:22px; }
+
+    /* ===== 로딩 ===== */
+    .loading-section { display:none; padding:28px; text-align:center; }
+    .loading-section.show { display:block; }
+    .spinner {
+      width:32px; height:32px; border:2px solid var(--border); border-top-color:var(--navy);
+      border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 12px;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .loading-text { font-size:13px; color:var(--muted); font-weight:500; }
+    .loading-sub  { font-size:12px; color:var(--muted-2); margin-top:4px; }
+
+    /* ===== RAW JSON 결과 ===== */
+    .result-section { display:none; animation:fadeUp .4s ease; }
+    .result-section.show { display:block; }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(12px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .result-header {
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:12px; flex-wrap:wrap; gap:8px;
+    }
+    .result-title {
+      font-size:14px; font-weight:700; color:var(--ink);
+      display:flex; align-items:center; gap:8px;
+    }
+    .result-dot { width:8px; height:8px; border-radius:50%; background:var(--success); }
+    .result-dot.error { background:var(--danger); }
+    .result-body {
+      background:var(--surface-alt); border:1px solid var(--border);
+      border-radius:var(--radius); padding:16px; max-height:260px; overflow-y:auto;
+    }
+    .result-content {
+      font-family:'SF Mono',Menlo,Consolas,monospace;
+      font-size:12px; color:var(--ink); white-space:pre-wrap; word-break:break-word; line-height:1.65;
+    }
+    .inline-alert {
+      padding:12px 16px; border-radius:var(--radius-sm);
+      font-size:13px; font-weight:500; border:1px solid;
+    }
+    .inline-alert.danger { background:var(--danger-bg); color:var(--danger); border-color:#fecaca; }
+
+    /* ===== 구조화 뷰 ===== */
+    .parsed-section { display:none; animation:fadeUp .5s ease; }
+    .parsed-section.show { display:block; }
+
+    /* 섹션 타이틀 */
+    .sec-title {
+      font-size:13px; font-weight:700; color:var(--navy);
+      letter-spacing:-.01em; margin-bottom:14px;
+      display:flex; align-items:center; gap:8px;
+    }
+    .sec-icon {
+      width:28px; height:28px; border-radius:6px;
+      background:var(--navy); color:#fff;
+      display:flex; align-items:center; justify-content:center;
+      font-size:13px; flex-shrink:0;
+    }
+
+    /* 기본내용 — 그리드 key:value */
+    .info-grid {
+      display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:0;
+      border:1px solid var(--border); border-radius:var(--radius);
+      overflow:hidden;
+    }
+    .info-row {
+      display:flex; border-bottom:1px solid var(--border);
+    }
+    .info-row:last-child { border-bottom:none; }
+    .info-key {
+      width:130px; flex-shrink:0;
+      font-size:12px; font-weight:600; color:var(--muted);
+      background:var(--surface-alt);
+      padding:10px 12px;
+      border-right:1px solid var(--border);
+    }
+    .info-val {
+      flex:1; font-size:13px; color:var(--ink);
+      padding:10px 14px; word-break:break-all;
+    }
+    .info-val.highlight {
+      color:var(--navy); font-weight:700;
+    }
+    .info-val.win  { color:var(--success); font-weight:700; }
+    .info-val.lose { color:var(--danger);  font-weight:700; }
+
+    /* 상태 칩 */
+    .chip {
+      display:inline-flex; align-items:center; gap:4px;
+      padding:2px 8px; border-radius:999px;
+      font-size:11px; font-weight:600; border:1px solid;
+    }
+    .chip::before { content:''; width:5px; height:5px; border-radius:50%; background:currentColor; }
+    .chip-green { background:var(--success-bg); color:var(--success); border-color:#a7f3d0; }
+    .chip-red   { background:var(--danger-bg);  color:var(--danger);  border-color:#fecaca; }
+    .chip-warn  { background:var(--warning-bg); color:var(--warning); border-color:#fde68a; }
+    .chip-navy  { background:#e8f0f9; color:var(--navy); border-color:#bfcfe8; }
+
+    /* 테이블 공통 */
+    .sc-table { width:100%; border-collapse:collapse; }
+    .sc-table thead th {
+      padding:9px 12px; text-align:left;
+      font-size:11px; font-weight:700; color:var(--muted);
+      text-transform:uppercase; letter-spacing:.05em;
+      background:var(--surface-alt); border-bottom:1px solid var(--border);
+      white-space:nowrap;
+    }
+    .sc-table tbody td {
+      padding:10px 12px; font-size:12.5px; color:var(--text);
+      border-bottom:1px solid var(--border); vertical-align:top;
+    }
+    .sc-table tbody tr:last-child td { border-bottom:none; }
+    .sc-table tbody tr:hover { background:var(--surface-alt); }
+    .sc-table .date-col { color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .sc-table .result-col { white-space:nowrap; }
+
+    /* 진행내역 — 접을 수 있는 타임라인 */
+    .timeline-wrap { position:relative; }
+    .timeline-list { list-style:none; padding-left:20px; border-left:2px solid var(--border); }
+    .timeline-item { position:relative; padding:0 0 16px 20px; }
+    .timeline-item:last-child { padding-bottom:0; }
+    .timeline-dot {
+      position:absolute; left:-27px; top:3px;
+      width:12px; height:12px; border-radius:50%;
+      background:var(--border-strong); border:2px solid var(--surface);
+      flex-shrink:0;
+    }
+    .timeline-item.event .timeline-dot { background:var(--navy); }
+    .timeline-item.verdict .timeline-dot { background:var(--success); }
+    .timeline-date {
+      font-size:11px; font-variant-numeric:tabular-nums;
+      color:var(--muted); margin-bottom:3px; font-weight:600;
+    }
+    .timeline-content { font-size:12.5px; color:var(--text); line-height:1.5; }
+    .timeline-result {
+      display:inline-block; margin-top:4px;
+      font-size:11px; font-weight:700; color:var(--success);
+    }
+
+    /* 접기/펼치기 */
+    .toggle-btn {
+      display:flex; align-items:center; gap:6px;
+      background:none; border:1px solid var(--border); border-radius:var(--radius-sm);
+      padding:6px 12px; font-family:inherit; font-size:12px; font-weight:600;
+      color:var(--muted); cursor:pointer; transition:all .15s; margin-top:12px;
+    }
+    .toggle-btn:hover { background:var(--surface-alt); color:var(--ink); }
+    .toggle-btn .arrow { transition:transform .2s; }
+    .toggle-btn.open .arrow { transform:rotate(180deg); }
+    .collapsible { overflow:hidden; max-height:0; transition:max-height .4s ease; }
+    .collapsible.open { max-height:9999px; }
+
+    /* 탭 (RAW/뷰 전환) */
+    .view-tabs {
+      display:flex; gap:4px; margin-bottom:16px;
+    }
+    .view-tab {
+      padding:7px 14px; border-radius:var(--radius-sm);
+      font-family:inherit; font-size:12px; font-weight:600;
+      cursor:pointer; border:1px solid var(--border);
+      background:var(--surface-alt); color:var(--muted);
+      transition:all .15s;
+    }
+    .view-tab.active {
+      background:var(--navy); color:#fff; border-color:var(--navy);
+    }
+
+    /* ===== Toast ===== */
+    .toast {
+      position:fixed; top:20px; right:20px; background:var(--ink); color:#fff;
+      padding:11px 18px; border-radius:var(--radius); font-size:13px; font-weight:500;
+      box-shadow:var(--shadow-md); display:none; z-index:999; animation:slideIn .25s ease;
+    }
+    .toast.show { display:block; }
+    @keyframes slideIn {
+      from { transform:translateX(20px); opacity:0; }
+      to   { transform:translateX(0);    opacity:1; }
+    }
+
+    /* ===== 상단 액션 버튼 ===== */
+    .topbar-action-btn {
+      background: rgba(255,255,255,.07);
+      color: #cbd5e1;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 5px;
+      padding: 4px 10px;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+      letter-spacing: -.01em;
+    }
+    .topbar-action-btn:hover {
+      background: rgba(255,255,255,.14);
+      color: #fff;
+      border-color: rgba(255,255,255,.25);
+    }
+
+    /* 토글 버튼 +/- */
+    .toggle-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--navy);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    /* 인쇄 */
+    @media print {
+      .topbar, .form-action, .btn-reset, .view-tabs, .toggle-btn { display:none !important; }
+      .container { max-width:100%; padding:0; }
+      .card { box-shadow:none; border:1px solid #ccc; }
+      .collapsible { max-height:none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-brand">
+        <div class="brand-mark">SC</div>
+        <span>대법원 나의사건검색</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div id="usageBadge"></div>
+        <div style="display:flex;gap:6px;">
+          <button class="topbar-action-btn" onclick="resetForm()">새로고침</button>
+          <button class="topbar-action-btn" onclick="clearRecentSearches()">최근 검색 지우기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="page-header">
+      <h1 class="page-title">대법원 나의사건검색(조회)</h1>
+    </div>
+
+    <!-- 입력 폼 -->
+    <div class="card">
+      <div class="card-title"><div class="card-title-dot"></div>사건 정보 입력</div>
+
+      <div class="form-group">
+        <label class="form-label">빠른 선택 (샘플 · 최근 검색)</label>
+        <div class="select-wrap">
+          <select id="caseSample" class="form-select">
+            <option value="">직접 입력하려면 선택하세요</option>
+            <optgroup label="🕐 최근 검색" id="recentGroup" style="display:none"></optgroup>
+            <optgroup label="고등법원">
+              <option value="수원고등법원 2020 나 12529 우리은행">수원고등법원 2020 나 12529</option>
+              <option value="서울고등법원 2019 나 2026425 우리은행">서울고등법원 2019 나 2026425</option>
+              <option value="수원고등법원 2019 나 13762 우리은행">수원고등법원 2019 나 13762</option>
+              <option value="서울고등법원 2020 누 56270 우리은행">서울고등법원 2020 누 56270</option>
+            </optgroup>
+            <optgroup label="지방법원">
+              <option value="서울중앙지방법원 2020 가단 5001151 우리은행">서울중앙지방법원 2020 가단 5001151</option>
+              <option value="서울중앙지방법원 2020 가합 504775 우리은행">서울중앙지방법원 2020 가합 504775</option>
+              <option value="수원지방법원 2019 가단 522082 우리은행">수원지방법원 2019 가단 522082</option>
+              <option value="인천지방법원 부천지원 2020 가합 105240 우리은행">인천지방법원 부천지원 2020 가합 105240</option>
+            </optgroup>
+            <optgroup label="대법원">
+              <option value="대법원 2018 다 230007 우리은행">대법원 2018 다 230007</option>
+              <option value="대법원 2020 더 252703 우리은행">대법원 2020 더 252703</option>
+              <option value="대법원 2020 다 296673 우리은행">대법원 2020 다 296673</option>
+              <option value="대법원 2021 다 258746 우리은행">대법원 2021 다 258746</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label">법원명<span class="req">*</span></label>
+          <input type="text" class="form-control" id="court_name" placeholder="예: 서울중앙지방법원">
+        </div>
+        <div class="form-group">
+          <label class="form-label">당사자명<span class="req">*</span></label>
+          <input type="text" class="form-control" id="debtor_name" placeholder="예: 홍길동, 우리은행">
+        </div>
+      </div>
+
+      <div class="form-grid-4">
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">사건연도<span class="req">*</span></label>
+          <input type="text" class="form-control" id="case_year" placeholder="2024" maxlength="4">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">사건구분<span class="req">*</span></label>
+          <input type="text" class="form-control" id="case_sagubun" placeholder="가, 나, 다">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">사건번호<span class="req">*</span></label>
+          <input type="text" class="form-control" id="case_number" placeholder="12345">
+        </div>
+        <div>
+          <button type="button" class="btn-reset" onclick="clearForm()">ReSet</button>
+        </div>
+      </div>
+
+      <div class="form-action">
+        <button class="btn btn-primary" id="submitBtn" onclick="handleSubmit()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          사건검색(조회)
+        </button>
+      </div>
+    </div>
+
+    <!-- 로딩 -->
+    <div class="card loading-section" id="loading">
+      <div class="spinner"></div>
+      <div class="loading-text">조회 중입니다...</div>
+      <div class="loading-sub">CAPTCHA 처리 및 데이터 수집 중</div>
+    </div>
+
+    <!-- 결과 영역 -->
+    <div class="result-section" id="resultSection">
+
+      <!-- 탭 전환 -->
+      <div class="view-tabs">
+        <button class="view-tab" id="tabRaw" onclick="switchTab('raw')">
+          RAW JSON
+        </button>
+        <button class="view-tab active" id="tabParsed" onclick="switchTab('parsed')">
+          📋 구조화 보기
+        </button>
+      </div>
+
+      <!-- RAW JSON 카드 -->
+      <div class="card" id="rawCard">
+        <div class="result-header">
+          <div class="result-title">
+            <div class="result-dot" id="resultDot"></div>
+            <span id="resultLabel">조회 결과</span>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="copyResult()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            복사
+          </button>
+        </div>
+        <div class="result-body">
+          <div class="result-content" id="resultContent"></div>
+        </div>
+      </div>
+
+      <!-- 구조화 뷰 -->
+      <div class="parsed-section" id="parsedCard"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API_URL = 'https://scourt.gensolsoft.com';
+
+    /* ─── 탭 전환 ─── */
+    function switchTab(tab) {
+      const raw    = document.getElementById('rawCard');
+      const parsed = document.getElementById('parsedCard');
+      document.getElementById('tabRaw').classList.toggle('active', tab === 'raw');
+      document.getElementById('tabParsed').classList.toggle('active', tab === 'parsed');
+      if (tab === 'raw') {
+        raw.style.display = 'block';
+        parsed.classList.remove('show');
+      } else {
+        raw.style.display = 'none';
+        parsed.classList.add('show');
+      }
+    }
+
+    /* ─── 사용량 ─── */
+    async function checkUsage() {
+      try {
+        const res  = await fetch(`${API_URL}/api/v1/usage`);
+        const data = await res.json();
+        const div  = document.getElementById('usageBadge');
+        if (data.status === 'whitelist') {
+          div.innerHTML = `<span class="badge badge-dim">IP: ${esc(data.ip)}</span><span class="badge badge-ok">무제한</span>`;
+        } else {
+          const rem = data.remaining ?? '-';
+          const cls = rem > 5 ? 'badge-ok' : rem > 2 ? 'badge-warn' : 'badge-danger';
+          div.innerHTML = `<span class="badge badge-dim">IP: ${esc(data.ip)}</span><span class="badge ${cls}">사용 ${data.used}/${data.limit}</span><span class="badge badge-dim">잔여 ${rem}회</span>`;
+        }
+      } catch {}
+    }
+    checkUsage();
+
+    /* ─── 최근 검색 저장/불러오기 (localStorage) ─── */
+    const RECENT_KEY = 'scourt_recent_v1';
+    const RECENT_MAX = 5;
+
+    function loadRecentSearches() {
+      try {
+        const list = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+        const group = document.getElementById('recentGroup');
+        group.innerHTML = '';
+        if (!list.length) { group.style.display = 'none'; return; }
+        group.style.display = '';
+        list.forEach(item => {
+          const opt = document.createElement('option');
+          // value 포맷: "법원 연도 구분 번호 당사자" (기존 파싱 regex와 호환)
+          opt.value = `${item.court} ${item.year} ${item.type} ${item.number} ${item.party}`;
+          opt.textContent = `${item.court} ${item.year}${item.type}${item.number} · ${item.party}`;
+          group.appendChild(opt);
+        });
+      } catch {}
+    }
+
+    function saveRecentSearch(d) {
+      try {
+        let list = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+        // 동일 사건 중복 제거
+        list = list.filter(x =>
+          !(x.court===d.court && x.year===d.year &&
+            x.type===d.type   && x.number===d.number)
+        );
+        list.unshift(d);                          // 최신이 맨 앞
+        if (list.length > RECENT_MAX) list = list.slice(0, RECENT_MAX);
+        localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+        loadRecentSearches();
+      } catch {}
+    }
+
+    // 페이지 로드 시 최근 검색 복원
+    loadRecentSearches();
+
+    /* ─── 샘플 ─── */
+    document.getElementById('caseSample').addEventListener('change', function() {
+      const v = this.value; if (!v) return;
+      const m = v.match(/^(.+?)\s(\d{4})\s(\S+)\s(\d+)\s(.+)$/);
+      if (m) fillForm({ court:m[1], year:m[2], type:m[3], number:m[4], party:m[5] });
+    });
+    function fillForm(d) {
+      document.getElementById('court_name').value   = d.court;
+      document.getElementById('case_year').value    = d.year;
+      document.getElementById('case_sagubun').value = d.type;
+      document.getElementById('case_number').value  = d.number;
+      document.getElementById('debtor_name').value  = d.party;
+    }
+    function clearForm() {
+      ['court_name','case_year','case_sagubun','case_number','debtor_name']
+        .forEach(id => document.getElementById(id).value = '');
+      document.getElementById('caseSample').value = '';
+      document.getElementById('resultSection').classList.remove('show');
+    }
+
+    /* ─── 유효성 ─── */
+    function validate() {
+      const fields = [
+        {id:'court_name',label:'법원명'},{id:'debtor_name',label:'당사자명'},
+        {id:'case_year',label:'사건연도'},{id:'case_sagubun',label:'사건구분'},
+        {id:'case_number',label:'사건번호'}
+      ];
+      for (const f of fields) {
+        const el = document.getElementById(f.id);
+        if (!el.value.trim()) { toast(`${f.label}을(를) 입력해주세요`); el.focus(); return false; }
+      }
+      if (!/^\d{4}$/.test(document.getElementById('case_year').value)) {
+        toast('사건연도는 4자리 숫자로 입력해주세요');
+        document.getElementById('case_year').focus(); return false;
+      }
+      return true;
+    }
+
+    /* ─── 조회 ─── */
+    async function handleSubmit() {
+      if (!validate()) return;
+      const loading = document.getElementById('loading');
+      const result  = document.getElementById('resultSection');
+      const btn     = document.getElementById('submitBtn');
+      loading.classList.add('show'); result.classList.remove('show'); btn.disabled = true;
+
+      const payload = {
+        court_name:   document.getElementById('court_name').value.trim(),
+        case_year:    document.getElementById('case_year').value.trim(),
+        case_sagubun: document.getElementById('case_sagubun').value.trim(),
+        case_number:  document.getElementById('case_number').value.trim(),
+        debtor_name:  document.getElementById('debtor_name').value.trim()
+      };
+      try {
+        const res  = await fetch(`${API_URL}/info`, {
+          method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!data.error) {
+          saveRecentSearch({
+            court:  payload.court_name,
+            year:   payload.case_year,
+            type:   payload.case_sagubun,
+            number: payload.case_number,
+            party:  payload.debtor_name
+          });
+        }
+        showResult(data);
+      } catch (err) { showError(err.message); }
+      finally { loading.classList.remove('show'); btn.disabled = false; }
+    }
+
+    function showResult(data) {
+      const dot     = document.getElementById('resultDot');
+      const label   = document.getElementById('resultLabel');
+      const content = document.getElementById('resultContent');
+      result_section = document.getElementById('resultSection');
+
+      if (data.error) {
+        dot.className = 'result-dot error'; label.textContent = '조회 실패';
+        content.innerHTML = `<div class="inline-alert danger">${esc(data.error)}</div>`;
+        document.getElementById('parsedCard').innerHTML = '';
+      } else {
+        dot.className = 'result-dot'; label.textContent = '조회 결과';
+        let raw = data.result;
+        let parsed = null;
+        if (typeof raw === 'string') {
+          try { parsed = JSON.parse(raw); raw = JSON.stringify(parsed, null, 2); } catch {}
+        } else { parsed = raw; raw = JSON.stringify(raw, null, 2); }
+        content.textContent = raw;
+        if (parsed) renderParsed(parsed);
+      }
+      result_section.classList.add('show');
+      // 기본: 구조화 탭
+      switchTab('parsed');
+    }
+
+    function showError(msg) {
+      document.getElementById('resultDot').className = 'result-dot error';
+      document.getElementById('resultLabel').textContent = '오류';
+      document.getElementById('resultContent').innerHTML =
+        `<div class="inline-alert danger">오류: ${esc(msg)}</div>`;
+      document.getElementById('resultSection').classList.add('show');
+    }
+
+    /* ─── 복사 ─── */
+    function copyResult() {
+      const text = document.getElementById('resultContent').textContent;
+      if (!text.trim()) return;
+      navigator.clipboard.writeText(text).then(() => toast('복사 완료'))
+        .catch(() => {
+          const ta = document.createElement('textarea');
+          ta.value = text; document.body.appendChild(ta);
+          ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+          toast('복사 완료');
+        });
+    }
+
+    /* ────────────────────────────────────────────
+     *  구조화 뷰 렌더링
+     * ──────────────────────────────────────────── */
+    function renderParsed(d) {
+      const container = document.getElementById('parsedCard');
+      let html = '';
+
+      /* 1. 기본내용 */
+      if (d.기본내용) {
+        const b = d.기본내용;
+        const resultText = b.종국결과 || '';
+        const resultClass = resultText.includes('원고승') || resultText.includes('인용') ? 'win'
+                          : resultText.includes('기각') || resultText.includes('패소') ? 'lose' : '';
+        html += `
+        <div class="card">
+          <div class="sec-title"><div class="sec-icon">📄</div>기본내용</div>
+          <div class="info-grid">
+            ${infoRow('사건번호', `<span class="highlight">${esc(b.사건번호||'')}</span>`)}
+            ${infoRow('사건명', esc(b.사건명||''))}
+            ${infoRow('재판부', esc(b.재판부||''))}
+            ${infoRow('원고', esc(b.원고||''))}
+            ${infoRow('피고', esc(b.피고||''))}
+            ${infoRow('접수일', esc(b.접수일||''))}
+            ${infoRow('종국결과', `<span class="${resultClass}">${esc(resultText)}</span>`)}
+            ${infoRow('판결도달일', esc(b.판결도달일||''))}
+            ${infoRow('확정일', esc(b.확정일||''))}
+            ${infoRow('상소인', esc(b.상소인||''))}
+            ${infoRow('상소일', esc(b.상소일||''))}
+            ${infoRow('원고소가', esc(b.원고소가||''))}
+            ${infoRow('수리구분', esc(b.수리구분||''))}
+            ${infoRow('병합구분', esc(b.병합구분||''))}
+            ${infoRow('인지액', esc(b.인지액||''))}
+            ${infoRow('보존여부', esc(b.보존여부||''))}
+          </div>
+        </div>`;
+      }
+
+      /* 2. 심급내용 */
+      if (d.심급내용?.length) {
+        html += `
+        <div class="card">
+          <div class="sec-title"><div class="sec-icon">⚖️</div>심급내용</div>
+          <table class="sc-table">
+            <thead><tr><th>법원</th><th>사건번호</th><th>결과</th></tr></thead>
+            <tbody>
+              ${d.심급내용.map(r => `
+                <tr>
+                  <td>${esc(r.법원||'')}</td>
+                  <td class="highlight" style="font-weight:600">${esc(r.사건번호||'')}</td>
+                  <td>${r.결과 ? `<span class="chip chip-navy">${esc(r.결과)}</span>` : (r.구분 ? `<span class="chip chip-warn">${esc(r.구분)}</span>` : '-')}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+      }
+
+      /* 3. 당사자내용 */
+      if (d.당사자내용?.length) {
+        html += `
+        <div class="card">
+          <div class="sec-title"><div class="sec-icon">👥</div>당사자</div>
+          <table class="sc-table">
+            <thead><tr><th>구분</th><th>이름</th><th>판결도달일</th><th>확정일</th></tr></thead>
+            <tbody>
+              ${d.당사자내용.map(r => `
+                <tr>
+                  <td><span class="chip ${r.구분==='원고'?'chip-navy':'chip-warn'}">${esc(r.구분||'')}</span></td>
+                  <td>${esc(r.이름||'')}</td>
+                  <td class="date-col">${esc(r.판결도달일||'-')}</td>
+                  <td class="date-col">${esc(r.확정일||'-')}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+      }
+
+      /* 4. 대리인내용 */
+      if (d.대리인내용?.length) {
+        html += `
+        <div class="card">
+          <div class="sec-title"><div class="sec-icon">🏛️</div>대리인</div>
+          <table class="sc-table">
+            <thead><tr><th>구분</th><th>법무법인 / 변호사</th></tr></thead>
+            <tbody>
+              ${d.대리인내용.map(r => `
+                <tr>
+                  <td style="white-space:nowrap;color:var(--muted);font-weight:600">${esc(r.구분||'')}</td>
+                  <td>${esc(r.이름||'')}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+      }
+
+      /* 5. 최근기일내용 */
+      if (d.최근기일내용?.length) {
+        html += `
+        <div class="card">
+          <div class="sec-title"><div class="sec-icon">📅</div>최근 기일</div>
+          <table class="sc-table">
+            <thead><tr><th>일자</th><th>시각</th><th>기일구분</th><th>장소</th><th>결과</th></tr></thead>
+            <tbody>
+              ${d.최근기일내용.map(r => {
+                const cls = r.결과?.includes('판결') ? 'chip-green'
+                          : r.결과?.includes('변경') ? 'chip-warn'
+                          : r.결과?.includes('속행') ? 'chip-navy' : 'chip-warn';
+                return `<tr>
+                  <td class="date-col">${esc(r.일자||'')}</td>
+                  <td class="date-col">${esc(r.시각||'')}</td>
+                  <td>${esc(r.기일구분||'')}</td>
+                  <td style="color:var(--muted)">${esc(r.기일장소||'')}</td>
+                  <td class="result-col">${r.결과 ? `<span class="chip ${cls}">${esc(r.결과)}</span>` : '-'}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>`;
+      }
+
+      /* 6. 최근 제출서류 */
+      if (d['최근 제출서류 접수내용']?.length) {
+        html += `
+        <div class="card">
+          <div class="sec-title"><div class="sec-icon">📝</div>최근 제출서류</div>
+          <table class="sc-table">
+            <thead><tr><th style="width:90px">일자</th><th>내용</th></tr></thead>
+            <tbody>
+              ${d['최근 제출서류 접수내용'].map(r => `
+                <tr>
+                  <td class="date-col">${esc(r.일자||'')}</td>
+                  <td style="font-size:12px">${esc(r.내용||'')}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+      }
+
+      /* 7. 진행내역 (접기/펼치기) */
+      if (d.진행내역?.length) {
+        const items = d.진행내역;
+        const first10 = items.slice(0, 10);
+        const rest    = items.slice(10);
+
+        const renderItems = (arr) => arr.map(r => {
+          const isEvent   = r.결과 && r.결과 !== '';
+          const isVerdict = r.내용?.includes('판결선고') || r.내용?.includes('종국');
+          const cls = isVerdict ? 'verdict' : isEvent ? 'event' : '';
+          return `
+          <li class="timeline-item ${cls}">
+            <div class="timeline-dot"></div>
+            <div class="timeline-date">${esc(r.일자||'')}</div>
+            <div class="timeline-content">${esc(r.내용||'')}</div>
+            ${r.결과 && r.결과 !== '' ? `<span class="timeline-result">→ ${esc(r.결과)}</span>` : ''}
+          </li>`;
+        }).join('');
+
+        html += `
+        <div class="card">
+          <div class="sec-title"><div class="sec-icon">📋</div>진행내역 (총 ${items.length}건)</div>
+          <div class="timeline-wrap">
+            <ul class="timeline-list">
+              ${renderItems(first10)}
+            </ul>
+            ${rest.length > 0 ? `
+            <div class="collapsible" id="timelineMore">
+              <ul class="timeline-list" style="margin-top:0; border-top:none;">
+                ${renderItems(rest)}
+              </ul>
+            </div>
+            <button class="toggle-btn" id="toggleBtn" onclick="toggleTimeline()">
+              <span class="toggle-icon">+</span>
+              <span class="toggle-label">나머지 ${rest.length}건 펼치기</span>
+            </button>` : ''}
+          </div>
+        </div>`;
+      }
+
+      container.innerHTML = html;
+    }
+
+    /* ─── 헬퍼 ─── */
+    function infoRow(key, valHtml) {
+      return `<div class="info-row"><div class="info-key">${key}</div><div class="info-val">${valHtml}</div></div>`;
+    }
+
+    function toggleTimeline() {
+      const more  = document.getElementById('timelineMore');
+      const btn   = document.getElementById('toggleBtn');
+      const icon  = btn.querySelector('.toggle-icon');
+      const label = btn.querySelector('.toggle-label');
+      const open  = more.classList.toggle('open');
+      btn.classList.toggle('open', open);
+      icon.textContent  = open ? '−' : '+';
+      label.textContent = open
+        ? '접기'
+        : `나머지 ${more.querySelectorAll('.timeline-item').length}건 펼치기`;
+    }
+
+    /* ─── 새로고침 (폼 초기화) ─── */
+    function resetForm() {
+      clearForm();
+      document.getElementById('resultSection').classList.remove('show');
+      toast('입력 내용이 초기화되었습니다');
+    }
+
+    /* ─── 최근 검색 지우기 ─── */
+    function clearRecentSearches() {
+      try { localStorage.removeItem(RECENT_KEY); } catch {}
+      loadRecentSearches();
+      toast('최근 검색 기록이 삭제되었습니다');
+    }
+
+    function toast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2800);
+    }
+
+    function esc(str) {
+      return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && e.target.matches('input')) handleSubmit();
+    });
+  </script>
+</body>
+</html>
