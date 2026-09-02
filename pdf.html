@@ -1,0 +1,2879 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF 보기 및 편집</title><p></p><br>
+
+    <!-- jQuery & Turn.js for Flipbook effect -->
+    <!-- HanAI 폰트 세팅 -->
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://raw.githack.com/blasten/turn.js/master/turn.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    <!-- jsPDF for Exporting to PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- pdf-lib for PDF editing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <!-- OCR / Word / Excel 변환 -->
+    <!-- Gemini API 키는 Cloudflare Worker Secret에 보관합니다. -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        /* HanAI 애니메이션 & 배경 효과 */
+        @keyframes starfield {
+            0% {
+                transform: translateY(0);
+            }
+
+            100% {
+                transform: translateY(-2000px);
+            }
+        }
+
+        @keyframes twinkle {
+
+            0%,
+            100% {
+                opacity: 0.3;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        @keyframes nebula {
+
+            0%,
+            100% {
+                opacity: 0.3;
+                transform: scale(1) rotate(0deg);
+            }
+
+            50% {
+                opacity: 0.6;
+                transform: scale(1.1) rotate(5deg);
+            }
+        }
+
+        @keyframes cosmicDust {
+            0% {
+                transform: translateX(-100%) translateY(-100%);
+                opacity: 0;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+
+            100% {
+                transform: translateX(100%) translateY(100%);
+                opacity: 0;
+            }
+        }
+
+        @keyframes shootingStar {
+            0% {
+                transform: translateX(0) translateY(0);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateX(300px) translateY(200px);
+                opacity: 0;
+            }
+        }
+
+        @keyframes aiGlow {
+
+            0%,
+            100% {
+                text-shadow: 0 0 10px rgba(28, 181, 224, 0.8), 0 0 20px rgba(138, 43, 226, 0.5), 0 0 30px rgba(28, 181, 224, 0.3);
+            }
+
+            50% {
+                text-shadow: 0 0 15px rgba(28, 181, 224, 1), 0 0 30px rgba(138, 43, 226, 0.7), 0 0 45px rgba(28, 181, 224, 0.5);
+            }
+        }
+
+        .wrapper {
+            width: 100%;
+            height: calc(100vh - 61px);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: radial-gradient(ellipse at top, #1a237e 0%, #0a0e27 50%), radial-gradient(ellipse at bottom, #0d1b3e 0%, #000000 100%);
+            overflow: hidden;
+        }
+
+        .space-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(2px 2px at 20% 30%, white, transparent), radial-gradient(2px 2px at 60% 70%, white, transparent), radial-gradient(1px 1px at 50% 50%, white, transparent);
+            background-size: 200% 200%;
+            animation: starfield 200s linear infinite;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .space-bg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at 30% 20%, rgba(138, 43, 226, 0.2) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, rgba(28, 181, 224, 0.2) 0%, transparent 50%), radial-gradient(ellipse at 50% 50%, rgba(91, 134, 229, 0.15) 0%, transparent 60%);
+            animation: nebula 15s ease-in-out infinite;
+        }
+
+        .space-bg::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent 40%, rgba(138, 43, 226, 0.05) 50%, transparent 60%), linear-gradient(-45deg, transparent 40%, rgba(28, 181, 224, 0.05) 50%, transparent 60%);
+            background-size: 200% 200%;
+            animation: cosmicDust 30s linear infinite;
+        }
+
+        .stars {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+            animation: twinkle 3s ease-in-out infinite;
+        }
+
+        .shooting-star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 0 8px 2px rgba(255, 255, 255, 0.8);
+            animation: shootingStar 2s ease-out;
+        }
+
+        .hanai-header {
+            background:#fff;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5), inset 0 -1px 0 rgba(28, 181, 224, 0.3);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 24px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            padding: 5px 10px;
+            position: relative;
+        }
+
+        .logo-section:hover {
+            transform: scale(1.05);
+        }
+
+        .logo-text {
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing: 1.5px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo-text .han {
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(28, 181, 224, 0.8), 0 0 20px rgba(138, 43, 226, 0.5);
+        }
+
+        .logo-text .ai-letter {
+            color: #FFD700;
+            display: inline-block;
+        }
+
+        .logo-text .ai-a {
+            animation: aiGlowSequence 3s ease-in-out infinite;
+        }
+
+        .logo-text .ai-i {
+            animation: aiGlowSequence 3s ease-in-out 0.5s infinite;
+        }
+
+        @keyframes aiGlowSequence {
+
+            0%,
+            40%,
+            100% {
+                text-shadow: 0 0 5px rgba(255, 215, 0, 0.5), 0 0 10px rgba(255, 215, 0, 0.3);
+                transform: scale(1);
+            }
+
+            20% {
+                text-shadow: 0 0 15px rgba(255, 215, 0, 1), 0 0 30px rgba(255, 215, 0, 0.9), 0 0 45px rgba(255, 215, 0, 0.7), 0 0 60px rgba(255, 215, 0, 0.5);
+                transform: scale(1.1);
+            }
+        }
+
+        .logo-section::before {
+            content: '';
+            position: absolute;
+            right: -15px;
+            width: 50px;
+            height: 50px;
+            border: 2px solid rgba(28, 181, 224, 0.5);
+            border-left: 2px solid transparent;
+            border-radius: 50%;
+            animation: rotateHalfCircle 4s linear infinite;
+            z-index: 0;
+        }
+
+        .logo-section::after {
+            content: '';
+            position: absolute;
+            right: -18px;
+            width: 56px;
+            height: 56px;
+            border: 1px solid rgba(255, 215, 0, 0.4);
+            border-left: 1px solid transparent;
+            border-radius: 50%;
+            animation: rotateHalfCircleReverse 5s linear infinite;
+            z-index: 0;
+        }
+
+        @keyframes rotateHalfCircle {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes rotateHalfCircleReverse {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(-360deg);
+            }
+        }
+
+        .nav-area {
+            display: flex;
+            gap: 10px;
+            flex: 1;
+            align-items: center;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .nav-area::-webkit-scrollbar {
+            display: none;
+        }
+
+        .nav-btn {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid rgba(28, 181, 224, 0.3);
+            border-radius: 10px;
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            padding: 8px 14px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-btn:hover {
+            background: rgba(28, 181, 224, 0.3);
+            border-color: rgba(28, 181, 224, 0.8);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(28, 181, 224, 0.4);
+        }
+
+        .nav-btn.active {
+            background: rgba(28, 181, 224, 0.3);
+            border-color: rgba(28, 181, 224, 0.8);
+            box-shadow: 0 0 20px rgba(28, 181, 224, 0.5);
+        }
+
+        .nav-btn.active .btn-text {
+            color: #FFD700 !important;
+            text-shadow: 0 0 8px rgba(255, 215, 0, 0.8);
+        }
+
+        .db-custom-style {
+            background: linear-gradient(135deg, #008B8B 0%, #20B2AA 100%) !important;
+            color: #FFFFE0 !important;
+            border: 2px solid #20B2AA !important;
+            font-weight: 700;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 15px rgba(32, 178, 170, 0.4);
+        }
+
+        .db-custom-style:hover {
+            background: linear-gradient(135deg, #00AAAA 0%, #40E0D0 100%) !important;
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 0 25px rgba(32, 178, 170, 0.6);
+            filter: brightness(1.1);
+        }
+
+        .db-custom-style.active {
+            box-shadow: 0 0 30px rgba(32, 178, 170, 0.8);
+        }
+
+        .hans-system-btn {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border: 2px solid #20B2AA;
+            border-radius: 10px;
+            color: #FFD700;
+            background: linear-gradient(135deg, #008B8B 0%, #20B2AA 100%);
+            backdrop-filter: blur(10px);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(32, 178, 170, 0.4);
+            margin-left: 10px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .hans-system-btn:hover {
+            background: linear-gradient(135deg, #00AAAA 0%, #40E0D0 100%);
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 0 25px rgba(32, 178, 170, 0.6);
+            filter: brightness(1.1);
+        }
+
+        /* 커스텀 알림창 */
+        #custom-alert {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a237e 100%);
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            color: #fff;
+            border: 2px solid #1CB5E0;
+            box-shadow: 0 0 40px rgba(28, 181, 224, 0.5);
+            max-width: 400px;
+            min-width: 300px;
+        }
+
+        .modal-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .modal-icon {
+            width: 24px;
+            height: 24px;
+            fill: #1CB5E0;
+        }
+
+        .modal-message {
+            margin: 20px 0;
+            font-size: 14px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .modal-btn {
+            background: linear-gradient(135deg, #1CB5E0 0%, #0d8ab5 100%);
+            color: #fff;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(28, 181, 224, 0.3);
+        }
+
+        .modal-btn:hover {
+            background: linear-gradient(135deg, #0d8ab5 0%, #1CB5E0 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(28, 181, 224, 0.5);
+        }
+
+        /* 공통 기본 CSS 유지 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+
+        body {
+            background: #eef5fb;
+            color: #333;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- 상단 글로벌 통합 헤더 --- */
+        #global-header {
+            background: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .main-title {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: #1a56db;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* 탭 네비게이션 버튼들 */
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            background: #f1f5f9;
+            padding: 6px;
+            border-radius: 30px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 20px;
+            font-weight: 700;
+            color: #64748b;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: #1a56db;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-btn:hover:not(.active) {
+            color: #334155;
+            background: #e2e8f0;
+        }
+
+        /* ilovepdf 특별 버튼 (파랑+하늘색 그라데이션) */
+        .btn-ilovepdf {
+            background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+            color: white !important;
+            font-weight: 900;
+            box-shadow: 0 2px 10px rgba(56, 189, 248, 0.4);
+            border-radius: 20px;
+            padding: 10px 24px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.95rem;
+            margin-left: 5px;
+            transition: transform 0.1s;
+        }
+
+        .btn-ilovepdf:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.6);
+        }
+
+        .btn-ilovepdf:active {
+            transform: scale(0.95);
+        }
+
+        /* --- 콘텐츠 래퍼 --- */
+        #content-area {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+        }
+
+        /* 1. PDF 편집 탭 */
+        #tab-pdfedit {
+            display: none;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            background: linear-gradient(170deg,#fff 0%,#e0f2fe 55%,#bae6fd 100%);
+            font-family: 'Noto Sans KR', sans-serif;
+            color: #0c1a2e;
+        }
+
+        /* 2. 책처럼 보기 탭 (Interactive Storybook) */
+        #tab-storybook {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* === 책처럼 보기 내부 UI (기존 interactive_storybook 이식) === */
+        #setup-screen {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-y: auto;
+            background: #eef5fb;
+        }
+
+        #drop-zone {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            height: 240px;
+            border: 2px dashed #90caf9;
+            border-radius: 12px;
+            background-color: #f8fbff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+            text-align: center;
+        }
+
+        #drop-zone:hover,
+        #drop-zone.dragover {
+            background-color: #e3f2fd;
+            border-color: #2196F3;
+        }
+
+        .icon-doc {
+            width: 40px;
+            height: 50px;
+            background: linear-gradient(135deg, #e0e0e0 70%, #bdbdbd 70%);
+            border-radius: 4px;
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .icon-doc::before {
+            content: '';
+            position: absolute;
+            top: 12px;
+            left: 8px;
+            right: 8px;
+            height: 2px;
+            background: #fff;
+            box-shadow: 0 6px 0 #fff, 0 12px 0 #fff;
+        }
+
+        #drop-zone p {
+            font-size: 1.1rem;
+            color: #111;
+            font-weight: 700;
+            margin-bottom: 6px;
+            pointer-events: none;
+        }
+
+        #drop-zone span {
+            font-size: 0.85rem;
+            color: #777;
+            pointer-events: none;
+        }
+
+        #file-input {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            z-index: 10;
+        }
+
+        #preview-container {
+            width: 100%;
+            max-width: 600px;
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .preview-item {
+            width: 70px;
+            height: 70px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            overflow: hidden;
+            position: relative;
+            background: white;
+        }
+
+        .preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .preview-item .page-num {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-size: 0.65rem;
+            padding: 2px 5px;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+
+        #start-btn-container {
+            text-align: center;
+            margin-top: 25px;
+            display: none;
+        }
+
+        .btn-create-book {
+            background: linear-gradient(to right, #1d4ed8, #2563eb);
+            color: white;
+            border: none;
+            padding: 12px 35px;
+            font-size: 1.05rem;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+            transition: transform 0.1s;
+        }
+
+        .btn-create-book:active {
+            transform: scale(0.96);
+        }
+
+        .btn-clear-upload {
+            background: #fef2f2;
+            color: #ef4444;
+            border: 2px solid #fecaca;
+            padding: 11px 25px;
+            font-size: 1.05rem;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: all 0.1s;
+        }
+
+        .btn-clear-upload:hover {
+            background: #fee2e2;
+            border-color: #fca5a5;
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 20px;
+            height: 20px;
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 14px;
+            line-height: 20px;
+            cursor: pointer;
+            z-index: 20;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 로딩 모달 */
+        #global-loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .spinner {
+            width: 45px;
+            height: 45px;
+            border: 4px solid #e0e0e0;
+            border-top: 4px solid #2563eb;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* --- 풀스크린 뷰어 --- */
+        #viewer-screen {
+            display: none;
+            width: 100%;
+            height: 100%;
+            background: #eef5fb;
+            flex-direction: column;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2000;
+        }
+
+        .viewer-toolbar {
+            height: 50px;
+            background: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+            z-index: 100;
+        }
+
+        .toolbar-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .toolbar-btn {
+            background: white;
+            color: #444;
+            border: 1px solid #e0e0e0;
+            padding: 6px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 700;
+            transition: 0.1s;
+        }
+
+        .toolbar-btn:hover {
+            background: #f5f5f5;
+            color: #111;
+        }
+
+        .toolbar-btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-clear {
+            border-color: #ffcdd2;
+            color: #ef4444;
+        }
+
+        .btn-clear:hover {
+            background: #fef2f2;
+            border-color: #fca5a5;
+        }
+
+        .btn-fullscreen {
+            background: #f3e8ff;
+            border-color: #d8b4fe;
+            color: #7e22ce;
+            margin-left: 8px;
+            margin-right: 8px;
+        }
+
+        .btn-fullscreen:hover {
+            background: #e9d5ff;
+            border-color: #c084fc;
+        }
+
+        .btn-download {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+            color: #2563eb;
+        }
+
+        .btn-download:hover {
+            background: #dbeafe;
+        }
+
+        .btn-share {
+            background: #fff7ed;
+            border-color: #fed7aa;
+            color: #ea580c;
+        }
+
+        .btn-share:hover {
+            background: #ffedd5;
+        }
+
+        #book-wrapper {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #flipbook {
+            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.15);
+            display: none;
+            background: white;
+        }
+
+        .book-page {
+            width: 100%;
+            height: 100%;
+            background: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .page-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* 하단 네비게이션: 처음으로, 이전, 다음, 마지막으로 */
+        .bottom-nav {
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.4);
+            padding: 8px 12px;
+            border-radius: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.6);
+            color: #333;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.1s ease-out;
+            outline: none;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 1);
+            color: #000;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-btn:active {
+            transform: scale(0.92);
+            background: #e0e0e0;
+        }
+
+        .click-zone {
+            position: absolute;
+            top: 0;
+            bottom: 80px;
+            width: 50%;
+            cursor: pointer;
+            z-index: 50;
+        }
+
+        #zone-prev {
+            left: 0;
+        }
+
+        #zone-next {
+            right: 0;
+        }
+
+        /* 공유 모달 */
+        #share-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 3000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .share-content {
+            background: white;
+            border-radius: 16px;
+            padding: 30px 25px;
+            width: 340px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            animation: slideUp 0.2s ease-out;
+        }
+
+        @keyframes slideUp {
+            0% {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .share-title {
+            font-size: 1.1rem;
+            font-weight: 900;
+            margin-bottom: 25px;
+            color: #111;
+        }
+
+        .share-icons {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            gap: 10px;
+        }
+
+        .share-icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: #555;
+            font-weight: 500;
+            transition: transform 0.1s;
+            width: 60px;
+        }
+
+        .share-icon-btn:hover {
+            transform: translateY(-3px);
+            color: #111;
+        }
+
+        .share-icon-btn:active {
+            transform: scale(0.9);
+        }
+
+        .icon-circle {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .bg-kakao {
+            background: #FEE500;
+            color: #3b1e1e;
+        }
+
+        .bg-insta {
+            background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%);
+        }
+
+        .bg-yt {
+            background: #FF0000;
+        }
+
+        .bg-link {
+            background: #475569;
+        }
+
+        .btn-close-modal {
+            background: #f1f5f9;
+            color: #475569;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: 700;
+            transition: 0.1s;
+            font-size: 0.95rem;
+        }
+
+        .btn-close-modal:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+        /* ===== PDF 편집 탭 전용 스타일 ===== */
+        :root{--border:#bae6fd;--accent:#0284c7;--navy:#1e40af;--green:#059669;--red:#dc2626;--muted:#64748b;--text:#0c1a2e;--sans:'Noto Sans KR',sans-serif;--mono:'Space Mono',monospace;}
+        .pdf-edit-wrap{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:16px 20px 80px;}
+        .page-title{text-align:center;margin-bottom:16px;}
+        .page-title h1{font-size:22px;font-weight:700;color:var(--navy);}
+        .page-title p{font-size:13px;color:var(--muted);margin-top:4px;}
+        .ilove-bar{display:flex;gap:5px;background:rgba(255,255,255,.88);backdrop-filter:blur(8px);border:1px solid #bae6fd;border-radius:14px;padding:8px 14px;margin-bottom:14px;box-shadow:0 2px 12px rgba(2,132,199,.1);flex-wrap:wrap;align-items:center;}
+        .ilove-label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.04em;white-space:nowrap;margin-right:4px;}
+        .ilove-btn{display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;border:none;border-radius:8px;padding:7px 11px;font-size:12px;font-family:var(--sans);font-weight:600;cursor:pointer;text-decoration:none;transition:all .18s;white-space:nowrap;box-shadow:0 2px 8px rgba(220,38,38,.22);}
+        .ilove-btn:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(220,38,38,.38);}
+        .ilove-sep{width:1px;height:20px;background:#fca5a5;opacity:.5;flex-shrink:0;margin:0 1px;}
+        .ilove-note{font-size:10px;color:var(--muted);margin-left:auto;white-space:nowrap;}
+        .dropzone{border:2px dashed #7dd3fc;border-radius:16px;padding:44px 32px;text-align:center;cursor:pointer;transition:all .25s;background:rgba(255,255,255,.65);backdrop-filter:blur(8px);position:relative;overflow:hidden;box-shadow:0 2px 20px rgba(2,132,199,.08);}
+        .dropzone::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% -10%,rgba(125,211,252,.18),transparent 60%);pointer-events:none;}
+        .dropzone:hover,.dropzone.drag-over{border-color:var(--accent);background:rgba(255,255,255,.95);transform:translateY(-2px);box-shadow:0 10px 36px rgba(2,132,199,.18);}
+        .dz-icon{font-size:48px;margin-bottom:14px;display:block;}
+        .dz-title{font-size:16px;font-weight:600;margin-bottom:8px;}
+        .dz-hint{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6;}
+        .btn-browse{display:inline-block;background:linear-gradient(135deg,#1e40af,#2563eb,#0ea5e9);color:#fff;border:none;border-radius:9px;padding:10px 26px;font-size:14px;font-family:var(--sans);font-weight:700;cursor:pointer;transition:all .2s;box-shadow:0 4px 18px rgba(30,64,175,.32);}
+        .btn-browse:hover{transform:translateY(-2px);}
+        #tab-pdfedit input[type="file"]{display:none;}
+        .info-card{background:rgba(224,242,254,.8);border:1px solid rgba(2,132,199,.2);border-radius:12px;padding:14px 18px;margin-top:14px;font-size:13px;color:var(--muted);line-height:1.7;}
+        .info-card strong{color:var(--text);}
+        .edit-toolbar{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px;padding:10px 14px;background:rgba(255,255,255,.78);backdrop-filter:blur(8px);border:1px solid #bae6fd;border-radius:12px;align-items:center;}
+        .tool-btn{display:flex;align-items:center;gap:5px;background:#f0f9ff;border:1px solid #bae6fd;color:var(--text);border-radius:8px;padding:8px 13px;font-size:12px;font-family:var(--sans);cursor:pointer;transition:all .2s;font-weight:500;white-space:nowrap;}
+        .tool-btn:hover{background:rgba(2,132,199,.1);border-color:var(--accent);color:var(--accent);}
+        .tool-btn.icon-btn{padding:7px 9px;line-height:0;}
+        .tool-btn.danger:hover{background:rgba(220,38,38,.08);border-color:var(--red);color:var(--red);}
+        .tool-btn.success{background:linear-gradient(135deg,#059669,#10b981);border-color:#059669;color:#fff;font-weight:700;}
+        .tool-btn.success:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(5,150,105,.35);}
+        .tool-btn:disabled{opacity:.4;cursor:not-allowed;}
+        .tool-sep{width:1px;height:26px;background:#bae6fd;margin:0 2px;flex-shrink:0;}
+        .sel-count{font-size:11px;color:var(--muted);font-family:var(--mono);margin-left:auto;}
+        .page-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;margin-top:14px;}
+        .page-card{background:rgba(255,255,255,.88);border:2px solid #bae6fd;border-radius:10px;overflow:hidden;cursor:grab;transition:all .2s;position:relative;user-select:none;}
+        .page-card:active{cursor:grabbing;}
+        .page-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 6px 20px rgba(2,132,199,.15);}
+        .page-card.selected{border-color:var(--navy);box-shadow:0 0 0 3px rgba(30,64,175,.18);}
+        .page-card.dragging{opacity:.35;transform:scale(.96);}
+        .page-card.drag-over-top{border-top:3px solid var(--green);}
+        .page-card.drag-over-bottom{border-bottom:3px solid var(--green);}
+        .page-thumb{width:100%;aspect-ratio:0.707;background:#f1f5f9;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;pointer-events:none;}
+        .page-thumb canvas{width:100%!important;height:100%!important;object-fit:contain;display:block;}
+        .page-thumb .ls{font-size:22px;animation:spin 1s linear infinite;color:var(--accent);}
+        .page-footer{padding:7px 8px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid #e0f2fe;background:rgba(255,255,255,.6);}
+        #tab-pdfedit .page-num{font-size:11px;font-family:var(--mono);color:var(--muted);}
+        .page-check{width:15px;height:15px;accent-color:var(--navy);cursor:pointer;}
+        .page-copy-badge{position:absolute;top:4px;right:4px;background:rgba(124,58,237,.85);color:#fff;border-radius:4px;font-size:9px;font-family:var(--mono);padding:2px 5px;}
+        .progress-area{margin-top:14px;display:none;}
+        .prog-text{font-size:12px;color:var(--muted);font-family:var(--mono);margin-bottom:8px;}
+        .prog-bar{height:6px;background:#bae6fd;border-radius:4px;overflow:hidden;}
+        .prog-fill{height:100%;background:linear-gradient(90deg,#1e40af,#0ea5e9);border-radius:4px;width:0%;transition:width .4s ease;}
+        .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:center;justify-content:center;}
+        .modal-overlay.show{display:flex;}
+        .modal{background:rgba(255,255,255,.97);backdrop-filter:blur(16px);border:1px solid #bae6fd;border-radius:16px;padding:28px 32px;max-width:420px;width:90%;animation:fadeUp .22s ease;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+        .modal h3{font-size:16px;font-weight:700;margin-bottom:10px;}
+        .modal p{font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:18px;}
+        .modal-btns{display:flex;gap:8px;justify-content:flex-end;}
+        .btn-ok{background:linear-gradient(135deg,#1e40af,#2563eb);color:#fff;border:none;border-radius:8px;padding:9px 20px;font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer;}
+        @media(max-width:580px){.ilove-btn{font-size:11px;padding:6px 8px;}.ilove-note{display:none;}.page-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));}}
+
+        /* ===== 2026 OCR 문서변환 · 정돈된 업무용 UI ===== */
+        :root {
+            --ocr-ink: oklch(0.30 0.035 220);
+            --ocr-muted: oklch(0.55 0.025 220);
+            --ocr-blue: oklch(0.57 0.13 235);
+            --ocr-teal: oklch(0.56 0.11 195);
+            --ocr-teal-deep: oklch(0.43 0.095 195);
+            --ocr-surface: oklch(0.99 0.004 210);
+            --ocr-soft: oklch(0.96 0.018 205);
+            --ocr-line: oklch(0.88 0.025 210);
+            --ocr-warn: oklch(0.62 0.15 55);
+            --ocr-danger: oklch(0.58 0.18 25);
+            --ocr-shadow: 0 14px 38px rgba(34, 71, 78, .10);
+        }
+        body { background-color:#f6faf9; background-image:radial-gradient(#d7e8e7 1px,transparent 1px); background-size:24px 24px; color:var(--ocr-ink); }
+        #global-header { min-height:64px; padding:0 32px; flex-direction:row; justify-content:space-between; align-items:center; gap:24px; background:#fbfdfc; border-bottom:1px solid var(--ocr-line); box-shadow:0 4px 18px rgba(41,78,83,.06); }
+        .main-title { margin:0; color:var(--ocr-ink); font-size:1.16rem; letter-spacing:-.025em; }
+        .tab-buttons { gap:4px; padding:4px; border:1px solid var(--ocr-line); border-radius:12px; background:#eef5f3; align-items:center; }
+        .tab-btn { min-height:38px; padding:8px 16px; border-radius:8px; color:#587075; font-size:.88rem; transition:color .16s,background .16s,box-shadow .16s; }
+        .tab-btn:hover:not(.active) { background:#e4efec; color:#204e55; }
+        .tab-btn.active { color:#106b7b; background:#fbfdfc; box-shadow:0 2px 8px rgba(34,71,78,.09); }
+        .btn-ilovepdf { min-height:38px; margin:0 0 0 4px; padding:8px 14px; border-radius:8px; background:#247e9e; box-shadow:none; font-size:.84rem; font-weight:800; }
+        .btn-ilovepdf:hover { transform:none; background:#176f8e; box-shadow:none; }
+        #tab-ocr { display:none; width:100%; height:100%; overflow-y:auto; background:rgba(248,251,250,.94); color:var(--ocr-ink); }
+        .ocr-wrap { width:min(1180px,calc(100% - 40px)); margin:0 auto; padding:32px 0 72px; }
+        .ocr-hero { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(280px,.72fr); gap:32px; align-items:start; padding:26px 28px; border:1px solid var(--ocr-line); border-radius:18px; background:var(--ocr-surface); box-shadow:0 10px 30px rgba(32,76,80,.07); }
+        .ocr-eyebrow { display:inline-flex; align-items:center; gap:7px; margin-bottom:10px; color:var(--ocr-teal-deep); font-size:.75rem; font-weight:850; letter-spacing:.08em; }
+        .ocr-eyebrow::before { content:''; width:8px; height:8px; border-radius:50%; background:var(--ocr-teal); }
+        .ocr-hero h1 { margin:0 0 10px; color:#183f46; font-size:1.55rem; line-height:1.25; letter-spacing:-.04em; }
+        .ocr-hero p { max-width:66ch; color:var(--ocr-muted); font-size:.91rem; line-height:1.75; }
+        .ocr-guide { display:grid; gap:9px; margin:0; padding:15px 17px; border:1px solid #b9dfe4; border-radius:13px; background:#edf8fa; list-style:none; }
+        .ocr-guide li { display:flex; gap:8px; color:#315e66; font-size:.79rem; line-height:1.5; }
+        .ocr-guide li::before { content:'•'; color:#1489a2; font-weight:900; }
+        .ocr-mode { display:flex; align-items:center; gap:8px; margin-top:12px; color:#48676c; font-size:.77rem; }
+        .ocr-mode-badge { display:inline-flex; align-items:center; min-height:26px; padding:4px 9px; border:1px solid #b9dfe4; border-radius:999px; background:#e8f6f7; color:#0f7283; font-weight:800; }
+        .ocr-mode-badge.local { border-color:#d6ddd9; background:#f1f4f2; color:#566660; }
+        .ocr-panel { margin-top:18px; padding:24px 26px; border:1px solid var(--ocr-line); border-radius:18px; background:var(--ocr-surface); box-shadow:var(--ocr-shadow); }
+        .ocr-panel-head { display:flex; align-items:flex-start; justify-content:space-between; gap:24px; margin-bottom:18px; }
+        .ocr-panel-head h2 { margin:0 0 5px; color:#1f4147; font-size:1rem; letter-spacing:-.025em; }
+        .ocr-panel-head p { color:var(--ocr-muted); font-size:.78rem; line-height:1.55; }
+        .ocr-drop { min-height:190px; display:grid; place-items:center; padding:26px; border:1.5px dashed #8fc7cd; border-radius:15px; background:#f3faf9; cursor:pointer; transition:border-color .18s,background .18s,transform .18s; text-align:center; }
+        .ocr-drop:hover,.ocr-drop.dragover { border-color:#1793a4; background:#eaf7f6; transform:translateY(-1px); }
+        .ocr-drop-icon { width:48px; height:48px; display:grid; place-items:center; margin:0 auto 11px; border-radius:13px; background:#d9f0ef; color:#0f7a89; font-size:1.4rem; }
+        .ocr-drop strong { display:block; color:#234b51; font-size:.96rem; }
+        .ocr-drop span { display:block; margin-top:6px; color:#70858a; font-size:.76rem; }
+        #ocr-file { display:none; }
+        .ocr-file-meta { display:none; align-items:center; justify-content:space-between; gap:16px; margin-top:13px; padding:13px 15px; border:1px solid var(--ocr-line); border-radius:12px; background:#f6faf9; }
+        .ocr-file-meta.show { display:flex; }
+        .ocr-file-name { overflow:hidden; color:#274c52; font-size:.83rem; font-weight:800; text-overflow:ellipsis; white-space:nowrap; }
+        .ocr-file-info { flex:0 0 auto; color:#6b8185; font-size:.72rem; }
+        .ocr-actions { display:flex; flex-wrap:wrap; align-items:center; gap:9px; margin-top:16px; }
+        .ocr-btn { min-height:40px; display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:9px 16px; border:1px solid transparent; border-radius:10px; font:800 .82rem 'Noto Sans KR',sans-serif; cursor:pointer; transition:transform .15s,background .15s,border-color .15s; }
+        .ocr-btn:hover:not(:disabled) { transform:translateY(-1px); }
+        .ocr-btn:focus-visible,.ocr-drop:focus-visible,.ocr-key-input:focus-visible { outline:3px solid rgba(27,158,176,.24); outline-offset:2px; }
+        .ocr-btn:disabled { cursor:not-allowed; opacity:.48; }
+        .ocr-btn.primary { background:#1885a8; color:#fafdff; box-shadow:0 7px 18px rgba(24,133,168,.2); }
+        .ocr-btn.primary:hover:not(:disabled) { background:#106f91; }
+        .ocr-btn.teal { background:#167f80; color:#fbffff; }
+        .ocr-btn.secondary { border-color:#bad6d7; background:#f8fcfb; color:#245f67; }
+        .ocr-btn.ghost { border-color:#d9e5e2; background:#eef4f2; color:#526b6f; }
+        .ocr-progress { display:none; margin-top:18px; padding:15px 16px; border:1px solid #c9e2e2; border-radius:12px; background:#f0f8f7; }
+        .ocr-progress.show { display:block; }
+        .ocr-progress-row { display:flex; justify-content:space-between; gap:12px; color:#315f65; font-size:.77rem; font-weight:750; }
+        .ocr-progress-track { height:7px; overflow:hidden; margin-top:10px; border-radius:999px; background:#dcebea; }
+        .ocr-progress-fill { width:0; height:100%; border-radius:inherit; background:#17899a; transition:width .22s ease-out; }
+        .ocr-result { display:none; margin-top:18px; }
+        .ocr-result.show { display:block; }
+        .ocr-result-grid { display:grid; grid-template-columns:minmax(0,1fr) 280px; gap:18px; align-items:start; }
+        .ocr-summary { min-height:240px; padding:22px 24px; border:1px solid var(--ocr-line); border-radius:15px; background:#fbfdfc; }
+        .ocr-summary h2 { margin:0 0 16px; color:#116d77; font-size:1.12rem; }
+        .ocr-summary h3 { margin:20px 0 8px; color:#197a9a; font-size:.9rem; }
+        .ocr-summary p,.ocr-summary li { color:#344f54; font-size:.82rem; line-height:1.75; }
+        .ocr-summary ul { padding-left:19px; }
+        .ocr-result-side { display:grid; gap:12px; }
+        .ocr-stat { padding:16px; border:1px solid #cce2df; border-radius:13px; background:#eff8f6; }
+        .ocr-stat span { display:block; color:#698084; font-size:.7rem; }
+        .ocr-stat strong { display:block; margin-top:5px; color:#1f626a; font-size:1rem; }
+        .ocr-review { padding:16px; border:1px solid #ead9b8; border-radius:13px; background:#fcf8ee; }
+        .ocr-review strong { color:#856124; font-size:.78rem; }
+        .ocr-review ul { margin-top:7px; padding-left:18px; color:#795f34; font-size:.73rem; line-height:1.6; }
+        .ocr-privacy { margin-top:12px; color:#718489; font-size:.69rem; line-height:1.55; }
+        .ocr-access-overlay { position:fixed; inset:0; z-index:12000; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(19,39,43,.48); }
+        .ocr-access-overlay.show { display:flex; }
+        .ocr-access-card { width:min(420px,100%); padding:25px 26px 23px; border:1px solid #d3e4e2; border-radius:18px; background:#fbfdfc; box-shadow:0 24px 70px rgba(15,47,53,.24); }
+        .ocr-access-mark { width:42px; height:42px; display:grid; place-items:center; margin-bottom:15px; border-radius:12px; background:#daf0ef; color:#167c89; font-size:1.2rem; }
+        .ocr-access-card h2 { margin:0 0 7px; color:#23484e; font-size:1.02rem; }
+        .ocr-access-card p { color:#667c80; font-size:.78rem; line-height:1.6; }
+        .ocr-key-input { width:100%; height:43px; margin-top:16px; padding:0 13px; border:1px solid #bdd7d6; border-radius:10px; background:#f8fbfa; color:#24494f; font-size:.9rem; }
+        .ocr-access-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:14px; }
+        .ocr-toast { position:fixed; z-index:13000; left:50%; top:88px; display:none; min-width:220px; padding:13px 18px; border:1px solid #efc5be; border-radius:12px; background:#fff6f4; color:#a44032; box-shadow:0 14px 34px rgba(93,45,38,.16); font-size:.84rem; font-weight:850; text-align:center; transform:translateX(-50%); }
+        .ocr-toast.show { display:block; animation:ocrToastIn .18s ease-out; }
+        @keyframes ocrToastIn { from { opacity:0; transform:translate(-50%,-8px); } to { opacity:1; transform:translate(-50%,0); } }
+        @media(max-width:900px) {
+            #global-header { padding:10px 14px; flex-direction:column; gap:9px; }
+            .main-title { font-size:1rem; }
+            .tab-buttons { max-width:100%; overflow-x:auto; }
+            .tab-btn,.btn-ilovepdf { flex:0 0 auto; padding:8px 12px; }
+            .ocr-hero,.ocr-result-grid { grid-template-columns:1fr; }
+            .ocr-wrap { width:min(100% - 24px,1180px); padding-top:20px; }
+        }
+        @media(max-width:620px) {
+            .ocr-hero,.ocr-panel { padding:20px 17px; border-radius:14px; }
+            .ocr-panel-head,.ocr-file-meta { align-items:flex-start; flex-direction:column; }
+            .ocr-actions .ocr-btn { width:100%; }
+            .ocr-summary { padding:18px; }
+        }
+        /* ===== OCR 기본화면 간소화 ===== */
+        #global-header { min-height:46px; padding:0 24px; gap:16px; }
+        .main-title { font-size:1rem; }
+        .tab-buttons { gap:2px; padding:3px; border-radius:9px; }
+        .tab-btn { min-height:28px; padding:5px 11px; border-radius:7px; font-size:.76rem; }
+        .btn-ilovepdf { min-height:28px; padding:5px 10px; border-radius:7px; font-size:.74rem; }
+        .ocr-wrap { width:min(720px,calc(100% - 32px)); padding:14px 0 54px; }
+        .ocr-panel { margin-top:0; padding:18px 20px; border-radius:15px; }
+        .ocr-panel-head { align-items:center; margin-bottom:12px; }
+        .ocr-panel-head h2 { font-size:.96rem; }
+        .ocr-panel-head p { font-size:.72rem; }
+        .ocr-mode-compact { flex:0 0 auto; margin-top:0; }
+        .ocr-drop { min-height:112px; padding:14px 20px; border-radius:12px; }
+        .ocr-drop-icon { width:34px; height:34px; margin-bottom:7px; border-radius:9px; font-size:1rem; }
+        .ocr-drop strong { font-size:.86rem; }
+        .ocr-drop span { margin-top:3px; font-size:.69rem; }
+        .ocr-actions { margin-top:11px; }
+        .ocr-btn { min-height:34px; padding:6px 12px; border-radius:8px; font-size:.76rem; }
+        .ocr-result { margin-top:14px; }
+        @media(max-width:900px) {
+            #global-header { padding:7px 12px; gap:6px; }
+            .tab-btn,.btn-ilovepdf { min-height:28px; padding:5px 9px; }
+            .ocr-wrap { width:min(100% - 20px,720px); padding-top:10px; }
+        }        .ocr-file-remove { flex:0 0 auto; min-height:28px; padding:4px 9px; border:1px solid #c8dcda; border-radius:7px; background:#f8fbfa; color:#557075; font:750 .68rem 'Noto Sans KR',sans-serif; cursor:pointer; }
+        .ocr-file-remove:hover { border-color:#85bfc2; color:#176f7b; }
+        /* ===== 세 탭 공통 카드 스타일 + 헤더 중심 정렬 ===== */
+        #global-header { width:min(720px,calc(100% - 32px)); margin:0 auto; padding:7px 0; background:transparent; border-bottom:0; box-shadow:none; }
+        #content-area { border-top:1px solid #dce9e6; }
+        .shared-panel-head { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:12px; }
+        .shared-panel-head h2 { margin:0 0 4px; color:#24484e; font-size:.96rem; letter-spacing:-.025em; }
+        .shared-panel-head p { color:#6b8185; font-size:.72rem; }
+
+        #tab-storybook { overflow-y:auto; background:rgba(248,251,250,.94); }
+        #setup-screen { height:100%; min-height:100%; display:block; padding:14px 20px 54px; background:transparent; overflow-y:auto; }
+        .story-upload-card { width:min(720px,100%); margin:0 auto; padding:18px 20px; border:1px solid var(--ocr-line); border-radius:15px; background:var(--ocr-surface); box-shadow:var(--ocr-shadow); }
+        #drop-zone { width:100%; max-width:none; height:112px; min-height:112px; padding:14px 20px; border:1.5px dashed #8fc7cd; border-radius:12px; background:#f3faf9; box-shadow:none; }
+        #drop-zone:hover,#drop-zone.dragover { border-color:#1793a4; background:#eaf7f6; }
+        .icon-doc { width:34px; height:34px; margin-bottom:7px; border-radius:9px; background:#d9f0ef; }
+        .icon-doc::before { top:10px; left:9px; right:9px; height:1px; background:#4c9ca5; box-shadow:0 5px 0 #4c9ca5,0 10px 0 #4c9ca5; }
+        #drop-zone p { margin-bottom:3px; color:#234b51; font-size:.86rem; }
+        #drop-zone span { color:#70858a; font-size:.69rem; }
+        #preview-container { width:calc(100% - 16px); max-width:none; margin:16px auto 0; justify-content:flex-start; gap:12px; }
+        .preview-item { width:104px; height:132px; border-color:#cbdedb; border-radius:9px; background:#fbfdfc; }
+        .preview-item img { object-fit:contain; }
+        #start-btn-container { width:calc(100% - 16px); margin:12px auto 0; text-align:left; }
+        .btn-create-book,.btn-clear-upload { min-height:34px; margin:0 6px 0 0; padding:6px 12px; border-radius:8px; font-size:.76rem; box-shadow:none; }
+        .btn-create-book { background:#1885a8; }
+        .btn-clear-upload { border:1px solid #bad6d7; background:#f8fcfb; color:#245f67; }
+        .btn-clear-upload:hover { border-color:#85bfc2; background:#eef8f7; }
+
+        #tab-pdfedit { background:rgba(248,251,250,.94); }
+        .pdf-edit-wrap { max-width:720px; padding:14px 0 54px; }
+        .pdf-edit-card { padding:18px 20px; border:1px solid var(--ocr-line); border-radius:15px; background:var(--ocr-surface); box-shadow:var(--ocr-shadow); }
+        .page-title { margin-bottom:12px; text-align:left; }
+        .page-title h1 { color:#24484e; font-size:.96rem; font-weight:800; }
+        .page-title p { margin-top:4px; color:#6b8185; font-size:.72rem; }
+        .ilove-bar { gap:4px; margin-bottom:12px; padding:6px 8px; border:1px solid #d5e6e3; border-radius:9px; background:#f2f7f6; box-shadow:none; backdrop-filter:none; }
+        .ilove-label { font-size:.68rem; }
+        .ilove-btn { padding:4px 7px; border-radius:6px; font-size:.66rem; }
+        .ilove-sep { height:14px; }
+        .dropzone { min-height:112px; padding:16px 20px; border:1.5px dashed #8fc7cd; border-radius:12px; background:#f3faf9; box-shadow:none; backdrop-filter:none; }
+        .dropzone::before { display:none; }
+        .dropzone:hover,.dropzone.drag-over { border-color:#1793a4; background:#eaf7f6; transform:none; box-shadow:none; }
+        .dz-icon { font-size:24px; }
+        .dz-title { margin-top:5px; color:#234b51; font-size:.86rem; }
+        .dz-hint { margin-top:3px; font-size:.69rem; }
+        .btn-browse { margin-top:8px; padding:6px 12px; border-radius:8px; font-size:.72rem; }
+        .edit-toolbar { margin-top:12px; padding:8px; border-color:#d5e6e3; border-radius:9px; background:#f2f7f6; backdrop-filter:none; }
+        .tool-btn { padding:5px 8px; border-radius:7px; font-size:.68rem; }
+        .info-card { margin-top:10px; padding:9px 11px; border-color:#cfe4e1; border-radius:9px; background:#eff8f6; font-size:.7rem; }
+        .page-grid { gap:10px; margin-top:10px; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); }
+
+        @media(max-width:760px) {
+            #global-header { width:calc(100% - 20px); }
+            #setup-screen { padding:10px 10px 42px; }
+            .story-upload-card,.pdf-edit-card { padding:16px 14px; }
+            .pdf-edit-wrap { width:calc(100% - 20px); }
+            #preview-container,#start-btn-container { width:100%; }
+        }        .ilove-btn { border:1px solid #c7e0dd !important; background:#eef8f7 !important; color:#245f67 !important; box-shadow:none !important; text-shadow:none !important; }
+        .ilove-btn:hover { border-color:#85bfc2 !important; background:#dff2f0 !important; color:#176f7b !important; transform:none !important; }
+        .btn-browse { border:1px solid #1885a8; background:#1885a8; color:#fafdff; box-shadow:none; }
+        .btn-browse:hover { background:#106f91; transform:none; box-shadow:none; }
+        .tab-btn:focus { outline:none; }
+        .tab-btn:focus-visible { outline:2px solid rgba(27,158,176,.35); outline-offset:1px; }
+
+        /* ===== 최종 화면 배경 및 PDF 편집 상단 호흡 ===== */
+        body,
+        #content-area,
+        #tab-storybook,
+        #tab-pdfedit,
+        #tab-ocr {
+            background-color:#fff;
+            background-image:none;
+        }
+        .pdf-edit-wrap { padding-top:32px; }
+        @media(max-width:760px) {
+            .pdf-edit-wrap { padding-top:24px; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- 공통 헤더 (탭 제어) -->
+    <div id="global-header">
+        <div class="main-title">✂️ PDF 보기 및 편집</div>
+        <div class="tab-buttons">
+            <button class="tab-btn" id="btn-tab-storybook" onclick="switchTab('storybook')">책처럼 보기</button>
+            <button class="tab-btn" id="btn-tab-pdfedit" onclick="switchTab('pdfedit')">PDF 편집</button>
+            <button class="tab-btn active" id="btn-tab-ocr" onclick="switchTab('ocr')">OCR 문서변환</button>
+            <a href="https://www.ilovepdf.com/ko" target="_blank" class="btn-ilovepdf">❤️ ilovepdf</a>
+        </div>
+    </div>
+
+    <!-- 탭 본문 영역 -->
+    <div id="content-area">
+
+        <!-- [탭 1] 책처럼 보기 (Interactive Storybook) -->
+        <div id="tab-storybook">
+            <div id="setup-screen">
+                <div class="story-upload-card">
+                    <div class="shared-panel-head">
+                        <div><h2>PDF·이미지 파일 업로드</h2><p>PDF, JPG, PNG 파일을 책처럼 넘겨볼 수 있습니다</p></div>
+                    </div>
+                <div id="drop-zone">
+                    <div class="icon-doc"></div>
+                    <p>보실 파일을 드래그하거나 클릭하세요</p>
+                    <span>이미지(JPG/PNG) 또는 PDF 혼합 지원</span>
+                    <input type="file" id="file-input" multiple accept="image/*, application/pdf">
+                </div>
+                </div>
+                <div id="preview-container"></div>
+                <div id="start-btn-container">
+                    <button class="btn-create-book" onclick="startFlipbook()">책처럼 넘겨보기</button>
+                    <button class="btn-clear-upload" onclick="clearAll()">첨부파일 지우기 (Clear)</button>
+                </div>
+            </div>
+            <!-- 전체화면 뷰어: tab-storybook 안에 위치해야 탭 전환 시 자동 숨김 -->
+            <div id="viewer-screen">
+                <div class="viewer-toolbar">
+                    <button class="toolbar-btn" onclick="exitViewer()">⬅ 목록으로 돌아가기</button>
+                    <div class="toolbar-group">
+                        <button class="toolbar-btn btn-clear" onclick="clearAll()">🧹 Clear</button>
+                        <button class="toolbar-btn btn-fullscreen" onclick="toggleFullScreen()">📺 전체화면 보기</button>
+                        <button class="toolbar-btn btn-download" onclick="downloadPDF()">⬇️ PDF 다운로드</button>
+                        <button class="toolbar-btn btn-share" onclick="openShareModal()">🔗 공유</button>
+                    </div>
+                </div>
+                <div id="book-wrapper">
+                    <div id="flipbook"></div>
+                    <div id="zone-prev" class="click-zone" onclick="turnPrev()"></div>
+                    <div id="zone-next" class="click-zone" onclick="turnNext()"></div>
+                    <div class="bottom-nav">
+                        <button class="nav-btn" onclick="turnHome()">처음으로</button>
+                        <button class="nav-btn" onclick="turnPrev()">이전</button>
+                        <button class="nav-btn" onclick="turnNext()">다음</button>
+                        <button class="nav-btn" onclick="turnLast()">마지막으로</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- [탭 2] PDF 편집 (인라인) -->
+        <div id="tab-pdfedit">
+            <div class="pdf-edit-wrap">
+                <div class="pdf-edit-card">
+                <div class="page-title">
+                    <h1>✂️ PDF 편집 도구</h1>
+                    <p>페이지 순서 변경 · 삭제 · 복사 · 다른 PDF 삽입 · 저장</p>
+                </div>
+                <div class="ilove-bar">
+                    <span class="ilove-label">🔗 ilovepdf로 연결(New TAB)</span>
+                    <a class="ilove-btn" href="#" onclick="openIlove('https://www.ilovepdf.com/ko/compress_pdf');return false;">📉 PDF 압축</a>
+                    <div class="ilove-sep"></div>
+                    <a class="ilove-btn" href="#" onclick="openIlove('https://www.ilovepdf.com/ko/pdf_to_excel');return false;">🔄 PDF→Excel</a>
+                    <div class="ilove-sep"></div>
+                    <a class="ilove-btn" href="#" onclick="openIlove('https://www.ilovepdf.com/ko/pdf_to_word');return false;">🔄 PDF→word</a>
+                    <div class="ilove-sep"></div>
+                    <a class="ilove-btn" href="#" onclick="openIlove('https://www.ilovepdf.com/ko/merge_pdf');return false;">🔗 PDF 합치기</a>
+                    <div class="ilove-sep"></div>
+                    <a class="ilove-btn" href="#" onclick="openIlove('https://www.ilovepdf.com/ko/split_pdf');return false;">✂️ PDF 분할</a>
+                    <div class="ilove-sep"></div>
+                    <a class="ilove-btn" href="#" onclick="openIlove('https://www.ilovepdf.com/ko/add_pdf_page_number');return false;">🔢 PageNo 추가</a>
+                    <div class="ilove-sep"></div>
+                </div>
+                <div class="dropzone" id="dz-edit"
+                    ondragover="event.preventDefault();this.classList.add('drag-over')"
+                    ondragleave="this.classList.remove('drag-over')"
+                    ondrop="handleDrop(event)"
+                    onclick="document.getElementById('fi-edit').click()">
+                    <span class="dz-icon">📄</span>
+                    <h3 class="dz-title">편집할 PDF 파일을 드래그하거나 클릭하세요</h3>
+                    <p class="dz-hint">페이지 순서 변경(드래그) · 삭제 · 복사 · 다른 PDF 삽입</p>
+                    <button class="btn-browse" onclick="event.stopPropagation();document.getElementById('fi-edit').click()">파일 선택</button>
+                    <input type="file" id="fi-edit" accept=".pdf" onchange="loadEditPdf(event)">
+                </div>
+                <div id="editArea" style="display:none;">
+                    <div class="edit-toolbar">
+                        <button class="tool-btn" onclick="editSelectAll()">☑️ 전체선택</button>
+                        <button class="tool-btn" onclick="editSelectNone()">◻️ 해제</button>
+                        <div class="tool-sep"></div>
+                        <button class="tool-btn" onclick="editMoveUp()">⬆️ 앞으로</button>
+                        <button class="tool-btn" onclick="editMoveDown()">⬇️ 뒤로</button>
+                        <div class="tool-sep"></div>
+                        <button class="tool-btn" onclick="editCopy()">📋 복사</button>
+                        <button class="tool-btn danger" onclick="editDelete()">🗑️ 삭제</button>
+                        <div class="tool-sep"></div>
+                        <button class="tool-btn icon-btn" title="시계방향 90° 회전" onclick="editRotateCW()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 4 22 10 16 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L22 10"/></svg></button>
+                        <button class="tool-btn icon-btn" title="반시계방향 90° 회전" onclick="editRotateCCW()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 4 2 10 8 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L2 10"/></svg></button>
+                        <div class="tool-sep"></div>
+                        <button class="tool-btn" onclick="document.getElementById('fi-insert').click()">➕ PDF 삽입</button>
+                        <input type="file" id="fi-insert" accept=".pdf" onchange="editInsertPdf(event)" style="display:none">
+                        <div class="tool-sep"></div>
+                        <button class="tool-btn danger" onclick="editReset()" title="모든 작업을 취소하고 처음 상태로">↩ 작업취소</button>
+                        <button class="tool-btn success" onclick="editSave()">💾 PDF 저장</button>
+                        <span class="sel-count" id="selCount">선택: 0 / 0</span>
+                    </div>
+                    <div class="info-card">💡 <strong>드래그</strong>로 페이지 순서 변경 · 카드 클릭 또는 체크박스로 선택</div>
+                    <div class="page-grid" id="pageGrid"></div>
+                    <div class="progress-area" id="prog">
+                        <div class="prog-text" id="progTxt">처리 중...</div>
+                        <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+                    </div>
+                </div>
+                </div>
+            </div>
+            <div class="modal-overlay" id="modal">
+                <div class="modal">
+                    <h3 id="modal-title">알림</h3>
+                    <p id="modal-body"></p>
+                    <div class="modal-btns"><button class="btn-ok" onclick="document.getElementById('modal').classList.remove('show')">확인</button></div>
+                </div>
+            </div>
+        </div>
+        <!-- [탭 3] OCR 문서변환 -->
+        <div id="tab-ocr">
+            <main class="ocr-wrap">
+<section class="ocr-panel" aria-labelledby="ocr-upload-title">
+                    <div class="ocr-panel-head">
+                        <div>
+                            <h2 id="ocr-upload-title">PDF 파일 업로드</h2>
+                            <p>PDF 1개 · 권장 30MB 이하 · 암호화 PDF 제외</p>
+                        </div>
+                        <div class="ocr-mode ocr-mode-compact"><span>처리 방식</span><span class="ocr-mode-badge local" id="ocr-mode-badge">파일 선택 후 결정</span></div>
+                    </div>
+                    <div class="ocr-drop" id="ocr-drop" tabindex="0" role="button" aria-label="OCR 변환용 PDF 선택" onclick="document.getElementById('ocr-file').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('ocr-file').click();}">
+                        <div>
+                            <div class="ocr-drop-icon">▤</div>
+                            <strong>PDF를 드래그하거나 클릭하세요</strong>
+                            <span>원본은 브라우저 메모리에서 처리됩니다</span>
+                        </div>
+                        <input type="file" id="ocr-file" accept="application/pdf,.pdf" onchange="selectOcrFile(event)">
+                    </div>
+                    <div class="ocr-file-meta" id="ocr-file-meta">
+                        <span class="ocr-file-name" id="ocr-file-name"></span>
+                        <span class="ocr-file-info" id="ocr-file-info"></span>
+                        <button type="button" class="ocr-file-remove" style="margin-right: 4px;" onclick="showOcrAccessModal()">설정 변경</button>
+                        <button type="button" class="ocr-file-remove" onclick="resetOcr()">첨부 삭제</button>
+                    </div>
+                    <div class="ocr-actions">
+                        <button type="button" class="ocr-btn primary" id="ocr-run" onclick="runOcrConversion()" disabled>OCR문서변환</button>
+                        <button type="button" class="ocr-btn ghost" id="ocr-cancel" onclick="cancelOcrConversion()" disabled>처리 중단</button>
+                        <button type="button" class="ocr-btn secondary" onclick="resetOcr()">첨부파일 지우기 (Clear)</button>
+                    </div>
+                    <div class="ocr-progress" id="ocr-progress" aria-live="polite">
+                        <div class="ocr-progress-row"><span id="ocr-progress-text">준비 중...</span><span id="ocr-progress-percent">0%</span></div>
+                        <div class="ocr-progress-track"><div class="ocr-progress-fill" id="ocr-progress-fill"></div></div>
+                    </div>
+                </section>
+
+                <section class="ocr-result" id="ocr-result" aria-labelledby="ocr-result-title">
+                    <div class="ocr-panel-head">
+                        <div>
+                            <h2 id="ocr-result-title">변환 결과</h2>
+                            <p>화면 요약은 개인정보가 마스킹됩니다. 다운로드 파일에는 원문이 유지됩니다.</p>
+                        </div>
+                        <div class="ocr-actions" style="margin-top:0">
+                            <button type="button" class="ocr-btn secondary" id="ocr-copy" onclick="copyOcrSummary()">COPY</button>
+                            <button type="button" class="ocr-btn teal" id="ocr-word" onclick="downloadOcrWord()">Word 다운로드</button>
+                            <button type="button" class="ocr-btn primary" id="ocr-excel" onclick="downloadOcrExcel()">Excel 다운로드</button>
+                        </div>
+                    </div>
+                    <div class="ocr-result-grid">
+                        <article class="ocr-summary" id="ocr-summary"></article>
+                        <aside class="ocr-result-side">
+                            <div class="ocr-stat"><span>처리 페이지</span><strong id="ocr-page-count">0쪽</strong></div>
+                            <div class="ocr-stat"><span>처리 모드</span><strong id="ocr-result-mode">-</strong></div>
+                            <div class="ocr-review"><strong>검토 필요 항목</strong><ul id="ocr-review-list"><li>없음</li></ul></div>
+                        </aside>
+                    </div>
+                    <p class="ocr-privacy">OCR 결과는 문서 품질에 따라 오류가 발생할 수 있습니다. 감사·법률·계약 등 중요한 용도에서는 원본과 반드시 대조하세요.</p>
+                </section>
+            </main>
+        </div>
+        <!-- 저장 다이얼로그 -->
+        <div id="save-dialog" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9300;align-items:center;justify-content:center;">
+            <div style="background:#fff;border-radius:16px;padding:30px 32px;min-width:380px;max-width:92vw;box-shadow:0 24px 64px rgba(0,0,0,.28);">
+                <div style="font-size:16px;font-weight:700;margin-bottom:20px;color:#1e293b;">💾 PDF 저장</div>
+                <div style="margin-bottom:8px;">
+                    <label style="font-size:12px;color:#64748b;display:block;margin-bottom:6px;font-weight:500;">파일명</label>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <input type="text" id="save-fname" style="flex:1;padding:9px 12px;border:1.5px solid #bae6fd;border-radius:8px;font-size:14px;outline:none;color:#1e293b;" placeholder="파일명 입력" onkeydown="if(event.key==='Enter')saveDlgConfirm();if(event.key==='Escape')saveDlgCancel();" onfocus="this.style.borderColor='#0284c7'" onblur="this.style.borderColor='#bae6fd'">
+                        <span style="font-size:13px;color:#64748b;white-space:nowrap;font-weight:500;">.pdf</span>
+                    </div>
+                </div>
+                <div id="save-note" style="font-size:11px;color:#94a3b8;margin-bottom:22px;line-height:1.5;"></div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;">
+                    <button onclick="saveDlgCancel()" style="padding:9px 20px;border:1.5px solid #cbd5e1;border-radius:8px;background:#f8fafc;color:#475569;font-size:13px;font-weight:500;cursor:pointer;">취소</button>
+                    <button onclick="saveDlgConfirm()" style="padding:9px 22px;border:none;border-radius:8px;background:#0284c7;color:#fff;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(2,132,199,.3);">💾 저장</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- OCR API 사용량 보호용 키워드 및 API Key 설정 -->
+    <div class="ocr-access-overlay" id="ocr-access" role="dialog" aria-modal="true" aria-labelledby="ocr-access-title">
+        <div class="ocr-access-card" style="width: min(450px, 100%);">
+            <div class="ocr-access-mark">⌁</div>
+            <h2 id="ocr-access-title">OCR 문서변환 설정</h2>
+            <p style="margin-bottom: 12px;">Google AI Studio API Key 입력시 Gemini 3.5 Flash 모델 사용</p>
+            <div style="margin-top: 10px; text-align: left;">
+                <label style="font-size: 11px; color: var(--ocr-muted); font-weight: 700; display: block; margin-bottom: 4px;">Google AI Studio API Key</label>
+                <input class="ocr-key-input" id="ocr-api-key" type="password" autocomplete="off" placeholder="AIzaSy...로 시작하는 API 키 입력" style="margin-top:0; margin-bottom: 10px;" onkeydown="if(event.key==='Enter')confirmOcrAccess();if(event.key==='Escape')denyOcrAccess();">
+            </div>
+            <div style="margin-top: 5px; text-align: left; margin-bottom: 15px;">
+                <label style="font-size: 11px; color: var(--ocr-muted); font-weight: 700; display: block; margin-bottom: 4px;">보안 키워드 (공용 프록시용, API 키 미입력 시)</label>
+                <input class="ocr-key-input" id="ocr-keyword" type="password" autocomplete="off" placeholder="키워드 입력" style="margin-top:0;" onkeydown="if(event.key==='Enter')confirmOcrAccess();if(event.key==='Escape')denyOcrAccess();">
+            </div>
+            <div class="ocr-access-actions">
+                <button type="button" class="ocr-btn ghost" onclick="denyOcrAccess()">로컬 OCR 사용</button>
+                <button type="button" class="ocr-btn primary" onclick="confirmOcrAccess()">확인</button>
+            </div>
+        </div>
+    </div>
+    <div class="ocr-toast" id="ocr-toast" role="status" aria-live="assertive">사용불가 · 로컬 OCR로 전환합니다</div>
+    <!-- 보안 알림창 -->
+    <div id="custom-alert" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);z-index:9000;justify-content:center;align-items:center;">
+        <div class="modal-content">
+            <div class="modal-title">⚠️ 알림</div>
+            <div id="modal-text" class="modal-message"></div>
+            <button class="modal-btn" onclick="closeAlert()">확인</button>
+        </div>
+    </div>
+
+    <!-- 글로벌 로딩 -->
+    <div id="global-loading">
+        <div class="spinner"></div>
+        <p id="loading-msg">처리 중...</p>
+    </div>
+
+    <!-- 공유 모달 -->
+    <div id="share-modal">
+        <div class="share-content">
+            <div class="share-title">파일 공유하기</div>
+            <div class="share-icons">
+                <button class="share-icon-btn" onclick="shareSocial('kakao')">
+                    <div class="icon-circle bg-kakao">K</div>카카오톡
+                </button>
+                <button class="share-icon-btn" onclick="shareSocial('insta')">
+                    <div class="icon-circle bg-insta">In</div>인스타그램
+                </button>
+                <button class="share-icon-btn" onclick="shareSocial('youtube')">
+                    <div class="icon-circle bg-yt">▶</div>유튜브
+                </button>
+                <button class="share-icon-btn" onclick="shareSocial('link')">
+                    <div class="icon-circle bg-link">🔗</div>링크복사
+                </button>
+            </div>
+            <button class="btn-close-modal" onclick="closeShareModal()">닫기</button>
+        </div>
+    </div>
+
+    <script>
+        // =================================================================
+        // [사용자 설정] Google AI Studio API Key 직접 입력
+        // =================================================================
+        // 매번 화면 알림창에 API Key를 입력하지 않으려면 아래 따옴표 "" 안에 직접 키를 적으세요.
+        // 예: const USER_GEMINI_API_KEY = "AIzaSy...";
+        const USER_GEMINI_API_KEY = "AIzaSyAQEJF_bkBSPI9Eek6g8WwYVCHKuJeu_hU";
+        // =================================================================
+
+        // 활성화된 API Key를 가져오는 헬퍼 함수 (코드상의 하드코딩 우선, 없을 경우 로컬스토리지)
+        function getActiveApiKey() {
+            if (typeof USER_GEMINI_API_KEY !== 'undefined' && USER_GEMINI_API_KEY.trim() !== "") {
+                return USER_GEMINI_API_KEY.trim();
+            }
+            return localStorage.getItem('gemini_api_key') || '';
+        }
+
+        // --- 탭 컨트롤 시스템 ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('btn-tab-' + tabId).classList.add('active');
+
+            document.getElementById('tab-storybook').style.display = (tabId === 'storybook') ? 'flex' : 'none';
+            document.getElementById('tab-pdfedit').style.display = (tabId === 'pdfedit') ? 'block' : 'none';
+            document.getElementById('tab-ocr').style.display = (tabId === 'ocr') ? 'block' : 'none';
+
+            // PDF 편집 탭으로 전환 시 플립북 뷰어가 열려있으면 닫기
+            if (tabId === 'pdfedit') {
+                const vs = document.getElementById('viewer-screen');
+                if (vs) vs.style.display = 'none';
+            }
+        }
+
+        // --- 책처럼 보기 (Flipbook) 핵심 로직 ---
+        let pageImages = [];
+        let flipbookInitialized = false;
+
+        const fileInput = document.getElementById('file-input');
+        const dropZone = document.getElementById('drop-zone');
+
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('dragover'); });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault(); dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) processFiles(e.dataTransfer.files);
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) processFiles(e.target.files);
+        });
+
+        async function processFiles(files) {
+            showLoading("파일을 분석하고 있습니다...");
+            const fileArray = Array.from(files);
+
+            for (let i = 0; i < fileArray.length; i++) {
+                const file = fileArray[i];
+                if (file.type.startsWith('image/')) {
+                    const dataUrl = await readImageFile(file);
+                    pageImages.push(dataUrl);
+                } else if (file.type === 'application/pdf') {
+                    await processPdfFile(file);
+                }
+            }
+            renderThumbnails();
+            hideLoading();
+        }
+
+        function readImageFile(file) {
+            return new Promise(resolve => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function processPdfFile(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                document.getElementById('loading-msg').innerText = `PDF 추출 중... (${pageNum}/${pdfDoc.numPages})`;
+                const page = await pdfDoc.getPage(pageNum);
+                const viewport = page.getViewport({ scale: 2.0 });
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = viewport.width; canvas.height = viewport.height;
+                await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+                pageImages.push(canvas.toDataURL('image/jpeg', 0.85));
+            }
+        }
+
+        function renderThumbnails() {
+            const container = document.getElementById('preview-container');
+            container.innerHTML = '';
+            pageImages.forEach((dataUrl, index) => {
+                const div = document.createElement('div');
+                div.className = 'preview-item';
+                div.innerHTML = `
+                    <img src="${dataUrl}">
+                    <div class="page-num">${index + 1}</div>
+                    <button class="remove-btn" onclick="removePage(${index})" title="삭제">×</button>
+                `;
+                container.appendChild(div);
+            });
+
+            document.getElementById('start-btn-container').style.display = pageImages.length > 0 ? 'block' : 'none';
+        }
+
+        function removePage(index) {
+            pageImages.splice(index, 1);
+            renderThumbnails();
+        }
+
+        // --- 뷰어 실행 로직 (전체화면 덮기 및 무한 로딩/비율 해결) ---
+        async function startFlipbook() {
+            if (pageImages.length === 0) return;
+            document.getElementById('viewer-screen').style.display = 'flex';
+            showLoading("책을 펼치는 중입니다...");
+
+            // DOM 렌더링을 위해 잠깐 쉼
+            setTimeout(() => {
+                initFlipbook();
+                hideLoading();
+            }, 100);
+        }
+
+        function exitViewer() {
+            clearAll(); // 화면을 벗어나면 모든 캐시/업로드 흔적 일괄 삭제
+        }
+
+        function clearAll() {
+            pageImages = [];
+            document.getElementById('preview-container').innerHTML = '';
+            document.getElementById('file-input').value = '';
+            document.getElementById('start-btn-container').style.display = 'none';
+            document.getElementById('viewer-screen').style.display = 'none'; // 뷰어 닫기
+
+            if (flipbookInitialized) {
+                try { $('#flipbook').turn('destroy'); } catch (e) { }
+                flipbookInitialized = false;
+            }
+
+            // Turn.js의 고질적인 DOM 잔류 캐시 충돌 방지를 위해 엘리먼트 자체를 물리적으로 파괴 후 재생성
+            $('#flipbook').remove();
+            $('#book-wrapper').prepend('<div id="flipbook"></div>');
+        }
+
+        function initFlipbook() {
+            const flipbook = $('#flipbook');
+            if (flipbookInitialized) flipbook.turn('destroy');
+            flipbook.empty();
+
+            // 가로 또는 세로에 따라 화면에 최대 100% 꽉 차게 계산 (원본 이미지 비율을 고정하지 않음)
+            const finalW = window.innerWidth;
+            const finalH = window.innerHeight - 50; // 상단 툴바(50px) 뺀 실제 공간
+
+            // 각 페이지 엘리먼트 돔 생성
+            pageImages.forEach(imgSrc => {
+                const pageDiv = document.createElement('div');
+                pageDiv.className = 'book-page';
+                // object-fit: contain CSS 속성 덕분에 이미지 비율 왜곡 및 치우침 방지
+                pageDiv.innerHTML = `<img class="page-image" src="${imgSrc}">`;
+                flipbook.append(pageDiv);
+            });
+
+            flipbook.css('display', 'block');
+
+            try {
+                flipbook.turn({
+                    width: finalW,
+                    height: finalH,
+                    display: 'single',
+                    autoCenter: true,
+                    duration: 600,
+                    elevation: 50,
+                    pages: pageImages.length
+                });
+                flipbookInitialized = true;
+            } catch (e) {
+                console.error("Turn.js Initialization Error :", e);
+            }
+        }
+
+        function turnHome() { if (flipbookInitialized) $('#flipbook').turn('page', 1); }
+        function turnPrev() {
+            if (!flipbookInitialized) return;
+            const fb = $('#flipbook');
+            if (fb.turn('page') > 1) fb.turn('previous');
+            else fb.turn('page', fb.turn('pages'));
+        }
+        function turnNext() {
+            if (!flipbookInitialized) return;
+            const fb = $('#flipbook');
+            if (fb.turn('page') < fb.turn('pages')) fb.turn('next');
+            else fb.turn('page', 1);
+        }
+        function turnLast() { if (flipbookInitialized) $('#flipbook').turn('page', $('#flipbook').turn('pages')); }
+
+        // 브라우저 크기 변경 대응
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            if (flipbookInitialized && document.getElementById('viewer-screen').style.display !== 'none') {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => {
+                    initFlipbook();
+                }, 200);
+            }
+        });
+
+        // --- 다운로드 & 모달 ---
+        async function downloadPDF() {
+            if (pageImages.length === 0) return;
+            showLoading("파일을 PDF로 저장 중입니다...");
+            const { jsPDF } = window.jspdf;
+
+            // 첫 번째 이미지를 기준으로 문서 생성
+            const tempImg = new Image();
+            tempImg.src = pageImages[0];
+            await new Promise(r => tempImg.onload = r);
+
+            const orientation = tempImg.width > tempImg.height ? 'l' : 'p';
+            const pdf = new jsPDF({
+                orientation: orientation,
+                unit: 'px',
+                format: [tempImg.width, tempImg.height]
+            });
+
+            pdf.addImage(pageImages[0], 'JPEG', 0, 0, tempImg.width, tempImg.height);
+
+            // 2번째 이미지부터 가로/세로 오리지널 비율에 맞춰서 페이지 추가
+            for (let i = 1; i < pageImages.length; i++) {
+                const img = new Image();
+                img.src = pageImages[i];
+                await new Promise(r => img.onload = r);
+
+                const iterOrientation = img.width > img.height ? 'l' : 'p';
+                pdf.addPage([img.width, img.height], iterOrientation);
+                pdf.addImage(pageImages[i], 'JPEG', 0, 0, img.width, img.height);
+            }
+
+            pdf.save("download.pdf");
+            hideLoading();
+        }
+
+        function openShareModal() { document.getElementById('share-modal').style.display = 'flex'; }
+        function closeShareModal() { document.getElementById('share-modal').style.display = 'none'; }
+
+        async function shareSocial(platform) {
+            closeShareModal();
+            if (navigator.share && (platform === 'kakao' || platform === 'link')) {
+                try {
+                    showLoading("공유 파일 준비 중...");
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF('p', 'px', [800, 1000]);
+                    pdf.addImage(pageImages[0], 'JPEG', 0, 0, 800, 1000);
+                    const file = new File([pdf.output('blob')], "Storybook.pdf", { type: "application/pdf" });
+                    hideLoading();
+                    await navigator.share({ title: '마법의 스토리북', text: '[스토리북 뷰어] 나의 그림책을 확인해보세요!', files: [file] });
+                    return;
+                } catch (err) {
+                    hideLoading(); console.log("기본 공유 에러", err);
+                }
+            }
+            if (platform === 'kakao') alert("💚 PC 환경 카카오톡 공유 안내:\n\n우선 상단의 [⬇️ PDF 다운로드] 버튼을 눌러 피씨에 저장하신 후, 저장된 파일을 카카오톡 채팅창에 쓱 드래그해서 보내시면 가장 완벽하게 전송됩니다!");
+            else if (platform === 'insta' || platform === 'youtube') alert(`📸 ${platform === 'insta' ? '인스타그램' : '유튜브'} 공유 모드: \n\n현재 화면을 캡처하시거나, 다운로드된 PDF를 앱을 통해 업로드해주시면 됩니다. (SNS는 PDF 직접업로드를 미지원합니다)`);
+            else if (platform === 'link') alert("🔗 링크 복사 모드:\n\n본 시스템은 PC 독립 웹앱입니다. 이 'pdf edit.html' 파일 자체를 이메일이나 메신저로 전달해 주시면 됩니다!");
+        }
+
+        function showLoading(msg) { document.getElementById('loading-msg').innerText = msg; document.getElementById('global-loading').style.display = 'flex'; }
+        function hideLoading() { document.getElementById('global-loading').style.display = 'none'; }
+
+        // --- 전체화면 (Full Screen) 제어 ---
+        function toggleFullScreen() {
+            const doc = window.document;
+            const docEl = doc.documentElement;
+
+            const requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+            const cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+
+            if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+                requestFullScreen.call(docEl);
+            }
+            else {
+                cancelFullScreen.call(doc);
+            }
+        }
+        // --- 보안 및 HanAI 환경 설정 JS 옮김 ---
+        function goLink(type, url, el) {
+            if (type === 'new') {
+                document.getElementById('hidden-frame').src = url;
+                setTimeout(function () { window.location.href = url; }, 100);
+            } else {
+                document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+                if (el) el.classList.add('active');
+                document.getElementById('content-frame').src = url;
+            }
+        }
+        function showAlert(message) {
+            document.getElementById('modal-text').innerText = message;
+            document.getElementById('custom-alert').style.display = 'flex';
+        }
+        function closeAlert() { document.getElementById('custom-alert').style.display = 'none'; }
+
+        // 배경 별/우주 생성 및 iframe 기초 로딩 (윈도우 전역)
+        let _starsCreated = false;
+        function initHanAI() {
+            if (_starsCreated) return;
+            const standardSearchBtn = document.getElementById('btn-pdf-work'); // 최초 탭: PDF작업
+            if (standardSearchBtn) {
+                standardSearchBtn.click();
+            }
+
+            const wrapperObj = document.getElementById('hanai-wrapper');
+            if (!wrapperObj) return;
+
+            const starsContainer = document.createElement('div');
+            starsContainer.className = 'stars';
+            wrapperObj.appendChild(starsContainer);
+            for (let i = 0; i < 80; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                star.style.animationDuration = (2 + Math.random() * 2) + 's';
+                starsContainer.appendChild(star);
+            }
+            setInterval(() => {
+                if (Math.random() > 0.7) {
+                    const star = document.createElement('div');
+                    star.className = 'shooting-star';
+                    star.style.left = (Math.random() * 50 + 10) + '%';
+                    star.style.top = (Math.random() * 30 + 10) + '%';
+                    wrapperObj.appendChild(star);
+                    setTimeout(() => star.remove(), 2000);
+                }
+            }, 3000);
+            _starsCreated = true;
+        }
+
+        // ===== PDF 편집 탭 로직 =====
+        let iloveWin = null;
+        function openIlove(url) {
+            if (!iloveWin || iloveWin.closed) { iloveWin = window.open(url, 'ilovepdf_tab'); }
+            else { iloveWin.location.href = url; iloveWin.focus(); }
+        }
+
+        const E = { pages: [], fname: '', blobUrl: null, dragSrc: -1, dragMulti: false, initial: null, origFname: '', gridDragReady: false };
+
+        function handleDrop(e) {
+            e.preventDefault(); document.getElementById('dz-edit').classList.remove('drag-over');
+            const f = [...e.dataTransfer.files].find(f => f.name.toLowerCase().endsWith('.pdf'));
+            if (f) loadPdfFile(f);
+        }
+        async function loadEditPdf(e) { const f = e.target.files[0]; e.target.value = ''; if (f) await loadPdfFile(f); }
+
+        async function loadPdfFile(file) {
+            if (!E.gridDragReady) { E.gridDragReady = true; setupGridDrag(); }
+            showProg(true); setProg(5, 'PDF 로드 중...');
+            try {
+                const ab = await file.arrayBuffer();
+                const doc = await PDFLib.PDFDocument.load(ab, { ignoreEncryption: true });
+                E.fname = file.name.replace(/\.pdf$/i, '');
+                E.origFname = E.fname;
+                E.pages = Array.from({ length: doc.getPageCount() }, (_, i) => ({ srcDoc: doc, srcIdx: i, sel: false, isCopy: false, rot: 0 }));
+                E.initial = E.pages.map(p => ({ ...p }));
+                document.getElementById('dz-edit').style.display = 'none';
+                document.getElementById('editArea').style.display = 'block';
+                await renderThumbs(); updateSel();
+            } catch (err) { alert2('오류', err.message); showProg(false); }
+        }
+
+        const jsCache = new Map();
+        async function getJsPdf(pdfLibDoc) {
+            if (jsCache.has(pdfLibDoc)) return jsCache.get(pdfLibDoc);
+            const b = await pdfLibDoc.save();
+            const d = await pdfjsLib.getDocument({ data: b }).promise;
+            jsCache.set(pdfLibDoc, d); return d;
+        }
+
+        async function renderThumbs() {
+            const grid = document.getElementById('pageGrid');
+            grid.innerHTML = '';
+            const n = E.pages.length;
+            for (let i = 0; i < n; i++) {
+                setProg(Math.round(5 + (i / n) * 88), `썸네일 (${i + 1}/${n})`);
+                const pg = E.pages[i];
+                const card = document.createElement('div');
+                card.className = 'page-card'; card.dataset.idx = i;
+                card.innerHTML = `<div class="page-thumb"><span class="ls">⏳</span></div>
+                    <div class="page-footer">
+                        <span class="page-num">p.${i + 1}</span>
+                        <input type="checkbox" class="page-check" id="chk${i}" ${pg.sel ? 'checked' : ''} onchange="onChk(${i})">
+                    </div>${pg.isCopy ? '<span class="page-copy-badge">복사</span>' : ''}`;
+                if (pg.sel) card.classList.add('selected');
+                card.addEventListener('click', e => { if (e.target.type === 'checkbox') return; toggle(i); });
+                dragSetup(card, i);
+                grid.appendChild(card);
+                (async () => {
+                    try {
+                        const jd = await getJsPdf(pg.srcDoc);
+                        const p = await jd.getPage(pg.srcIdx + 1);
+                        const rot = pg.rot || 0;
+                        const vp = p.getViewport({ scale: 1, rotation: rot });
+                        const sc = Math.min(280 / vp.width, 400 / vp.height);
+                        const svp = p.getViewport({ scale: sc, rotation: rot });
+                        const cv = document.createElement('canvas');
+                        cv.width = svp.width; cv.height = svp.height;
+                        const ctx = cv.getContext('2d');
+                        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+                        await p.render({ canvasContext: ctx, viewport: svp }).promise;
+                        const th = card.querySelector('.page-thumb'); th.innerHTML = ''; th.appendChild(cv);
+                    } catch { card.querySelector('.page-thumb').innerHTML = '<span style="font-size:10px;color:#aaa">미리보기 없음</span>'; }
+                })();
+            }
+            setProg(100, '완료!'); setTimeout(() => showProg(false), 700);
+        }
+
+        function toggle(i) { E.pages[i].sel = !E.pages[i].sel; document.getElementById('chk' + i).checked = E.pages[i].sel; document.getElementById('pageGrid').children[i].classList.toggle('selected', E.pages[i].sel); updateSel(); }
+        function onChk(i) { E.pages[i].sel = document.getElementById('chk' + i).checked; document.getElementById('pageGrid').children[i].classList.toggle('selected', E.pages[i].sel); updateSel(); }
+        function updateSel() { document.getElementById('selCount').textContent = `선택: ${E.pages.filter(p => p.sel).length} / ${E.pages.length}`; }
+        function editSelectAll() { E.pages.forEach((_, i) => { E.pages[i].sel = true; document.getElementById('chk' + i).checked = true; document.getElementById('pageGrid').children[i].classList.add('selected'); }); updateSel(); }
+        function editSelectNone() { E.pages.forEach((_, i) => { E.pages[i].sel = false; document.getElementById('chk' + i).checked = false; document.getElementById('pageGrid').children[i].classList.remove('selected'); }); updateSel(); }
+        function editMoveUp() { const a = E.pages; for (let i = 1; i < a.length; i++) if (a[i].sel && !a[i - 1].sel)[a[i - 1], a[i]] = [a[i], a[i - 1]]; renderThumbs(); }
+        function editMoveDown() { const a = E.pages; for (let i = a.length - 2; i >= 0; i--) if (a[i].sel && !a[i + 1].sel)[a[i], a[i + 1]] = [a[i + 1], a[i]]; renderThumbs(); }
+        function editCopy() {
+            const c = E.pages.filter(p => p.sel).map(p => ({ ...p, isCopy: true, sel: false }));
+            if (!c.length) { alert2('알림', '복사할 페이지를 선택하세요.'); return; }
+            const last = E.pages.map((p, i) => p.sel ? i : -1).filter(i => i >= 0).pop() ?? E.pages.length - 1;
+            E.pages.splice(last + 1, 0, ...c); renderThumbs(); updateSel();
+        }
+        function editDelete() {
+            if (!E.pages.some(p => p.sel)) { alert2('알림', '삭제할 페이지를 선택하세요.'); return; }
+            if (!E.pages.some(p => !p.sel)) { alert2('알림', '모든 페이지를 삭제할 수 없습니다.'); return; }
+            E.pages = E.pages.filter(p => !p.sel); renderThumbs(); updateSel();
+        }
+        function editRotateCW() {
+            if (!E.pages.some(p => p.sel)) { alert2('알림', '회전할 페이지를 선택하세요.'); return; }
+            E.pages.forEach(p => { if (p.sel) p.rot = ((p.rot || 0) + 90) % 360; });
+            renderThumbs();
+        }
+        function editRotateCCW() {
+            if (!E.pages.some(p => p.sel)) { alert2('알림', '회전할 페이지를 선택하세요.'); return; }
+            E.pages.forEach(p => { if (p.sel) p.rot = ((p.rot || 0) + 270) % 360; });
+            renderThumbs();
+        }
+        async function editInsertPdf(e) {
+            const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+            showProg(true); setProg(10, 'PDF 삽입 중...');
+            try {
+                const doc = await PDFLib.PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true });
+                const last = E.pages.map((p, i) => p.sel ? i : -1).filter(i => i >= 0).pop() ?? E.pages.length - 1;
+                E.pages.splice(last + 1, 0, ...Array.from({ length: doc.getPageCount() }, (_, i) => ({ srcDoc: doc, srcIdx: i, sel: false, isCopy: false })));
+                await renderThumbs(); updateSel();
+            } catch (err) { alert2('오류', err.message); showProg(false); }
+        }
+        async function _buildPdfBytes() {
+            const out = await PDFLib.PDFDocument.create();
+            const map = new Map();
+            for (const p of E.pages) {
+                if (!map.has(p.srcDoc)) {
+                    const idxs = [...new Set(E.pages.filter(x => x.srcDoc === p.srcDoc).map(x => x.srcIdx))];
+                    map.set(p.srcDoc, { idxs, copied: await out.copyPages(p.srcDoc, idxs) });
+                }
+            }
+            E.pages.forEach((p, i) => {
+                setProg(5 + Math.round(i / E.pages.length * 90), '합치는 중...');
+                const { idxs, copied } = map.get(p.srcDoc);
+                const pg = copied[idxs.indexOf(p.srcIdx)];
+                if (p.rot) { pg.setRotation(PDFLib.degrees((pg.getRotation().angle + p.rot) % 360)); }
+                out.addPage(pg);
+            });
+            return out.save();
+        }
+        async function editSave() {
+            if (!E.pages.length) { alert2('알림', '페이지가 없습니다.'); return; }
+            if (window.showSaveFilePicker) {
+                // Chrome/Edge: 네이티브 저장 다이얼로그 (폴더 + 파일명 선택)
+                try {
+                    const fh = await window.showSaveFilePicker({
+                        suggestedName: E.fname + '.pdf',
+                        types: [{ description: 'PDF 파일', accept: { 'application/pdf': ['.pdf'] } }]
+                    });
+                    showProg(true); setProg(5, 'PDF 생성 중...');
+                    const bytes = await _buildPdfBytes();
+                    const ws = await fh.createWritable();
+                    await ws.write(bytes); await ws.close();
+                    setProg(100, '저장 완료!'); setTimeout(() => showProg(false), 800);
+                } catch (e) {
+                    if (e.name !== 'AbortError') { alert2('오류', e.message); }
+                    showProg(false);
+                }
+                return;
+            }
+            // 폴백: 커스텀 다이얼로그 (파일명 입력 후 다운로드)
+            document.getElementById('save-fname').value = E.fname;
+            document.getElementById('save-note').textContent = '📂 저장 위치: 브라우저 다운로드 폴더';
+            const dlg = document.getElementById('save-dialog');
+            dlg.style.display = 'flex';
+            setTimeout(() => { const el = document.getElementById('save-fname'); el.focus(); el.select(); }, 60);
+        }
+        async function saveDlgConfirm() {
+            const rawName = document.getElementById('save-fname').value.trim();
+            if (!rawName) { document.getElementById('save-fname').focus(); return; }
+            const fname = rawName + '.pdf';
+            document.getElementById('save-dialog').style.display = 'none';
+            showProg(true); setProg(5, 'PDF 생성 중...');
+            try {
+                const bytes = await _buildPdfBytes();
+                if (E.blobUrl) URL.revokeObjectURL(E.blobUrl);
+                E.blobUrl = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+                Object.assign(document.createElement('a'), { href: E.blobUrl, download: fname }).click();
+                setProg(100, '저장 완료!'); setTimeout(() => showProg(false), 800);
+            } catch (err) { alert2('오류', err.message); showProg(false); }
+        }
+        function saveDlgCancel() {
+            document.getElementById('save-dialog').style.display = 'none';
+        }
+        function editReset() {
+            if (!E.initial) return;
+            if (!confirm('지금까지의 모든 작업을 취소하고\n처음 파일 열었을 때 상태로 되돌리시겠습니까?')) return;
+            E.pages = E.initial.map(p => ({ ...p }));
+            E.fname = E.origFname;
+            renderThumbs(); updateSel();
+        }
+        function dragSetup(card, idx) {
+            card.draggable = true;
+            card.addEventListener('dragstart', e => {
+                E.dragSrc = +card.dataset.idx;
+                E.dragMulti = E.pages[E.dragSrc].sel;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', String(E.dragSrc));
+                setTimeout(() => {
+                    document.querySelectorAll('#pageGrid .page-card').forEach((c, i) => {
+                        if (i === E.dragSrc || (E.dragMulti && E.pages[i] && E.pages[i].sel))
+                            c.classList.add('dragging');
+                    });
+                }, 0);
+            });
+        }
+        function setupGridDrag() {
+            const grid = document.getElementById('pageGrid');
+            grid.addEventListener('dragover', e => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                const card = e.target.closest('.page-card');
+                if (!card || E.dragSrc < 0) return;
+                document.querySelectorAll('#pageGrid .page-card').forEach(c =>
+                    c.classList.remove('drag-over-top', 'drag-over-bottom'));
+                const t = +card.dataset.idx, s = E.dragSrc;
+                if (s !== t) card.classList.add(t > s ? 'drag-over-bottom' : 'drag-over-top');
+            });
+            grid.addEventListener('drop', e => {
+                e.preventDefault();
+                document.querySelectorAll('#pageGrid .page-card').forEach(c =>
+                    c.classList.remove('drag-over-top', 'drag-over-bottom'));
+                const card = e.target.closest('.page-card');
+                if (!card || E.dragSrc < 0) return;
+                const s = E.dragSrc, t = +card.dataset.idx;
+                if (s === t) return;
+                if (E.dragMulti) {
+                    const sel = E.pages.filter(p => p.sel);
+                    const rem = E.pages.filter(p => !p.sel);
+                    let ins = rem.indexOf(E.pages[t]);
+                    if (ins === -1) ins = t > s ? rem.length : 0;
+                    else if (t > s) ins++;
+                    rem.splice(ins, 0, ...sel);
+                    E.pages = rem;
+                } else {
+                    const m = E.pages.splice(s, 1)[0];
+                    E.pages.splice(t, 0, m);
+                }
+                renderThumbs(); updateSel();
+            });
+            document.addEventListener('dragend', () => {
+                document.querySelectorAll('#pageGrid .page-card').forEach(c =>
+                    c.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom'));
+                E.dragSrc = -1; E.dragMulti = false;
+            });
+        }
+        function showProg(v) { document.getElementById('prog').style.display = v ? 'block' : 'none'; }
+        function setProg(p, m) { document.getElementById('progTxt').textContent = m; document.getElementById('progFill').style.width = p + '%'; }
+        function alert2(t, b) { document.getElementById('modal-title').textContent = t; document.getElementById('modal-body').textContent = b; document.getElementById('modal').classList.add('show'); }
+        window.addEventListener('beforeunload', () => { if (E.blobUrl) URL.revokeObjectURL(E.blobUrl); });
+
+        // 일반적인 우클릭·소스보기 단축키 억제(브라우저 특성상 완전한 보안 수단은 아님)
+        document.addEventListener('contextmenu', e => { e.preventDefault(); showAlert('우클릭 금지'); setTimeout(closeAlert, 1000); });
+        document.addEventListener('keydown', e => {
+            if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) || (e.ctrlKey && e.keyCode === 85)) {
+                e.preventDefault(); showAlert('개발자 도구는 사용할 수 없습니다.'); return false;
+            }
+        });
+        document.addEventListener('selectstart', e => { if (e.target && e.target.closest && e.target.closest('#tab-ocr,input,textarea')) return; e.preventDefault(); return false; });
+        document.addEventListener('dragstart', e => { if (e.target && e.target.closest && e.target.closest('.page-card,#tab-ocr')) return; e.preventDefault(); return false; });
+        document.addEventListener('copy', e => { if (e.target && e.target.closest && e.target.closest('#tab-ocr,input,textarea')) return; e.preventDefault(); return false; });
+
+
+        // ===== OCR 문서변환 =====
+        const OCR = {
+            file: null, pdf: null, pages: [], result: null, masked: null,
+            apiAllowed: false, running: false, abortController: null, mode: 'local'
+        };
+        const GEMINI_REQUEST_TIMEOUT_MS = 60000;
+
+        const OCR_PAGE_SCHEMA = {
+            type: 'object',
+            properties: {
+                pages: {
+                    type: 'array', items: {
+                        type: 'object',
+                        properties: {
+                            pageNumber: { type: 'integer' },
+                            title: { type: 'string' },
+                            blocks: { type: 'array', items: { type: 'object', properties: { type: { type: 'string' }, heading: { type: 'string' }, text: { type: 'string' } }, required: ['type','heading','text'] } },
+                            tables: { type: 'array', items: { type: 'object', properties: { title: { type: 'string' }, headers: { type: 'array', items: { type: 'string' } }, rows: { type: 'array', items: { type: 'array', items: { type: 'string' } } } }, required: ['title','headers','rows'] } },
+                            keyNumbers: { type: 'array', items: { type: 'object', properties: { label: { type: 'string' }, value: { type: 'string' }, source: { type: 'string' } }, required: ['label','value','source'] } },
+                            reviewItems: { type: 'array', items: { type: 'string' } }
+                        }, required: ['pageNumber','title','blocks','tables','keyNumbers','reviewItems']
+                    }
+                }
+            }, required: ['pages']
+        };
+
+        const OCR_SUMMARY_SCHEMA = {
+            type: 'object',
+            properties: {
+                title: { type: 'string' }, summary: { type: 'string' },
+                keyPoints: { type: 'array', items: { type: 'string' } },
+                keyNumbers: { type: 'array', items: { type: 'object', properties: { label: { type: 'string' }, value: { type: 'string' }, source: { type: 'string' } }, required: ['label','value','source'] } },
+                reviewItems: { type: 'array', items: { type: 'string' } },
+                maskedTitle: { type: 'string' }, maskedSummary: { type: 'string' },
+                maskedKeyPoints: { type: 'array', items: { type: 'string' } }
+            }, required: ['title','summary','keyPoints','keyNumbers','reviewItems','maskedTitle','maskedSummary','maskedKeyPoints']
+        };
+
+        function requestOcrAccess() {
+            const currentKey = getActiveApiKey();
+            if (currentKey) {
+                OCR.apiAllowed = true; OCR.mode = 'gemini';
+                const isHardcoded = (typeof USER_GEMINI_API_KEY !== 'undefined' && USER_GEMINI_API_KEY.trim() !== "");
+                setOcrModeBadge(isHardcoded ? 'Gemini 2.5 Flash (코드 입력)' : 'Gemini 2.5 Flash (API Key)', false);
+                document.getElementById('ocr-run').disabled = !OCR.file;
+                return;
+            }
+            const modal = document.getElementById('ocr-access');
+            const keywordInput = document.getElementById('ocr-keyword');
+            const apiInput = document.getElementById('ocr-api-key');
+            keywordInput.value = '';
+            apiInput.value = '';
+            modal.classList.add('show');
+            setTimeout(() => apiInput.focus(), 40);
+        }
+
+        function confirmOcrAccess() {
+            const apiKey = document.getElementById('ocr-api-key').value.trim();
+            const keyword = document.getElementById('ocr-keyword').value.trim();
+            document.getElementById('ocr-access').classList.remove('show');
+            
+            if (apiKey) {
+                localStorage.setItem('gemini_api_key', apiKey);
+                OCR.apiAllowed = true; OCR.mode = 'gemini';
+                setOcrModeBadge('Gemini 2.5 Flash (API Key)', false);
+                document.getElementById('ocr-run').disabled = !OCR.file;
+            } else if (/^pdf$/i.test(keyword)) {
+                OCR.apiAllowed = true; OCR.mode = 'gemini';
+                setOcrModeBadge('Gemini 3.5 Flash (Proxy)', false);
+                document.getElementById('ocr-run').disabled = !OCR.file;
+            } else {
+                activateLocalOcr();
+            }
+        }
+
+        function denyOcrAccess() {
+            document.getElementById('ocr-access').classList.remove('show');
+            activateLocalOcr();
+        }
+
+        function activateLocalOcr() {
+            OCR.apiAllowed = false; OCR.mode = 'local';
+            const toast = document.getElementById('ocr-toast');
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setOcrModeBadge('무료 로컬 OCR', true);
+                document.getElementById('ocr-run').disabled = !OCR.file;
+            }, 3000);
+        }
+
+        function showOcrAccessModal() {
+            const modal = document.getElementById('ocr-access');
+            modal.classList.add('show');
+            const currentKey = getActiveApiKey();
+            if (currentKey) {
+                document.getElementById('ocr-api-key').value = currentKey;
+            }
+            const keyword = document.getElementById('ocr-keyword');
+            keyword.value = '';
+            setTimeout(() => document.getElementById('ocr-api-key').focus(), 40);
+        }
+
+        function setOcrModeBadge(text, local) {
+            const badge = document.getElementById('ocr-mode-badge');
+            badge.textContent = text;
+            badge.classList.toggle('local', !!local);
+        }
+
+        function formatBytes(bytes) {
+            if (!Number.isFinite(bytes)) return '-';
+            const units = ['B','KB','MB','GB']; let n = bytes, i = 0;
+            while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+            return `${n.toFixed(i ? 1 : 0)} ${units[i]}`;
+        }
+
+        async function selectOcrFile(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) {
+                alert2('파일 확인', 'PDF 파일만 선택할 수 있습니다.'); event.target.value = ''; return;
+            }
+            if (file.size > 60 * 1024 * 1024) {
+                alert2('파일 확인', '60MB를 초과한 PDF는 브라우저 메모리 보호를 위해 처리할 수 없습니다.'); event.target.value = ''; return;
+            }
+            resetOcr(false);
+            OCR.file = file;
+            OCR.apiAllowed = false; OCR.mode = 'pending';
+            const meta = document.getElementById('ocr-file-meta');
+            document.getElementById('ocr-file-name').textContent = file.name;
+            document.getElementById('ocr-file-info').textContent = formatBytes(file.size);
+            meta.classList.add('show');
+            setOcrModeBadge('키워드 확인 중', true);
+            document.getElementById('ocr-run').disabled = true;
+            requestOcrAccess();
+        }
+
+        function setOcrProgress(percent, text) {
+            const p = Math.max(0, Math.min(100, Math.round(percent)));
+            document.getElementById('ocr-progress').classList.add('show');
+            document.getElementById('ocr-progress-text').textContent = text;
+            document.getElementById('ocr-progress-percent').textContent = p + '%';
+            document.getElementById('ocr-progress-fill').style.width = p + '%';
+        }
+
+        function groupPdfText(items) {
+            const rows = new Map();
+            items.forEach(item => {
+                const y = Math.round((item.transform && item.transform[5] || 0) / 3) * 3;
+                if (!rows.has(y)) rows.set(y, []);
+                rows.get(y).push({ x: item.transform && item.transform[4] || 0, text: item.str || '' });
+            });
+            return [...rows.entries()].sort((a,b) => b[0] - a[0]).map(([,parts]) =>
+                parts.sort((a,b) => a.x - b.x).map(v => v.text).join(' ').replace(/\s+/g,' ').trim()
+            ).filter(Boolean).join('\n');
+        }
+
+        async function readOcrPdf(file) {
+            const bytes = await file.arrayBuffer();
+            const task = pdfjsLib.getDocument({ data: bytes });
+            const pdf = await task.promise; OCR.pdf = pdf;
+            const pages = [];
+            for (let i = 1; i <= pdf.numPages; i++) {
+                if (OCR.abortController.signal.aborted) throw new DOMException('중단됨','AbortError');
+                setOcrProgress(4 + (i / pdf.numPages) * 26, `PDF 원문 확인 중 (${i}/${pdf.numPages})`);
+                const page = await pdf.getPage(i);
+                const tc = await page.getTextContent();
+                const text = groupPdfText(tc.items);
+                const compactLength = text.replace(/\s/g,'').length;
+                const record = { pageNumber:i, source:compactLength >= 40 ? 'text' : 'image', text, image:null, confidence:null, blocks:[], tables:[], keyNumbers:[], reviewItems:[] };
+                if (record.source === 'image') {
+                    const viewport = page.getViewport({ scale:2 });
+                    const canvas = document.createElement('canvas');
+                    canvas.width = Math.ceil(viewport.width); canvas.height = Math.ceil(viewport.height);
+                    const ctx = canvas.getContext('2d', { alpha:false });
+                    ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+                    await page.render({ canvasContext:ctx, viewport }).promise;
+                    record.image = canvas.toDataURL('image/jpeg', .9);
+                }
+                pages.push(record);
+            }
+            return pages;
+        }
+
+        function dataUrlPart(dataUrl) {
+            const m = /^data:([^;]+);base64,(.+)$/.exec(dataUrl || '');
+            if (!m) throw new Error('페이지 이미지 변환에 실패했습니다.');
+            return { inlineData:{ mimeType:m[1], data:m[2] } };
+        }
+
+        const GEMINI_WORKER_URL = 'https://proud-shadow-12b7.doyaa.workers.dev/';
+
+        async function callGemini(parts, prompt, schema) {
+            const apiKey = getActiveApiKey();
+            let url = GEMINI_WORKER_URL;
+            let headers = { 'Content-Type': 'application/json' };
+            
+            if (apiKey) {
+                url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+            }
+
+            const requestController = new AbortController();
+            let timedOut = false;
+            const stopForUser = () => requestController.abort(OCR.abortController.signal.reason || new DOMException('중단됨','AbortError'));
+            if (OCR.abortController.signal.aborted) stopForUser();
+            else OCR.abortController.signal.addEventListener('abort', stopForUser, { once:true });
+            const timeoutId = setTimeout(() => { timedOut = true; requestController.abort(); }, GEMINI_REQUEST_TIMEOUT_MS);
+            let response;
+            try {
+                response = await fetch(url, {
+                    method:'POST', signal:requestController.signal,
+                    headers: headers,
+                    body:JSON.stringify({
+                        contents:[{ role:'user', parts:[{text:prompt}, ...parts] }],
+                        generationConfig:{ responseMimeType:'application/json', responseSchema:schema, temperature:.1, maxOutputTokens:32768 }
+                    })
+                });
+            } catch (err) {
+                if (apiKey && !timedOut) {
+                    try {
+                        const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                        response = await fetch(fallbackUrl, {
+                            method:'POST', signal:requestController.signal,
+                            headers: headers,
+                            body:JSON.stringify({
+                                contents:[{ role:'user', parts:[{text:prompt}, ...parts] }],
+                                generationConfig:{ responseMimeType:'application/json', responseSchema:schema, temperature:.1, maxOutputTokens:32768 }
+                            })
+                        });
+                    } catch (fallbackErr) {
+                        throw fallbackErr;
+                    }
+                } else {
+                    if (timedOut) throw new Error('Gemini 응답 제한시간(60초)을 초과했습니다.');
+                    throw err;
+                }
+            } finally {
+                clearTimeout(timeoutId);
+                OCR.abortController.signal.removeEventListener('abort', stopForUser);
+            }
+            let payload = null; try { payload = await response.json(); } catch (_) {}
+            if (!response.ok) {
+                const code = response.status === 429 ? 'API 사용량 한도를 초과했습니다.' : (response.status === 400 || response.status === 403) ? 'API 키 권한이 없거나 요청 형식이 잘못되었습니다.' : 'Gemini API 요청에 실패했습니다.';
+                throw new Error(code + (payload && payload.error && payload.error.message ? ' ' + payload.error.message.replace(/[?&]key=[^&\s]+/gi,'') : ''));
+            }
+            const text = payload && payload.candidates && payload.candidates[0] && payload.candidates[0].content && payload.candidates[0].content.parts && payload.candidates[0].content.parts.map(p => p.text || '').join('');
+            if (!text) throw new Error('Gemini 응답에 변환 결과가 없습니다.');
+            try { return JSON.parse(text); } catch (_) { throw new Error('Gemini 구조화 응답을 해석하지 못했습니다. 다시 시도하세요.'); }
+        }
+
+        async function processGeminiPages(pages) {
+            const output = [];
+            for (let start = 0; start < pages.length; start += 4) {
+                const batch = pages.slice(start,start + 4), parts = [];
+                batch.forEach(page => {
+                    parts.push({ text:`\n--- PAGE ${page.pageNumber} (${page.source === 'text' ? 'PDF TEXT' : 'SCANNED IMAGE'}) ---\n` });
+                    if (page.source === 'text') parts.push({ text:page.text.slice(0,120000) });
+                    else parts.push(dataUrlPart(page.image));
+                });
+                setOcrProgress(34 + ((start + batch.length) / pages.length) * 38, `Gemini OCR·문서구조 분석 중 (${Math.min(start + batch.length,pages.length)}/${pages.length})`);
+                const prompt = `당신은 한국어 회계·감리 문서 OCR 전문가입니다. 첨부된 각 페이지를 원문 순서대로 정확히 전사하고 문단과 표를 구조화하세요. 숫자, 날짜, 금액, 회사명, 개인 성명을 임의 수정하거나 요약하지 마세요. 판독이 불확실한 문자·숫자는 추측하지 말고 reviewItems에 페이지와 원문 위치를 적으세요. PDF TEXT 페이지는 제공된 텍스트를 원문으로 우선 사용하세요. 수식은 Excel 및 Word에서 깨지지 않고 잘 표현될 수 있는 형태의 표준 수학 기호와 텍스트 또는 표준 LaTeX 표기식 형태로 정밀하게 전사하세요. 반드시 지정된 JSON 스키마만 반환하세요.`;
+                const parsed = await callGemini(parts,prompt,OCR_PAGE_SCHEMA);
+                (parsed.pages || []).forEach(p => output.push(p));
+            }
+            return output.sort((a,b) => a.pageNumber - b.pageNumber);
+        }
+
+        function extractKeyNumbers(text, pageNumber) {
+            const matches = (text || '').match(/(?:\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)(?:원|천원|백만원|억원|%|년|월|일|건|명)?/g) || [];
+            return [...new Set(matches)].slice(0,30).map(v => ({ label:'주요 수치', value:v, source:`p.${pageNumber}` }));
+        }
+
+        function makeLocalPage(page) {
+            const text = (page.text || '').trim();
+            return {
+                pageNumber:page.pageNumber,
+                title:(text.split(/\n/).find(v => v.trim().length > 2) || `페이지 ${page.pageNumber}`).slice(0,100),
+                blocks:[{ type:'paragraph', heading:'', text:text || '[판독된 텍스트 없음]' }],
+                tables:[], keyNumbers:extractKeyNumbers(text,page.pageNumber),
+                reviewItems:page.confidence !== null && page.confidence < 80 ? [`p.${page.pageNumber} OCR 평균 신뢰도 ${Math.round(page.confidence)}% — 원본 대조 필요`] : []
+            };
+        }
+
+        async function processLocalPages(pages) {
+            let worker = null;
+            const scanPages = pages.filter(p => p.source === 'image');
+            if (scanPages.length) {
+                if (!window.Tesseract) throw new Error('로컬 OCR 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하세요.');
+                worker = await Tesseract.createWorker('kor+eng', 1, { logger:m => {
+                    if (m.status === 'recognizing text') {
+                        const base = pages.findIndex(p => p === OCR._activeLocalPage);
+                        setOcrProgress(38 + ((Math.max(base,0) + (m.progress || 0)) / pages.length) * 42, `무료 로컬 OCR 판독 중 (${Math.max(base + 1,1)}/${pages.length})`);
+                    }
+                }});
+            }
+            try {
+                for (let i = 0; i < pages.length; i++) {
+                    if (OCR.abortController.signal.aborted) throw new DOMException('중단됨','AbortError');
+                    const page = pages[i]; OCR._activeLocalPage = page;
+                    if (page.source === 'image') {
+                        setOcrProgress(38 + (i/pages.length)*42, `무료 로컬 OCR 판독 중 (${i+1}/${pages.length})`);
+                        const result = await worker.recognize(page.image);
+                        page.text = result.data.text || ''; page.confidence = result.data.confidence;
+                    }
+                    page.blocks = makeLocalPage(page).blocks;
+                    page.tables = []; page.keyNumbers = extractKeyNumbers(page.text,page.pageNumber);
+                    page.reviewItems = makeLocalPage(page).reviewItems;
+                }
+            } finally { if (worker) await worker.terminate(); OCR._activeLocalPage = null; }
+            return pages.map(makeLocalPage);
+        }
+
+        function buildLocalSummary(pages) {
+            const lines = pages.flatMap(p => (p.blocks || []).flatMap(b => (b.text || '').split(/\n/))).map(v => v.trim()).filter(v => v.length >= 8);
+            const keyPoints = [...new Set(lines)].slice(0,10);
+            const numbers = pages.flatMap(p => p.keyNumbers || []).slice(0,40);
+            const reviews = pages.flatMap(p => p.reviewItems || []);
+            return {
+                title:OCR.file ? OCR.file.name.replace(/\.pdf$/i,'') : 'OCR 변환 문서',
+                summary:keyPoints.slice(0,5).join('\n') || '추출된 핵심 문장을 확인하지 못했습니다.',
+                keyPoints, keyNumbers:numbers, reviewItems:reviews,
+                maskedTitle:'OOO 문서 핵심사항', maskedSummary:maskPersonalInfo(keyPoints.slice(0,5).join('\n') || '추출된 핵심 문장을 확인하지 못했습니다.'),
+                maskedKeyPoints:keyPoints.map(maskPersonalInfo)
+            };
+        }
+
+        async function buildGeminiSummary(pages) {
+            setOcrProgress(78,'핵심사항과 개인정보 마스킹 요약 생성 중');
+            const compact = pages.map(p => ({ pageNumber:p.pageNumber,title:p.title,blocks:p.blocks,tables:p.tables,keyNumbers:p.keyNumbers,reviewItems:p.reviewItems }));
+            const prompt = `다음 한국어 문서 OCR 결과를 바탕으로 1~2페이지 분량의 핵심사항을 작성하세요. title, summary, keyPoints, keyNumbers, reviewItems는 회사명과 개인 성명을 원문 그대로 유지하여 Word·Excel용으로 만드세요. maskedTitle, maskedSummary, maskedKeyPoints는 화면 공개용이며 모든 회사명과 개인 성명을 반드시 OOO로 치환하세요. 숫자·날짜·금액은 원문과 동일하게 유지하고 추정하지 마세요. reviewItems에는 OCR 불확실성과 숫자 충돌을 적으세요. 지정된 JSON 스키마만 반환하세요.\n\nOCR_DATA:\n${JSON.stringify(compact)}`;
+            const result = await callGemini([],prompt,OCR_SUMMARY_SCHEMA);
+            result.maskedTitle = maskPersonalInfo(result.maskedTitle || result.title);
+            result.maskedSummary = maskPersonalInfo(result.maskedSummary || result.summary);
+            result.maskedKeyPoints = (result.maskedKeyPoints || result.keyPoints || []).map(maskPersonalInfo);
+            return result;
+        }
+
+        function maskPersonalInfo(value) {
+            return String(value || '')
+                .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,'OOO')
+                .replace(/\b\d{6}-?[1-4]\d{6}\b/g,'OOO')
+                .replace(/\b01[016789]-?\d{3,4}-?\d{4}\b/g,'OOO')
+                .replace(/\b\d{2,3}-\d{3,4}-\d{4}\b/g,'OOO')
+                .replace(/((?:성명|이름|대표자|담당자|신청인|피감사인)\s*[:：]?\s*)[가-힣]{2,4}/g,'$1OOO')
+                .replace(/(?:주식회사\s*)?[가-힣A-Za-z0-9]{2,24}(?:주식회사|㈜|유한회사|회계법인|법무법인)/g,'OOO');
+        }
+
+        async function runOcrConversion() {
+            if (!OCR.file || OCR.running) return;
+            OCR.running = true; OCR.result = null; OCR.masked = null;
+            OCR.abortController = new AbortController();
+            document.getElementById('ocr-run').disabled = true;
+            document.getElementById('ocr-cancel').disabled = false;
+            document.getElementById('ocr-result').classList.remove('show');
+            try {
+                setOcrProgress(2,'PDF를 준비하고 있습니다');
+                OCR.pages = await readOcrPdf(OCR.file);
+                let structured, apiFallbackMessage = '';
+                const apiKey = getActiveApiKey();
+                const canUseApi = !!apiKey || OCR.apiAllowed;
+
+                if (canUseApi) {
+                    try {
+                        structured = await processGeminiPages(OCR.pages);
+                        OCR.result = await buildGeminiSummary(structured);
+                        OCR.pages = structured;
+                        OCR.mode = 'gemini';
+                    } catch (apiErr) {
+                        if (OCR.abortController.signal.aborted) throw new DOMException('중단됨','AbortError');
+                        apiFallbackMessage = apiErr && apiErr.message ? apiErr.message : 'Gemini API가 응답하지 않았습니다.';
+                        setOcrProgress(35,'Gemini 연결 실패 · 로컬 OCR로 전환 중');
+                        setOcrModeBadge('Gemini 실패 · 무료 로컬 OCR', true);
+                        structured = await processLocalPages(OCR.pages);
+                        OCR.pages = structured;
+                        OCR.result = buildLocalSummary(structured);
+                        OCR.result.reviewItems = [`Gemini API 자동 전환: ${apiFallbackMessage}`, ...(OCR.result.reviewItems || [])];
+                        OCR.mode = 'local';
+                    }
+                } else {
+                    structured = await processLocalPages(OCR.pages);
+                    OCR.pages = structured;
+                    OCR.result = buildLocalSummary(structured);
+                    OCR.mode = 'local';
+                }
+                OCR.masked = { title:OCR.result.maskedTitle, summary:OCR.result.maskedSummary, keyPoints:OCR.result.maskedKeyPoints || [] };
+                setOcrProgress(100,'변환이 완료되었습니다');
+                renderOcrResult();
+                if (apiFallbackMessage) setTimeout(() => alert2('Gemini API 자동 전환', `${apiFallbackMessage}\n\n무료 로컬 OCR로 변환을 완료했습니다.`), 0);
+            } catch (err) {
+                if (err && err.name === 'AbortError') alert2('처리 중단','OCR 문서변환을 중단했습니다.');
+                else alert2('OCR 변환 오류',err && err.message ? err.message : '알 수 없는 오류가 발생했습니다.');
+            } finally {
+                OCR.running = false;
+                document.getElementById('ocr-run').disabled = !OCR.file;
+                document.getElementById('ocr-cancel').disabled = true;
+            }
+        }
+
+        function cancelOcrConversion() {
+            if (OCR.abortController) OCR.abortController.abort();
+        }
+
+        function resetOcr(clearInput = true) {
+            if (OCR.running && OCR.abortController) OCR.abortController.abort();
+            OCR.file = null; OCR.pdf = null; OCR.pages = []; OCR.result = null; OCR.masked = null; OCR.running = false;
+            if (clearInput) document.getElementById('ocr-file').value = '';
+            document.getElementById('ocr-file-meta').classList.remove('show');
+            document.getElementById('ocr-progress').classList.remove('show');
+            document.getElementById('ocr-result').classList.remove('show');
+            document.getElementById('ocr-run').disabled = true;
+            document.getElementById('ocr-cancel').disabled = true;
+            if (clearInput) { OCR.apiAllowed = false; OCR.mode = 'pending'; setOcrModeBadge('파일 선택 후 결정', true); }
+        }
+
+        function appendText(parent,tag,text,className) {
+            const el = document.createElement(tag); if (className) el.className = className; el.textContent = text; parent.appendChild(el); return el;
+        }
+
+        function renderOcrResult() {
+            const box = document.getElementById('ocr-summary'); box.innerHTML = '';
+            appendText(box,'h2',OCR.masked.title || '핵심사항');
+            appendText(box,'p',OCR.masked.summary || '요약 내용이 없습니다.');
+            if (OCR.masked.keyPoints && OCR.masked.keyPoints.length) {
+                appendText(box,'h3','주요 사항'); const ul = document.createElement('ul');
+                OCR.masked.keyPoints.forEach(v => appendText(ul,'li',v)); box.appendChild(ul);
+            }
+            if (OCR.result.keyNumbers && OCR.result.keyNumbers.length) {
+                appendText(box,'h3','주요 수치'); const ul = document.createElement('ul');
+                OCR.result.keyNumbers.slice(0,20).forEach(v => appendText(ul,'li',maskPersonalInfo(`${v.label}: ${v.value} (${v.source})`))); box.appendChild(ul);
+            }
+            const reviews = OCR.result.reviewItems || [];
+            const reviewList = document.getElementById('ocr-review-list'); reviewList.innerHTML = '';
+            (reviews.length ? reviews.slice(0,12) : ['없음']).forEach(v => appendText(reviewList,'li',maskPersonalInfo(v)));
+            document.getElementById('ocr-page-count').textContent = `${OCR.pages.length}쪽`;
+            document.getElementById('ocr-result-mode').textContent = OCR.mode === 'gemini' ? 'Gemini 3.5 Flash' : '무료 로컬 OCR';
+            document.getElementById('ocr-result').classList.add('show');
+            document.getElementById('ocr-result').scrollIntoView({ behavior:'smooth', block:'start' });
+        }
+
+        function buildMaskedSummaryText() {
+            if (!OCR.masked) return '';
+            const lines = [OCR.masked.title,'',OCR.masked.summary,'','[주요 사항]',...(OCR.masked.keyPoints || []).map(v => '• ' + v)];
+            if (OCR.result && OCR.result.keyNumbers && OCR.result.keyNumbers.length) lines.push('','[주요 수치]',...OCR.result.keyNumbers.map(v => `• ${maskPersonalInfo(v.label)}: ${v.value} (${v.source})`));
+            return lines.join('\n');
+        }
+
+        async function copyOcrSummary() {
+            const text = buildMaskedSummaryText(); if (!text) return;
+            try { await navigator.clipboard.writeText(text); }
+            catch (_) {
+                const ta = document.createElement('textarea'); ta.value = text; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+            }
+            const btn = document.getElementById('ocr-copy'), old = btn.textContent; btn.textContent='복사 완료'; setTimeout(() => btn.textContent=old,1400);
+        }
+
+        function safeFileBase() {
+            return (OCR.file ? OCR.file.name.replace(/\.pdf$/i,'') : 'OCR_문서').replace(/[\\/:*?"<>|]/g,'_');
+        }
+
+        function downloadBlob(blob,name) {
+            const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download=name; a.click(); setTimeout(() => URL.revokeObjectURL(url),2000);
+        }
+
+        async function downloadOcrWord() {
+            if (!OCR.result || !window.docx) { alert2('Word 다운로드','Word 생성 라이브러리 또는 변환 결과를 확인하세요.'); return; }
+            const { Document,Paragraph,TextRun,HeadingLevel,Table,TableRow,TableCell,Packer,WidthType,PageBreak } = window.docx;
+            
+            // 고급스러운 스타일을 가진 TableCell 생성 헬퍼
+            function createWordCell(text, isHeader = false) {
+                return new TableCell({
+                    children: [new Paragraph({
+                        spacing: { before: 80, after: 80 },
+                        children: [new TextRun({
+                            text: String(text !== undefined && text !== null ? text : ''),
+                            bold: isHeader,
+                            color: isHeader ? '0F6F78' : '333333',
+                            size: 18
+                        })]
+                    })],
+                    margins: {
+                        top: 120,
+                        bottom: 120,
+                        left: 140,
+                        right: 140
+                    },
+                    shading: isHeader ? { fill: 'F0F6F5' } : undefined,
+                    borders: {
+                        top: { style: "single", size: 4, color: "E2E8F0" },
+                        bottom: { style: "single", size: 4, color: "E2E8F0" },
+                        left: { style: "single", size: 4, color: "E2E8F0" },
+                        right: { style: "single", size: 4, color: "E2E8F0" }
+                    }
+                });
+            }
+
+            const children = [];
+            children.push(new Paragraph({ heading:HeadingLevel.TITLE, children:[new TextRun({text:OCR.result.title || safeFileBase(),bold:true,color:'0F6F78',size:32})] }));
+            children.push(new Paragraph({ spacing: { before: 200, after: 120 }, children:[new TextRun({text:'핵심사항 요약',bold:true,color:'167EA5',size:26})] }));
+            String(OCR.result.summary || '').split(/\n+/).filter(Boolean).forEach(t => children.push(new Paragraph({ spacing:{after:120}, children:[new TextRun({text:t,size:20})] })));
+            (OCR.result.keyPoints || []).forEach(t => children.push(new Paragraph({ bullet:{level:0}, children:[new TextRun({text:t,size:20})] })));
+            
+            if (OCR.result.keyNumbers && OCR.result.keyNumbers.length) {
+                children.push(new Paragraph({ heading:HeadingLevel.HEADING_2, spacing: { before: 240, after: 120 }, children:[new TextRun({text:'주요 수치',bold:true,color:'167EA5',size:24})] }));
+                const rows = [new TableRow({children:['항목','값','출처'].map(v => createWordCell(v, true))})];
+                OCR.result.keyNumbers.forEach(v => rows.push(new TableRow({children:[v.label,v.value,v.source].map(x => createWordCell(x, false))})));
+                children.push(new Table({width:{size:100,type:WidthType.PERCENTAGE},rows}));
+            }
+            
+            children.push(new Paragraph({ children:[new PageBreak()] }));
+            children.push(new Paragraph({ heading:HeadingLevel.HEADING_1, spacing: { before: 240, after: 120 }, children:[new TextRun({text:'전체 OCR 원문',bold:true,color:'0F6F78',size:28})] }));
+            
+            OCR.pages.forEach(page => {
+                children.push(new Paragraph({ heading:HeadingLevel.HEADING_2, spacing: { before: 200, after: 80 }, children:[new TextRun({text:`페이지 ${page.pageNumber}${page.title ? ' · '+page.title : ''}`,bold:true,color:'167EA5',size:24})] }));
+                (page.blocks || []).forEach(block => {
+                    if (block.heading) children.push(new Paragraph({ spacing: { before: 120, after: 60 }, children:[new TextRun({text:block.heading,bold:true,color:'167EA5',size:22})] }));
+                    String(block.text || '').split(/\n+/).filter(Boolean).forEach(t => children.push(new Paragraph({ spacing:{after:80}, children:[new TextRun({text:t,size:20})] })));
+                });
+                (page.tables || []).forEach(tbl => {
+                    if (tbl.title) children.push(new Paragraph({ spacing: { before: 140, after: 60 }, children:[new TextRun({text:tbl.title,bold:true,color:'0F6F78',size:22})] }));
+                    const allRows = [];
+                    if (tbl.headers && tbl.headers.length) allRows.push(new TableRow({children:tbl.headers.map(v => createWordCell(v, true))}));
+                    (tbl.rows || []).forEach(row => allRows.push(new TableRow({children:row.map(v => createWordCell(v, false))})));
+                    if (allRows.length) children.push(new Table({width:{size:100,type:WidthType.PERCENTAGE},rows:allRows}));
+                });
+            });
+            
+            const doc = new Document({ styles:{default:{document:{run:{font:'맑은 고딕',size:20},paragraph:{spacing:{line:276}}}}}, sections:[{properties:{},children}] });
+            const blob = await Packer.toBlob(doc); downloadBlob(blob,`${safeFileBase()}_OCR.docx`);
+        }
+
+        function fitSheet(ws, defaultWidths) {
+            // 셀 내용에 맞춰 열 너비를 동적으로 자동 조절 (한글 보정 적용)
+            const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:A1');
+            const cols = [];
+            for (let c = range.s.c; c <= range.e.c; c++) {
+                let maxLen = 10;
+                for (let r = range.s.r; r <= range.e.r; r++) {
+                    const cellAddress = XLSX.utils.encode_cell({r, c});
+                    const cell = ws[cellAddress];
+                    if (cell && cell.v !== undefined && cell.v !== null) {
+                        const valStr = String(cell.v);
+                        let len = 0;
+                        for (let i = 0; i < valStr.length; i++) {
+                            len += valStr.charCodeAt(i) > 128 ? 2 : 1;
+                        }
+                        if (len > maxLen) maxLen = len;
+                    }
+                }
+                cols.push({ wch: Math.min(maxLen + 3, 50) });
+            }
+            ws['!cols'] = cols;
+            
+            // 기본 스타일 속성 지정
+            Object.keys(ws).filter(k => !k.startsWith('!')).forEach(k => {
+                if (!ws[k].s) ws[k].s = {};
+                ws[k].s.alignment = { vertical: 'top', wrapText: true };
+                ws[k].s.font = { name: '맑은 고딕', sz: 10 };
+            });
+        }
+
+        function downloadOcrExcel() {
+            if (!OCR.result || !window.XLSX) { alert2('Excel 다운로드','Excel 생성 라이브러리 또는 변환 결과를 확인하세요.'); return; }
+            const wb = XLSX.utils.book_new();
+            
+            // 금액이나 수치 데이터를 실제 숫자로 파싱하여 계산이 가능하도록 함
+            function parseNumeric(val) {
+                if (val === null || val === undefined) return '';
+                const str = String(val).trim();
+                const clean = str.replace(/,/g, '');
+                if (clean !== '' && !isNaN(clean)) {
+                    return parseFloat(clean);
+                }
+                return str;
+            }
+
+            const summaryRows = [
+                ['OCR 문서 핵심사항'],
+                ['제목', OCR.result.title],
+                ['요약', OCR.result.summary],
+                [],
+                ['주요 사항'],
+                ...(OCR.result.keyPoints || []).map((v,i) => [i+1, v]),
+                [],
+                ['주요 수치', '값', '출처'],
+                ...(OCR.result.keyNumbers || []).map(v => [v.label, parseNumeric(v.value), v.source]),
+                [],
+                ['검토 필요'],
+                ...(OCR.result.reviewItems || []).map((v,i) => [i+1, v])
+            ];
+            
+            const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+            fitSheet(wsSummary);
+            XLSX.utils.book_append_sheet(wb, wsSummary, '핵심요약');
+            
+            const originalRows = [['페이지', '구분', '문단 제목', '원문']];
+            OCR.pages.forEach(p => (p.blocks || []).forEach(b => originalRows.push([p.pageNumber, b.type || 'paragraph', b.heading || '', b.text || ''])));
+            const wsOriginal = XLSX.utils.aoa_to_sheet(originalRows);
+            fitSheet(wsOriginal);
+            XLSX.utils.book_append_sheet(wb, wsOriginal, '전체원문');
+            
+            let tableNo = 1;
+            OCR.pages.forEach(p => (p.tables || []).forEach(tbl => {
+                const rows = [];
+                rows.push([tbl.title || `페이지 ${p.pageNumber} 표 ${tableNo}`]);
+                if (tbl.headers && tbl.headers.length) {
+                    rows.push(tbl.headers.map(h => String(h || '')));
+                }
+                (tbl.rows || []).forEach(row => {
+                    rows.push(row.map(cell => parseNumeric(cell)));
+                });
+                
+                const ws = XLSX.utils.aoa_to_sheet(rows);
+                fitSheet(ws);
+                XLSX.utils.book_append_sheet(wb, ws, (`p${p.pageNumber}_표${tableNo++}`).slice(0, 31));
+            }));
+            
+            XLSX.writeFile(wb, `${safeFileBase()}_OCR.xlsx`);
+        }
+
+        // OCR 파일 드래그 앤 드롭
+        const ocrDrop = document.getElementById('ocr-drop');
+        ocrDrop.addEventListener('dragover',e => { e.preventDefault(); ocrDrop.classList.add('dragover'); });
+        ocrDrop.addEventListener('dragleave',() => ocrDrop.classList.remove('dragover'));
+        ocrDrop.addEventListener('drop',e => {
+            e.preventDefault(); ocrDrop.classList.remove('dragover');
+            const file = [...e.dataTransfer.files].find(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+            if (file) selectOcrFile({target:{files:[file],value:''}});
+        });
+
+        // 첫 화면은 OCR 문서변환
+        switchTab('ocr');
+    </script>
+</body>
+
+</html>
