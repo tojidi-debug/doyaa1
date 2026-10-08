@@ -352,6 +352,10 @@ function showReconView(opts = {}) {
   if (!opts.keep) d.scrollIntoView({ block: 'start' });
 }
 async function reconDownload(url, body) {
+  if (STATIC) {   /* 정적 사이트: 같은 엑셀을 브라우저(Pyodide)에서 만든다 */
+    const { blob, name } = await API.staticDownload(url, body);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove(); return;
+  }
   const res = await fetch(url, body ? { method: 'POST', body, credentials: 'same-origin' } : { credentials: 'same-origin' });
   if (!res.ok) { let dd = null; try { dd = (await res.json()).detail; } catch { /* */ } throw new Error(typeof dd === 'string' ? dd : `내려받지 못했습니다(${res.status})`); }
   const blob = await res.blob(); const cd = res.headers.get('Content-Disposition') || ''; const m = /filename\*=UTF-8''([^;]+)/.exec(cd);

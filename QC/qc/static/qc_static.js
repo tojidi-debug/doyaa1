@@ -1,6 +1,7 @@
 /* GitHub(정적) 사이트용 — 서버 대신 브라우저에서 파이썬(Pyodide)을 돌린다(2026-10-08).
  *   평가표 엑셀: py/qc_eval.py(= backend/src/gumiho/services/qc_eval.py) + openpyxl
  *   사업보고서 해석: py/qc_firm.py(= dart_firm.py 의 순수 함수) + lxml — 원문은 전자공시 중계(relay/Code.gs)가 받아 온다
+ *   외감회사대사: py/qc_audited.py(= services/qc_audited.py) + openpyxl — 공시통합검색 결과는 중계가 받아 온다
  * 처음 한 번 엔진(약 10MB)을 받는다. */
 (function (root) {
   const PYODIDE = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/';
@@ -20,8 +21,10 @@
     try { return await mods[name]; } catch (e) { delete mods[name]; throw e; }
   }
   const pyMessage = (e) => { const m = String((e && e.message) || e); const last = m.trim().split('\n').pop(); return last.replace(/^\w*(Error|Exception):\s*/, '') || m; };
+  const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  const withXlsx = async (p) => { await p.loadPackage('micropip'); await p.runPythonAsync('import micropip\nawait micropip.install("openpyxl")'); };
   async function evalXlsx(body) {
-    const p = await mod('qc_eval', async (p) => { await p.loadPackage('micropip'); await p.runPythonAsync('import micropip\nawait micropip.install("openpyxl")'); });
+    const p = await mod('qc_eval', withXlsx);
     p.globals.set('QC_BODY', JSON.stringify(body));
     const out = await p.runPythonAsync('import json, qc_eval\nqc_eval.build_xlsx(json.loads(QC_BODY))');
     const bytes = out.toJs(); if (out.destroy) out.destroy();
@@ -34,5 +37,16 @@
     catch (e) { throw new Error(pyMessage(e)); }
     finally { p.globals.delete('QC_ZIP'); }
   }
-  root.QcStatic = { evalXlsx, parseFirm, py };
+  /* 외감회사대사: qc_audited.web_*(인자 목록) — 글(JSON)은 그대로, bytes 는 엑셀 Blob 으로 */
+  async function audited(fn, args) {
+    const p = await mod('qc_audited', withXlsx);
+    p.globals.set('QC_ARGS', JSON.stringify(args));
+    try {
+      const out = await p.runPythonAsync(`import json, qc_audited\nqc_audited.${fn}(*json.loads(QC_ARGS))`);
+      if (typeof out === 'string') return out;
+      const bytes = out.toJs(); if (out.destroy) out.destroy(); return new Blob([bytes], { type: XLSX });
+    } catch (e) { throw new Error(pyMessage(e)); }
+    finally { p.globals.delete('QC_ARGS'); }
+  }
+  root.QcStatic = { evalXlsx, parseFirm, audited, py };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

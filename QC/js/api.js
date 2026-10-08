@@ -4,7 +4,9 @@
  * 전자공시(2026-10-08 추가): window.QC_RELAY(구글 Apps Script 중계, relay/Code.gs)가 있으면
  *   보고서 목록(list.json)·사업보고서 원문(document.xml)·기업개황(company.json)을 중계로 받고,
  *   원문 해석은 서버와 같은 파이썬(py/qc_firm.py = dart_firm.py 의 순수 함수)을 브라우저(Pyodide)에서 돌린다.
- * 안 되는 것: 외감회사대사·외부감사보고서 수·사업보고서 PDF 내려받기(→ 전자공시 화면으로 연다)·심의안 PDF 미리보기.
+ *   외감회사대사·외부감사보고서 수: 공시통합검색(dsab007)을 중계가 받고, 대사·엑셀은 py/qc_audited.py(= services/qc_audited.py)를 Pyodide 로.
+ *   심의안 미리보기: qc/static/hwp_preview.js(rhwp WebAssembly).
+ * 안 되는 것: 사업보고서 PDF 내려받기(→ 전자공시 화면을 새 창으로 연다).
  */
 export class ApiError extends Error {
   constructor(status, message, data) { super(message); this.name = 'ApiError'; this.status = status; this.data = data; }
@@ -85,6 +87,39 @@ async function firmProfile(no, corp) {
   return result;
 }
 
+/* ── 외감회사대사(서버 /qc/audited · /qc/audited.xlsx · /qc/reconcile 와 같은 결과) ── */
+const PAGES = new Map();   /* 같은 제출인·기간의 검색은 한 번만 */
+function dsabPages(filer, s, e) {
+  const k = `${filer}|${s}|${e}`;
+  if (!PAGES.has(k)) { const p = relay({ op: 'dsab', filer, start: s.replace(/-/g, ''), end: e.replace(/-/g, '') }).then(d => d.pages || []); PAGES.set(k, p); p.catch(() => PAGES.delete(k)); }
+  return PAGES.get(k);
+}
+async function auditCtx(get) {
+  if (!hasRelay()) throw only('전자공시 감사보고서 검색(외감회사대사)');
+  const filer = String(get('filer') || '').replace(/\s+/g, ''); if (filer.length < 2) throw new ApiError(422, '제출인명(회계법인명)이 비었습니다.');
+  let s, e; try { [s, e] = JSON.parse(await window.QcStatic.audited('web_period', [get('start') || '', get('end') || ''])); } catch (x) { throw new ApiError(422, why(x)); }
+  const pages = JSON.stringify(await dsabPages(filer, s, e));
+  return { filer, s, e, pages, mx: get('max_period') || '', mn: get('min_period') || '' };
+}
+const pyCall = async (fn, args) => { try { return await window.QcStatic.audited(fn, args); } catch (x) { throw new ApiError(422, why(x)); } };
+async function b64of(file) { const u = new Uint8Array(await file.arrayBuffer()); let out = ''; for (let i = 0; i < u.length; i += 0x8000) out += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(out); }
+async function reconcileCall(fd, asXlsx) {
+  const c = await auditCtx((k) => fd.get(k)); const f = fd.get('file');
+  return { c, out: await pyCall('web_reconcile', [c.pages, await b64of(f), f.name || '', c.filer, +(fd.get('year') || 0), c.s, c.e, c.mx, c.mn, asXlsx, fd.get('aliases') || '']) };
+}
+/** qc.js reconDownload 의 정적 사이트판: 서버 주소 대신 브라우저에서 엑셀을 만든다 → { blob, name } */
+export async function staticDownload(url, body) {
+  if (url.includes('/qc/audited.xlsx')) {
+    const q = new URLSearchParams(url.split('?')[1] || ''); const c = await auditCtx((k) => q.get(k));
+    return { blob: await pyCall('web_audited_xlsx', [c.pages, c.filer, c.s, c.e, c.mx, c.mn]), name: `외감대상회사_${c.filer}_${c.e.slice(2).replace(/-/g, '')}.xlsx` };
+  }
+  if (url.includes('/qc/reconcile')) {
+    const { c, out } = await reconcileCall(body, true); const y = +(body.get('year') || 0);
+    return { blob: out, name: `외감회사대사_${c.filer}_${y === -1 ? '전체' : (y || '')}.xlsx` };
+  }
+  throw only(url);
+}
+
 export const api = {
   async get(path) {
     if (path.startsWith('/qc/templates')) return { templates: [], active_id: null, builtin: 'qc/templates/심의안.hwpx' };
@@ -102,14 +137,20 @@ export const api = {
       const m = /^\/qc\/reports\/(\d{14})\/profile\?corp_code=(\d{8})/.exec(path); if (!m) throw only(path);
       return firmProfile(m[1], m[2]);
     }
-    if (path.startsWith('/qc/audited')) throw only('전자공시 감사보고서 검색(외감회사대사)');
+    if (path.startsWith('/qc/audited?')) {
+      const q = new URLSearchParams(path.split('?')[1]); const c = await auditCtx((k) => q.get(k));
+      return JSON.parse(await pyCall('web_audited', [c.pages, c.filer, c.s, c.e, c.mx, c.mn]));
+    }
     throw only(path);
   },
   async post(path) { throw only(path); },
   async put(path) { throw only(path); },
   async patch(path) { throw only(path); },
   async del() { throw only('서식 지우기'); },
-  async upload(path) { throw only(path.includes('reconcile') ? '외감회사대사' : '서식 올리기'); },
+  async upload(path, fd) {
+    if (path === '/qc/reconcile') return JSON.parse((await reconcileCall(fd, false)).out);
+    throw only('서식 올리기');
+  },
   async postBlob(path, body) {
     if (path === '/agenda/hwp/pdf') {   /* 서버 변환기(rhwp)의 브라우저판으로 그린 HTML 미리보기 */
       const { previewHtml } = await import('../qc/static/hwp_preview.js');
