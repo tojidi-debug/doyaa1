@@ -1,0 +1,448 @@
+/* 공용 구성요소 — 머리띠·단추·탭·조각·배지·입력칸·아이콘.
+ *
+ * 토큰과 되돌리기는 `css/base.css` 에 있다. 이 파일은 그 뒤에 문다. 규격은 DESIGN.md.
+ *
+ * ## ⚠️ 이 파일을 물리지 않는 화면이 둘 있다
+ *
+ * `index.html`(포털 껍데기) 와 `lookup.html` 은 **base.css 만** 문다.
+ * `.btn` `.card` `.brand-mark` 처럼 흔한 이름을 손대지 않기로 한 CSS 가 이미
+ * 다른 뜻으로 쓰고 있어서다 — portal.css 의 `.brand-mark` 는 KAMP 로고 그림
+ * 자리이고, ecos·oil 의 `#fx-app .btn` 은 높이를 안 정한 단추다. 자세한 사정은
+ * base.css 머리말에 적었다.
+ *
+ * 그 둘은 공용 구성요소가 필요 없다 — 자기 이름(`.lk-btn` `.primary-tab` 따위)을 쓴다.
+ */
+
+/* ══ 1 머리띠 ════════════════════════════════════════════════════════════ */
+
+/* 뼈대 —  header.masthead > div.masthead-inner > div.brand > span.brand-mark
+ *
+ * ⚠️ 포털은 자식 화면을 iframe 으로 감싸고 자기 머리띠를 이미 갖고 있다. 그래서
+ * 포털 메뉴가 이름을 대신하는 화면(lookup·news·standard·quality_standard·
+ * work_flow)에는 머리띠를 두지 않는다 — 두 겹이 된다. lookup_hub_check.py:218
+ * 이 그것을 지킨다. 단독 주소로도 여는 화면만 머리띠를 갖는다. */
+.masthead {
+  height: var(--head-h);
+  background: rgba(255, 255, 255, 0.94);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 2px 14px rgba(46, 127, 184, 0.06);
+  backdrop-filter: blur(10px);
+  color: var(--text);
+}
+
+.masthead-inner {
+  width: min(var(--page-max), calc(100% - var(--page-gutter) * 2));
+  height: var(--head-h);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* 배지에는 **약어 글자**를 넣는다 — CPA · 전당 · FIN · Q&A 처럼.
+   이모지를 넣지 않는다: 운영체제마다 모양과 크기가 달라지고 색을 토큰으로
+   맞출 수 없다. 기능 아이콘은 인라인 SVG 로 한다(아래 8 아이콘). */
+.brand-mark {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--brand-grad);
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  box-shadow: 0 8px 18px rgba(46, 127, 184, 0.24);
+}
+
+.brand h1 {
+  margin: 0;
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+}
+
+.brand p {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+/* 머리띠 오른쪽 슬롯 — 원문 링크·사용자 표시 따위 */
+.masthead-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ══ 2 단추 ══════════════════════════════════════════════════════════════ */
+
+/* 세 크기뿐이다.  .btn 40px (동작) · .btn-sm 32px (토글·잔손질) · .btn-icon 정사각
+ *
+ * 켜진 상태는 **aria-pressed="true"** 로 적는다 — 기준 화면 방식이고, 읽어 주는
+ * 도구도 그것을 안다. 탭만 .tab.active 를 쓴다. `.is-on` · `.on` 은 걷었다. */
+.btn,
+.btn-sm,
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--text-body);
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: all 0.18s ease;
+}
+
+/* ⚠️ 크기와 색을 따로 고른다. 처음에는 .btn-sm 이 「32px」과 「강조색」을 함께
+   묶고 있었는데, 그러면 잔손질 단추가 늘어선 줄이 통째로 켜진 것처럼 보인다.
+   크기는 .btn / .btn-sm / .btn-icon, 색은 .btn-primary / .btn-toggle /
+   .btn-ghost / .btn-warn / .btn-danger 로 갈랐다. */
+.btn { min-height: 40px; padding: 0 14px; }
+
+.btn-sm { height: 32px; padding: 0 12px; }
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+}
+
+.btn:hover,
+.btn-sm:hover,
+.btn-icon:hover {
+  color: var(--primary);
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+
+/* 주된 동작. 켜진 토글도 같은 모양이다 — 「지금 이것이다」가 한 가지로 보인다. */
+.btn-primary,
+.btn[aria-pressed="true"],
+.btn-sm[aria-pressed="true"],
+.btn-icon[aria-pressed="true"] {
+  color: #FFFFFF;
+  background: var(--primary-grad);
+  border-color: var(--primary);
+  box-shadow: var(--shadow-on);
+}
+
+.btn-primary:hover,
+.btn[aria-pressed="true"]:hover,
+.btn-sm[aria-pressed="true"]:hover,
+.btn-icon[aria-pressed="true"]:hover {
+  color: #FFFFFF;
+  background: var(--primary-grad-hover);
+  border-color: var(--primary);
+}
+
+/* 화면 오른쪽 아래에 떠 있는 것 — 「맨 위로」 따위.
+   fss 는 칠한 동그라미, hwp_agent 는 흰 동그라미로 서로 달랐다. 칠한 쪽으로
+   모았다 — 본문 위에 떠 있는 것이라 눈에 걸려야 한다. */
+.btn-float {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--primary);
+  color: #FFFFFF;
+  font-size: 16px;
+  font-weight: 800;
+  box-shadow: 0 8px 22px rgba(46, 127, 184, 0.26);
+  transition: all 0.18s ease;
+}
+
+.btn-float:hover {
+  transform: translateY(-2px);
+  background: var(--primary-hover);
+  box-shadow: 0 12px 28px rgba(46, 127, 184, 0.32);
+}
+
+.btn-float .ui-icon { width: 18px; height: 18px; }
+
+/* 켜졌다 꺼졌다 하는 것 (AND/OR 처럼). 꺼져 있을 때도 강조색 테두리를 둘러
+   「누르면 켜진다」를 보인다 — 기준 화면의 .operator-button 이 그렇다.
+   켜진 모습은 위 [aria-pressed="true"] 가 준다. 최소 너비를 두어 AND/OR 처럼
+   글자 수가 다른 것들이 들쭉날쭉하지 않게 한다. */
+.btn-toggle {
+  min-width: 58px;
+  color: var(--primary);
+  border-color: var(--primary-border);
+}
+
+/* 되돌리기 번거로운 것 — 강제 해제 따위. 되돌릴 수 없는 것은 .btn-danger */
+.btn-warn {
+  color: var(--warn);
+  border-color: var(--warn-border);
+}
+
+.btn-warn:hover {
+  color: #FFFFFF;
+  background: var(--warn);
+  border-color: var(--warn);
+}
+
+/* 테두리도 없는 것 — 여러 개가 늘어설 때 */
+.btn-ghost {
+  color: var(--text-soft);
+  background: transparent;
+  border-color: transparent;
+}
+
+.btn-ghost:hover {
+  color: var(--primary);
+  background: var(--primary-light);
+  border-color: var(--primary-border);
+}
+
+/* 되돌릴 수 없는 것 */
+.btn-danger {
+  color: var(--bad);
+  border-color: var(--bad-border);
+}
+
+.btn-danger:hover {
+  color: #FFFFFF;
+  background: var(--bad);
+  border-color: var(--bad);
+}
+
+.btn:disabled,
+.btn-sm:disabled,
+.btn-icon:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: default;
+  box-shadow: none;
+  transform: none;
+}
+
+.btn:disabled:hover,
+.btn-sm:disabled:hover,
+.btn-icon:disabled:hover {
+  color: var(--text-body);
+  background: var(--paper);
+  border-color: var(--line-strong);
+}
+
+/* ══ 3 탭 · 조각 · 배지 ═══════════════════════════════════════════════════ */
+
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tab {
+  min-height: 32px;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--primary);
+  background: var(--paper);
+  border: 1px solid var(--primary-border);
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.18s ease;
+}
+
+.tab:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+
+.tab.active,
+.tab[aria-selected="true"] {
+  color: #FFFFFF;
+  background: var(--primary-grad);
+  border-color: var(--primary);
+  box-shadow: var(--shadow-on);
+}
+
+/* 골라 담는 것. 단추보다 작고 낮다. */
+.chip {
+  height: 26px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-soft);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  transition: all 0.18s ease;
+}
+
+.chip:hover {
+  color: var(--primary);
+  border-color: var(--primary-border);
+}
+
+.chip.active,
+.chip[aria-pressed="true"] {
+  color: var(--primary);
+  background: var(--primary-soft);
+  border-color: var(--primary-border);
+  font-weight: 600;
+}
+
+/* 상태 배지 — **누를 수 없는 것**이다.
+ *
+ * ⚠️ 여기에는 --primary 를 쓰지 않는다. 표 안의 배지가 강조색을 입으면 단추로
+ * 보이고, 사람들이 누른다. lookup_hub_check.py 가 이미 이 규칙을 지킨다
+ * (「상태 배지는 강조색과 갈라 둔다」). 그래서 그늘도 그라데이션도 없고
+ * hover 도 없고 cursor 도 안 바꾼다. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pill-ok   { color: var(--ok);   background: var(--ok-soft);   border-color: var(--ok-border); }
+.pill-warn { color: var(--warn); background: var(--warn-soft); border-color: var(--warn-border); }
+.pill-bad  { color: var(--bad);  background: var(--bad-soft);  border-color: var(--bad-border); }
+.pill-mute { color: var(--text-soft); background: var(--n100); border-color: var(--n200); }
+
+/* ══ 4 입력칸 ════════════════════════════════════════════════════════════ */
+
+/* 찾는 칸. 왼쪽에 SVG 돋보기, 오른쪽에 힌트가 들어갈 자리를 비워 둔다. */
+.search-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+.search-wrap .ui-icon {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  transform: translateY(-50%);
+  color: var(--primary);
+  pointer-events: none;
+}
+
+.search {
+  width: 100%;
+  height: 42px;
+  padding: 0 42px;
+  color: var(--text);
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  outline: none;
+  font-size: 13px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.search::placeholder { color: var(--text-placeholder); }
+
+.search:focus {
+  border-color: var(--primary);
+  box-shadow: var(--ring);
+}
+
+.key-hint {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #A8B4BD;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+/* 고르는 칸 */
+.filter {
+  min-width: 0;
+  height: 36px;
+  padding: 0 28px 0 10px;
+  color: var(--text-body);
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  outline: none;
+  font-size: 12px;
+}
+
+.filter:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(46, 127, 184, 0.09);
+}
+
+/* ══ 5 아이콘 ════════════════════════════════════════════════════════════ */
+
+/* 기능 아이콘은 **인라인 SVG** 하나로 한다. 규격:
+ *
+ *   <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">…</svg>
+ *
+ * 굵기·색을 여기서 한 번에 정하므로 마크업에 stroke 를 적지 않는다. 지금까지는
+ * 손으로 베낀 SVG 가 1.8·2.2·2.4·2.5 네 굵기로 흩어져 있었다.
+ * 색은 currentColor 라 글자색을 따라간다 — 단추가 켜지면 아이콘도 함께 하얘진다. */
+.ui-icon {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ui-icon-sm { width: 14px; height: 14px; }
+.ui-icon-lg { width: 22px; height: 22px; }
+
+/* ══ 좁은 화면 ══════════════════════════════════════════════════════════ */
+
+/* 분기점은 base.css 와 같은 560px. 머리띠 규칙이라 여기 둔다 —
+   base.css 에 두면 이 파일을 안 무는 포털 껍데기의 로고 자리(.brand-mark)까지
+   모서리가 깎인다. */
+@media (max-width: 560px) {
+  .brand h1 { font-size: 15px; }
+
+  .brand-mark {
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+  }
+}
+
+/* ══ 인쇄 ════════════════════════════════════════════════════════════════ */
+
+@media print {
+  .masthead { display: none !important; }
+}

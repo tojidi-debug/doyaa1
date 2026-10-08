@@ -1,0 +1,216 @@
+/* 공용 토대 — 토큰·되돌리기·머리띠·단추. 모든 화면이 이 파일을 가장 먼저 문다.
+ *
+ * 화면마다 자기 CSS 를 들고 있어서 같은 뜻의 단추가 화면마다 다르게 그려졌다.
+ * 재고를 내 보니 :root 가 18개 파일에 흩어져 있고(같은 20개 묶음이 6번 복사),
+ * 서로 다른 색이 611개, 좌우 여백 값이 11개, 단추 모서리가 15개였다.
+ * 이 파일이 그 하나뿐인 원천이다. 규격은 DESIGN.md 에 적혀 있다.
+ *
+ * ## 값의 출처
+ *
+ * 여기 있는 값은 **`css/review_case.css` 에서 그대로 읽어 온 것**이다. 그 파일은
+ * 담당부서가 준 화면(fss.html, 2026-08-27)의 <style> 을 한 글자도 바꾸지 않고
+ * 옮긴 것이고 「고치지 말 것」이 파일 서리에 박혀 있다. 그래서 그 파일을
+ * 리팩터링하는 대신 값을 뽑아 왔다.
+ *
+ * ## ⚠️ 그래서 같은 값이 두 벌 있다
+ *
+ * `review_case.css` 는 손대지 않으므로 --primary 같은 값이 두 곳에 적혀 있다.
+ * **한쪽만 고치면 화면이 갈라진다.** 어긋나면 검사가 걸러 낸다 —
+ * `design_check.py` 와 `lookup_hub_check.py:249` 가 두 값을 맞대어 본다.
+ * (`css/lookup.css` 가 이미 같은 방식으로 주석을 달아 두었다.)
+ *
+ * ## 읽는 순서
+ *
+ *   1 토큰   2 되돌리기   3 배치   4 도움 클래스   5 좁은 화면
+ *
+ * 머리띠·단추·탭·입력칸·아이콘은 `css/ui.css` 에 있다.
+ * 글꼴은 `css/font.css` 가 준다(scripts/fetch_fonts.py 가 만든 파일).
+ *
+ * ## ⚠️ 왜 구성요소를 다른 파일로 갈랐나
+ *
+ * `.btn` `.card` `.brand-mark` 는 아주 흔한 이름이라, 손대지 않기로 한 CSS 가
+ * 이미 그 이름을 **다른 뜻으로** 쓰고 있었다:
+ *
+ *   portal.css   `.brand-mark` 는 KAMP 로고 그림을 담는 자리다. 우리 배지
+ *                규격(그라데이션·그늘·모서리 12px)이 새어 들면 로고가 깨진다.
+ *   ecos·oil     `#fx-app .btn` 은 `padding: 7px 14px` 에 높이가 없다. 우리
+ *                `min-height: 40px` 이 새어 들면 단추 크기가 바뀐다.
+ *                저쪽이 **안 정한 속성만큼** 우리 것이 들어간다 — ID 선택자라
+ *                특이도가 높아도 안 정한 것은 막아 주지 못한다.
+ *
+ * 그 두 화면(`index.html` 포털 껍데기, `lookup.html`)은 공용 구성요소가 전혀
+ * 필요 없다 — 자기 이름(`.lk-btn` 따위)을 쓴다. 그래서 **토큰만** 물린다.
+ */
+
+/* ══ 1 토큰 ══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* 기준색. 내용 화면 8개가 이미 쓰고 있고 담당부서 원본 색이다.
+     ⚠️ 이 값은 review_case.css:--primary 와 반드시 같아야 한다. */
+  --primary: #2E7FB8;
+  --primary-hover: #256EA0;
+  --primary-active: #1F6696;
+  --primary-light: #EAF5FC;
+  --primary-soft: #F3FAFE;
+  --primary-border: #BFDDEE;
+
+  /* 그라데이션 두 개. 지금까지 이름이 없어서 #4CA9CC 는 7개 파일, #58B7D8 은
+     6개 파일에 흩어져 **같은 자리에 두 값이 갈려** 쓰였다. 이름을 붙인다. */
+  --primary-grad: linear-gradient(135deg, #2E7FB8, #4CA9CC);   /* 켜진 단추 */
+  --primary-grad-hover: linear-gradient(135deg, #256EA0, #3F9FC5);
+  --brand-grad: linear-gradient(135deg, #2E7FB8, #58B7D8);     /* 머리띠 배지 */
+
+  --text: #222222;
+  --text-body: #333333;
+  --text-soft: #666666;
+  --text-muted: #8A8F98;
+  --text-placeholder: #9AA6AF;
+
+  --bg: #F8FBFD;
+  --paper: #FFFFFF;
+  --line: #E6EEF4;
+  --line-strong: #D5E5F0;
+
+  /* 중성 계단. 화면 CSS 12곳에 Tailwind 의 slate 값이 이름 없이 그대로 붙여져
+     있던 것을 모았다 — 207곳에서 쓰이면서 토큰이 하나도 없었다. 위 --line 계열이
+     파랑 쪽으로 기운 금이고, 이쪽은 색기가 거의 없는 회색이다. 표·코드·곁말처럼
+     파랑이 섞이면 안 되는 자리에 쓴다. */
+  --n50:  #F8FAFC;
+  --n100: #F1F5F9;
+  --n200: #E2E8F0;
+  --n300: #CBD5E1;
+  --n400: #94A3B8;
+  --n500: #64748B;
+  --n600: #475569;
+  --n700: #334155;
+  --n800: #1E293B;
+  --n900: #0F172A;
+
+  /* 상태색. (이제 없는) teams.css 와 links.css 가 손으로 맞춰 두었던 값을
+     가져왔다 — 근거는 git log.
+     ⚠️ 상태 배지에는 --primary 를 쓰지 않는다 — 표 안의 배지가 단추로 보인다.
+     이건 lookup_hub_check.py 가 이미 지키는 규칙이다. */
+  --ok: #1B7F4B;    --ok-soft: #E8F5EE;    --ok-border: #BFE3CD;
+  --warn: #A8541B;  --warn-soft: #FDF1E7;  --warn-border: #F0D8A8;
+  --bad: #B3261E;   --bad-soft: #FDECEA;   --bad-border: #F3C2C8;
+
+  --shadow: 0 10px 28px rgba(46, 127, 184, 0.08);
+  --shadow-hover: 0 14px 34px rgba(46, 127, 184, 0.14);
+  --shadow-on: 0 6px 16px rgba(46, 127, 184, 0.22);   /* 켜진 단추 */
+  --ring: 0 0 0 4px rgba(46, 127, 184, 0.10);         /* 입력칸 초점 */
+
+  --radius-lg: 18px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --radius-pill: 999px;   /* 지금까지 999px 과 99px 로 갈려 쓰였다 */
+
+  /* 좌우 여백. 값은 모든 화면이 같고 폭만 두 등급이다 (.page / .page-wide) */
+  --page-max: 1480px;
+  --page-gutter: 18px;
+  --head-h: 58px;
+
+  --font: "Noto Sans KR", "Malgun Gothic", sans-serif;
+  --font-num: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+/* ══ 2 되돌리기 ══════════════════════════════════════════════════════════ */
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  /* 기준 화면의 바탕이다 — 24px 눈금의 옅은 점무늬 위에 위에서 아래로 옅어지는 흰빛.
+     높이·넘침은 화면마다 사정이 달라 여기서 정하지 않는다. */
+  background:
+    radial-gradient(circle at 1px 1px, rgba(46, 127, 184, 0.10) 1px, transparent 0) 0 0 / 24px 24px,
+    linear-gradient(180deg, #FFFFFF 0%, var(--bg) 100%);
+}
+
+button, input, select, textarea { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+button { cursor: pointer; }
+
+:focus-visible {
+  outline: 3px solid rgba(46, 127, 184, 0.20);
+  outline-offset: 3px;
+}
+
+[hidden] { display: none !important; }
+
+/* ══ 3 배치 — 좌우 여백 두 등급 ═══════════════════════════════════════════ */
+
+/* 기본. 넓은 화면에서는 1480px 에서 멈추고 가운데로 모인다.
+   ⚠️ 이름이 `.page` 였다. fsc.css(잠긴 파일)가 `.page` 를 **페이지넘김 단추**
+   이름으로 쓰고 있어서, 우리 폭·가운데맞춤이 그 단추에 걸렸다. 흔한 이름을
+   쓰지 않는다 — 이 규칙을 검사가 지킨다. */
+.gutter {
+  width: min(var(--page-max), calc(100% - var(--page-gutter) * 2));
+  margin-inline: auto;
+}
+
+/* ⚠️ 여기 `.gutter-wide`(폭 제한 없이 여백만) 가 있었다. 2026-09-08 담당부서
+   요청으로 걷었다 — 전폭으로 두던 넷(통합조회·기준서·품질관리기준서·업무FLOW)을
+   다른 화면과 같은 폭에 가두기로 하면서 이 등급에 속한 화면이 하나도 남지
+   않았다. 게다가 붙은 적도 없다(넷 다 자기 CSS 의 --page-gutter 여백으로
+   등급을 받고 있었다). 등급은 하나뿐이다 — `.gutter`.
+
+   안쪽 여백(padding)으로 여백을 주는 상자는 클래스 대신 여백을 키운다:
+     padding: … max(var(--page-gutter), calc((100% - var(--page-max)) / 2)) …;
+   결과 폭이 `.gutter` 와 같다. 배경을 칠하는 상자에 쓴다(css/lookup.css
+   `.lk-main` 참고 — 폭을 가두면 위 탭 띠와 어긋난다). */
+
+/* ══ 4 도움 클래스 ═══════════════════════════════════════════════════════ */
+
+/* 눈에는 안 보이고 읽어 주는 도구에만 보이는 것 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 화면 첫머리의 한 줄 설명. (이제 없는) teams 와 doc_review 가 같은 뜻으로
+   쓰고 있던 것을 토큰으로 올렸다 — 근거는 git log. */
+.lede {
+  margin: 0 0 14px;
+  color: var(--text-soft);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* ══ 5 좁은 화면 ════════════════════════════════════════════════════════ */
+
+/* 분기점은 기준 화면과 같은 900px · 560px 둘이다 */
+@media (max-width: 900px) {
+  :root { --page-gutter: 14px; }
+}
+
+@media (max-width: 560px) {
+  :root { --page-gutter: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  body { background: #FFFFFF; color: #172234; font-size: 11pt; }
+}

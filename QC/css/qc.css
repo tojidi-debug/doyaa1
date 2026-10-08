@@ -1,0 +1,358 @@
+/* [품감] 심의안(회계법인) — review_case.css 위에 이 화면만의 차이 (2026-10-08) */
+.firm-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.firm-item .code { font-size: 11px; color: #7c8ba0; font-family: ui-monospace, Consolas, monospace; }
+.reports { margin-top: 14px; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+.report-list { display: flex; flex-direction: column; gap: 6px; }
+.report-row { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; }
+.report-row.active { border-color: #0d5ba8; box-shadow: inset 3px 0 0 #0d5ba8; }
+.report-row .rn { font-size: 13px; color: #1f2d3d; }
+.report-row .rn b { color: #0d3b66; }
+.report-row .rn .corr { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 99px; background: #fff6e5; color: #9a6400; font-size: 11px; }
+.report-row .rd { font-size: 11.5px; color: #7c8ba0; }
+.report-row .acts { display: flex; gap: 6px; grid-row: span 2; }
+.report-row .acts button { font-size: 12px; padding: 5px 9px; border-radius: 7px; border: 1px solid #cfd6de; background: #fff; color: #1f2d3d; cursor: pointer; white-space: nowrap; }
+.report-row .acts button.primary { background: #0d5ba8; border-color: #0d5ba8; color: #fff; }
+.report-row .acts button:disabled { opacity: .55; cursor: progress; }
+
+/* 오른쪽 — (붙임1) 감사인 개요 */
+.qc-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.qc-head h2 { margin: 0; font-size: 18px; color: #0d3b66; }
+.qc-head .sub { font-size: 12.5px; color: #5a6b7d; }
+.qc-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.qc-actions button { font-size: 12.5px; padding: 7px 12px; border-radius: 8px; border: 1px solid #cfd6de; background: #fff; color: #1f2d3d; cursor: pointer; }
+.qc-actions button.primary { background: #0f766e; border-color: #0f766e; color: #fff; font-weight: 700; }
+.qc-actions button.ghost { color: #0d5ba8; }
+.qc-actions button:disabled { opacity: .55; cursor: progress; }
+.qc-warn { background: #fff6e5; border: 1px solid #f3d39b; border-radius: 8px; padding: 8px 12px; font-size: 12.5px; color: #7a4a00; margin: 8px 0; }
+.qc-warn ul { margin: 4px 0 0 16px; padding: 0; }
+.qc-note { font-size: 12px; color: #5a6b7d; margin: 6px 0 10px; }
+.qc-sec { margin: 14px 0 6px; font-size: 14px; font-weight: 700; color: #1f2d3d; display: flex; justify-content: space-between; align-items: baseline; }
+.qc-sec .unit { font-size: 11.5px; font-weight: 400; color: #7c8ba0; }
+table.qc { width: 100%; border-collapse: collapse; font-size: 12.5px; background: #fff; }
+table.qc th, table.qc td { border: 1px solid #c9d6e6; padding: 5px 8px; vertical-align: middle; }
+table.qc th { background: #fff8c2; font-weight: 700; color: #1f2d3d; text-align: center; white-space: nowrap; }
+table.qc td { text-align: center; }
+table.qc td.l { text-align: left; }
+table.qc td.num { text-align: right; font-variant-numeric: tabular-nums; }
+table.qc td.lab { background: #fffbe6; font-weight: 600; text-align: center; white-space: nowrap; }
+table.qc td.vl { background: #fff8c2; font-weight: 700; text-align: center; writing-mode: vertical-rl; letter-spacing: .3em; width: 26px; padding: 4px 2px; }
+table.qc td.miss { color: #b42318; }
+.qc-count { margin: 10px 0; padding: 8px 12px; border: 1px dashed #c9d6e6; border-radius: 8px; font-size: calc(13px + 0.5pt); }   /* 0.5pt 크게(사용자 지정, 2026-10-08) */
+.qc-count b { color: #0d3b66; }
+.qc-count b.cur { color: #0d5ba8; font-weight: 800; }   /* 당기 숫자는 굵은 파랑 */
+.qc-tpl { margin: 8px 0 4px; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; font-size: 12.5px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.qc-tpl .name { font-weight: 700; color: #1f2d3d; }
+.qc-tpl button { font-size: 12px; padding: 5px 10px; border-radius: 7px; border: 1px solid #cfd6de; background: #fff; cursor: pointer; }
+.qc-tpl button.danger { color: #b42318; }
+/* 심의안에 반영 — 입력창 */
+dialog.qc-dialog { border: 0; border-radius: 12px; padding: 0; width: min(560px, 94vw); box-shadow: 0 16px 48px rgba(16,44,72,.25); }
+dialog.qc-dialog::backdrop { background: rgba(16,32,48,.35); }
+dialog.qc-dialog form { padding: 18px 20px 14px; display: flex; flex-direction: column; gap: 10px; }
+dialog.qc-dialog h3 { margin: 0; font-size: 16px; color: #0d3b66; }
+dialog.qc-dialog label { display: grid; grid-template-columns: 130px 1fr; gap: 8px; align-items: center; font-size: 13px; }
+dialog.qc-dialog input { font-size: 13px; padding: 6px 8px; border: 1px solid #cfd6de; border-radius: 6px; }
+dialog.qc-dialog .foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+dialog.qc-dialog .foot button { font-size: 13px; padding: 7px 14px; border-radius: 8px; border: 1px solid #cfd6de; background: #fff; cursor: pointer; }
+dialog.qc-dialog .foot button.primary { background: #0f766e; border-color: #0f766e; color: #fff; font-weight: 700; }
+dialog.qc-dialog .hint { font-size: 11.5px; color: #7c8ba0; }
+dialog.qc-dialog ul.rep { margin: 0; padding-left: 18px; font-size: 12.5px; max-height: 240px; overflow: auto; }
+
+/* 오른쪽 안내 제목은 4pt 작게(사용자 지적, 2026-10-08) */
+#document .welcome h2 { font-size: calc(clamp(28px, 4vw, 46px) - 8pt); }   /* −4pt·−2pt·−2pt(사용자 지적, 2026-10-08) */
+.qc-check { background: #fdeaea; border: 1px solid #f3b4b4; border-radius: 8px; padding: 8px 12px; font-size: 12.5px; color: #8a1c16; margin: 8px 0; }
+.qc-check ul { margin: 4px 0 0 16px; padding: 0; }
+/* 외감회사대사(2026-10-08) */
+.qc-count { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.qc-count b.warn { color: #b42318; }
+.recon-btn { font-size: 12.5px; padding: 6px 12px; border-radius: 8px; border: 1px solid #0d5ba8; background: #0d5ba8; color: #fff; font-weight: 700; cursor: pointer; }
+.recon-btn:hover { background: #0a4a8a; }
+.recon { border: 1px solid #c9d6e6; border-radius: 10px; padding: 10px 12px; margin: 6px 0 12px; background: #f8fafc; }
+.recon-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 6px 0; font-size: 12.5px; }
+.recon-row label { display: inline-flex; align-items: center; gap: 6px; }
+.recon-row input[type="text"], .recon-row input:not([type]) { width: 180px; font-size: 12.5px; padding: 5px 8px; border: 1px solid #cfd6de; border-radius: 6px; }
+.recon-row input[type="date"] { font-size: 12.5px; padding: 4px 6px; border: 1px solid #cfd6de; border-radius: 6px; }
+.recon-row select { font-size: 12.5px; padding: 4px 6px; border: 1px solid #cfd6de; border-radius: 6px; }
+.recon-row button { font-size: 12.5px; padding: 6px 12px; border-radius: 8px; border: 1px solid #cfd6de; background: #fff; cursor: pointer; }
+.recon-row button.primary { background: #0d5ba8; border-color: #0d5ba8; color: #fff; font-weight: 700; }
+.recon-row button:disabled { opacity: .5; cursor: not-allowed; }
+.recon-sum { margin: 6px 0; }
+.recon-sum table.qc { width: auto; min-width: 360px; }
+.recon-table td.l { text-align: left; }
+.recon-back { font-size: 12.5px; padding: 5px 10px; border-radius: 7px; border: 1px solid #cfd6de; background: #fff; cursor: pointer; margin-right: 8px; vertical-align: middle; }
+.recon-verdict { margin: 10px 0; padding: 10px 14px; border-radius: 10px; font-size: calc(13.5px + 0.5pt); font-weight: 700; }
+.recon-verdict.ok { background: #e7f6ec; border: 1px solid #9fd7ad; color: #1b7a43; }
+.recon-verdict.bad { background: #fdeaea; border: 1px solid #f3b4b4; color: #b42318; }
+.recon-verdict b { font-size: 1.1em; }
+.qc-check { position: relative; padding-right: 70px; }
+.qc-check .qc-x { position: absolute; right: 8px; top: 6px; font-size: 11.5px; padding: 3px 8px; border-radius: 6px; border: 1px solid #f3b4b4; background: #fff; color: #8a1c16; cursor: pointer; }
+.recon-table tr.grp td { background: #eef3f9; color: #0d3b66; text-align: left; font-size: 12.5px; }
+/* 대사 결과 표 — 구분 열 병합(2026-10-08) */
+.recon-table td.cat { background: #fffbe6; font-weight: 700; text-align: center; white-space: nowrap; vertical-align: middle; width: 90px; }
+.recon-same { margin-left: 6px; font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid #0f766e; background: #fff; color: #0f766e; cursor: pointer; white-space: nowrap; }
+.recon-same:disabled { opacity: .6; cursor: default; }
+.recon-verdict .vsub { margin-top: 4px; font-size: 12px; font-weight: 400; color: #334155; }
+/* 기본 정보(직접 입력) — 안건 화면의 「직접」 표식과 같은 꼴, 이 PC 에 저장 */
+.qc-basic { margin-top: 14px; padding: 10px 12px; border: 1px solid #f0c6d0; border-radius: 10px; background: #fff7f9; }
+.qc-basic .bh { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; font-size: 12px; color: #6b4a55; margin-bottom: 8px; }
+.qc-basic .bh b { font-size: 13px; color: #1f2d3d; }
+.qc-basic .bg { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px 14px; }
+.qc-basic .bf { display: grid; grid-template-columns: 128px 1fr; gap: 6px; align-items: center; font-size: 12.5px; }
+.qc-basic .bl { color: #1f2d3d; white-space: nowrap; }
+.qc-basic .tag { display: inline-block; margin-left: 3px; padding: 0 6px; border-radius: 99px; font-style: normal; font-size: 10.5px; background: #fde2ea; color: #9d174d; border: 1px solid #f5b8cd; }
+.qc-basic .tag.a { background: #e0f2fe; color: #075985; border-color: #bae6fd; }
+.qc-basic input { font-size: 12.5px; padding: 6px 8px; border: 1px solid #f0c6d0; border-radius: 6px; background: #fff; }
+.qc-basic input:focus { outline: 2px solid #f5b8cd; }
+.qc-tpl button.teal { background: #0f766e; border-color: #0f766e; color: #fff; font-weight: 700; }
+.qc-tpl button.teal:hover { background: #0b5d57; }
+.qc-basic .bn { margin: 8px 0 0; font-size: 12px; color: #6b4a55; }
+.qc-basic .bn b { color: #1f2d3d; }
+/* ── 심의안 초안 작성(2026-10-08) — 왼쪽 패널 ── */
+.catalog[data-mode="draft"] > :not(#draftPanel) { display: none; }
+#draftPanel { font-size: 12.5px; }
+.dr-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.dr-head b { font-size: 15px; color: #0d3b66; }
+.dr-firm { color: #5a6b7d; }
+.dr-tabs { display: flex; gap: 6px; margin-bottom: 8px; }
+.dr-tab { flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid #cfd6de; background: #fff; cursor: pointer; font-size: 13px; font-weight: 700; color: #5a6b7d; }
+.dr-tab.on { background: #0d5ba8; border-color: #0d5ba8; color: #fff; }
+.dr-grp { border: 1px solid #dbe3ec; border-radius: 10px; margin: 8px 0; background: #fff; }
+.dr-grp > summary { cursor: pointer; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; list-style: none; }
+.dr-grp > summary::-webkit-details-marker { display: none; }
+.dr-grp > summary .t { font-weight: 700; color: #0d3b66; font-size: 13px; }
+.dr-grp > summary::before { content: '▸'; color: #7c8ba0; margin-right: 4px; }
+.dr-grp[open] > summary::before { content: '▾'; }
+.dr-type { font-size: 11.5px; padding: 2px 8px; border-radius: 99px; background: #eef3f9; color: #5a6b7d; white-space: nowrap; }
+.dr-type.일부미흡 { background: #fff6e5; color: #9a6400; }
+.dr-type.미운영, .dr-type.미설계 { background: #fdeaea; color: #b42318; }
+.dr-item { border-top: 1px solid #eef2f6; padding: 8px 10px; }
+.dr-item.on { background: #fffdf3; }
+.dr-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.dr-title { flex: 1 1 220px; color: #1f2d3d; }
+.dr-title b { color: #b42318; }
+.dr-title .cnt { color: #0d5ba8; font-weight: 700; }
+.dr-title .star { font-style: normal; color: #d97706; font-size: 11px; }
+.dr-row select { font-size: 12px; padding: 4px 6px; border: 1px solid #cfd6de; border-radius: 6px; max-width: 260px; }
+.dr-row select[data-f="ex"] { max-width: 300px; }
+.dr-row input[type="text"] { font-size: 12px; padding: 4px 6px; border: 1px solid #cfd6de; border-radius: 6px; flex: 1 1 160px; }
+.dr-chk { display: inline-flex; align-items: flex-start; gap: 5px; font-size: 12px; cursor: pointer; }
+.dr-chk input { margin-top: 2px; }
+.dr-item textarea { width: 100%; box-sizing: border-box; margin-top: 6px; font-size: 12.5px; padding: 6px 8px; border: 1px solid #cfd6de; border-radius: 6px; font-family: inherit; }
+.dr-item textarea::placeholder { color: #a0aab8; }
+.dr-ther { margin-top: 4px; display: flex; flex-direction: column; gap: 2px; font-size: 11.5px; color: #5a6b7d; }
+.dr-ther label { display: flex; gap: 5px; align-items: flex-start; }
+.dr-rule { font-size: 11.5px; color: #7c8ba0; }
+.dr-finds { margin-top: 4px; display: flex; flex-direction: column; gap: 3px; }
+.dr-find { padding: 3px 6px; border-radius: 6px; }
+.dr-find.on { background: #eef7ff; }
+.chips { display: flex; gap: 4px; flex-wrap: wrap; margin: 4px 0 0 20px; }
+.chip { font-size: 11px; padding: 1px 8px; border-radius: 99px; border: 1px solid #cfd6de; background: #fff; cursor: pointer; }
+.chip.on { background: #0d5ba8; border-color: #0d5ba8; color: #fff; }
+.chip input { display: none; }
+.dr-cos { padding: 8px 10px; border: 1px dashed #c9d6e6; border-radius: 10px; background: #f8fafc; margin-bottom: 6px; }
+.dr-cos label { font-weight: 700; color: #0d3b66; }
+.dr-cos input[type="number"] { width: 56px; font-size: 12.5px; padding: 4px 6px; border: 1px solid #cfd6de; border-radius: 6px; }
+.dr-conames { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.dr-conames input { width: 140px; font-size: 12px; padding: 4px 6px; border: 1px solid #cfd6de; border-radius: 6px; }
+.dr-hint { font-size: 11.5px; color: #7c8ba0; margin: 6px 10px; }
+.dr-lab { display: block; font-size: 12px; font-weight: 700; margin: 8px 10px 0; color: #1f2d3d; }
+.dr-grp > textarea { width: calc(100% - 20px); margin: 4px 10px 10px; box-sizing: border-box; font-size: 12.5px; padding: 6px 8px; border: 1px solid #cfd6de; border-radius: 6px; font-family: inherit; }
+.dr-viol { margin: 4px 10px; border-collapse: collapse; font-size: 12px; }
+.dr-viol th, .dr-viol td { border: 1px solid #dbe3ec; padding: 3px 8px; }
+.dr-viol th { background: #fff8c2; }
+.dr-viol input { width: 56px; font-size: 12px; padding: 3px 5px; border: 1px solid #cfd6de; border-radius: 5px; }
+.dr-viol select { font-size: 12px; padding: 3px 5px; border: 1px solid #cfd6de; border-radius: 5px; }
+.dr-prior { display: flex; gap: 10px; flex-wrap: wrap; margin: 6px 10px; }
+.dr-prior label { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; }
+.dr-prior input { width: 70px; font-size: 12px; padding: 3px 5px; border: 1px solid #cfd6de; border-radius: 5px; }
+.dr-foot { position: sticky; bottom: 0; background: #fff; border-top: 2px solid #0d5ba8; padding: 8px 0 2px; margin-top: 8px; }
+.dr-score { font-size: 12.5px; color: #1f2d3d; margin-bottom: 6px; }
+.dr-score b { color: #0d3b66; }
+.dr-score .lv { padding: 1px 8px; border-radius: 99px; background: #eef3f9; }
+.dr-score .lv.양호 { background: #e7f6ec; color: #1b7a43; }
+.dr-score .lv.보통 { background: #fff6e5; color: #9a6400; }
+.dr-score .lv.미흡 { background: #fdeaea; color: #b42318; }
+.dr-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.dr-btns button { font-size: 12px; padding: 6px 10px; border-radius: 7px; border: 1px solid #cfd6de; background: #fff; cursor: pointer; }
+.dr-btns button.teal { background: #0f766e; border-color: #0f766e; color: #fff; font-weight: 700; }
+.dr-btns button.danger { color: #b42318; }
+/* 오른쪽 미리보기 */
+.dr-pv { border: 2px solid #0f766e; border-radius: 10px; padding: 6px 12px 10px; margin-bottom: 14px; background: #f6fffd; }
+.dr-pv table.qc td.empty-row { color: #7c8ba0; text-align: center; padding: 10px; }
+.dr-pv table.qc td.l { text-align: left; }
+/* □ 회계법인 개요 · 드래그 복사 말풍선(2026-10-08) */
+table.qc-overview td.lab { width: 160px; }
+#selCopy { position: absolute; z-index: 60; font-size: 12px; padding: 4px 10px; border-radius: 99px; border: 1px solid #0f766e; background: #0f766e; color: #fff; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(16,44,72,.25); }
+#selCopy:hover { background: #0b5d57; }
+table.qc-overview small.src { color: #7c8ba0; font-size: 11px; margin-left: 6px; }
+/* 대사 결과 표 열 너비 — 비고 좁게, 보고서 링크 한 줄(2026-10-08) */
+.recon-table { table-layout: fixed; }
+.recon-table col.c-cat { width: 108px; }
+.recon-table col.c-name { width: 28%; }
+.recon-table col.c-rep { width: 78px; }
+.recon-table col.c-note { width: auto; }
+.recon-table .rep { white-space: nowrap; }
+.recon-table td { word-break: keep-all; overflow-wrap: anywhere; }
+.recon-table td a { white-space: nowrap; }
+.dart-count { color: #334155; }
+.dart-count b.cur { color: #0d5ba8; font-weight: 800; }
+table.qc-overview td.lab { width: 130px; }
+#selCopy[hidden] { display: none !important; }   /* base.css 의 button display 가 hidden 을 덮지 않게 */
+.qc-count small.dc-rep { color: #7c8ba0; font-size: 11.5px; margin-left: 4px; }
+/* 외감회사대사 새로고침 단추(아이콘) */
+.recon-row button.rc-reset { width: 32px; height: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.recon-row button.rc-reset svg { width: 16px; height: 16px; fill: none; stroke: #0d5ba8; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.recon-row button.rc-reset:hover { background: #eef3f9; }
+.qc-count .dc-cmp .dc-rep { color: #5a6b7d; }
+.qc-count .dc-cmp .dc-diff { color: #c00000; font-weight: 800; }
+.qc-count .dc-sub { font-size: 12.5px; }
+.qc-count .dc-sub .dc-ok { color: #0f766e; font-weight: 700; }
+.qc-count .dc-sub .dc-diff { color: #c00000; font-weight: 800; }
+/* 문구와 [외감회사대사] 를 한 줄에, 단추는 맨 오른쪽(사용자 지정 2026-10-08) — 문구가 길면 문구만 줄바꿈 */
+.qc-count { flex-wrap: nowrap; }
+.qc-count > span:first-child { flex: 1 1 0; min-width: 0; }
+.qc-count > .recon-btn { flex: 0 0 auto; margin-left: auto; white-space: nowrap; }
+/* 왼쪽 목록 10%p 좁게(43% → 33%) · 오른쪽 넓게, 보고서 줄은 한 줄 유지 · [사업보고서(PDF)] 두 줄, [내역 보기]와 같은 높이 (사용자 지정 2026-10-08, 두 화면 공통) */
+.workspace { grid-template-columns: minmax(330px, 33%) minmax(0, 1fr); }
+.report-row { grid-template-columns: minmax(0, 1fr) auto; }
+.report-row .rn, .report-row .rd { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.report-row .acts { align-items: stretch; }
+.report-row .acts button { display: inline-flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; padding: 4px 9px; min-height: 40px; }
+.report-row .rn a.rn-link { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.report-row .rn a.rn-link:hover { color: #0d5ba8; }
+/* 참고 정보 표 머리줄은 연한 회색(사용자 지정 2026-10-08) */
+table.recon-table.ref thead th { background: #eef1f4; }
+table.qc td.sum { background: #eef1f4; font-weight: 700; }
+/* BACK 뒤 최근 대사 요약 */
+.rc-last { margin: 8px 0 2px; padding: 8px 10px; border-radius: 8px; background: #fff; border: 1px solid #dbe3ec; font-size: 12.5px; color: #1f2d3d; }
+.rc-last .bad { color: #c00000; font-weight: 800; }
+.rc-last .ok { color: #1b7a43; font-weight: 800; }
+.rc-last-open { margin-left: 8px; font-size: 12px; padding: 3px 9px; border-radius: 6px; border: 1px solid #0d5ba8; background: #fff; color: #0d5ba8; cursor: pointer; }
+/* 대사 내역 접기 [+/−] · 단추 넷 한 줄(2026-10-08) */
+.qc-count > .fold-btn { flex: 0 0 auto; width: 30px; height: 30px; margin-left: auto; margin-right: -8px; border-radius: 8px; border: 1px solid #0d5ba8; background: #fff; color: #0d5ba8; font-size: 18px; font-weight: 800; line-height: 1; cursor: pointer; padding: 0; }
+.qc-count > .fold-btn[hidden] { display: none !important; }
+.qc-count > .fold-btn:not([hidden]) + .recon-btn { margin-left: 0; }
+.recon-row.recon-btns { flex-wrap: nowrap; }
+.recon-row.recon-btns button { white-space: nowrap; flex: 0 0 auto; }
+/* ── 심의안 초안 작성 개편(2026-10-08, 개발 화면) — 왼쪽은 상위 묶음만, 오른쪽 위 고정 단추줄 + 본문 ── */
+#detail[data-draft] > :not(#draftMain) { display: none !important; }
+.dr-navs { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.dr-nav { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 10px 12px; border-radius: 10px; border: 1px solid #dbe3ec; background: #fff; cursor: pointer; font-size: 13px; }
+.dr-nav .t { font-weight: 700; color: #0d3b66; }
+.dr-nav.on { border-color: #0d5ba8; box-shadow: inset 3px 0 0 #0d5ba8; background: #f3f8ff; }
+.dr-nav:hover { background: #f8fafc; }
+#draftMain .dr-bar { position: sticky; top: 0; z-index: 20; background: #fff; border-bottom: 2px solid #0d5ba8; padding: 8px 0 6px; margin-bottom: 10px; }
+.dr-bar-btns { display: flex; gap: 4px; flex-wrap: nowrap; align-items: center; overflow-x: auto; scrollbar-width: none; }   /* 한 줄(사용자 지정) — 좁으면 글자·여백을 줄인다 */
+.dr-bar-btns button { flex: 0 0 auto; font-size: 12px; padding: 5px 8px; border-radius: 8px; border: 1px solid #cfd6de; background: #fff; cursor: pointer; white-space: nowrap; }
+.dr-bar-btns button.on { background: #0d5ba8; border-color: #0d5ba8; color: #fff; font-weight: 700; }
+.dr-bar-btns button.teal { background: #0f766e; border-color: #0f766e; color: #fff; font-weight: 700; }
+.dr-bar-btns button.danger { color: #b42318; }
+.dr-bar-btns .sep { flex: 1 1 auto; min-width: 4px; }
+@media (max-width: 1500px) { .dr-bar-btns button { font-size: 11.5px; padding: 5px 6px; letter-spacing: -.2px; } }
+#draftMain .dr-score { margin-top: 6px; }
+table.dr-check td.ck { text-align: center; width: 74px; }
+table.dr-check td.ck input[type="number"] { width: 48px; font-size: 12px; padding: 2px 4px; border: 1px solid #cfd6de; border-radius: 5px; text-align: right; }
+table.dr-check td.l { text-align: left; }
+table.dr-check .star { font-style: normal; color: #d97706; font-size: 11px; }
+table.dr-total { margin-top: 8px; }
+table.dr-total .lv, #draftMain .lv { padding: 1px 8px; border-radius: 99px; background: #eef3f9; }
+#draftMain .lv.양호 { background: #e7f6ec; color: #1b7a43; } #draftMain .lv.보통 { background: #fff6e5; color: #9a6400; } #draftMain .lv.미흡 { background: #fdeaea; color: #b42318; }
+#draftMain .dr-grp { border: 1px solid #dbe3ec; border-radius: 10px; background: #fff; }
+#draftMain .qc-sec .dr-type { margin-left: 8px; }
+.dr-reason { width: 100%; box-sizing: border-box; font-size: 12.5px; padding: 6px 8px; border: 1px solid #cfd6de; border-radius: 6px; font-family: inherit; }
+/* 여러 개 고르는 드롭다운 */
+details.msel { position: relative; margin: 6px 0 10px; }
+details.msel > summary { list-style: none; cursor: pointer; padding: 8px 12px; border: 1px solid #cfd6de; border-radius: 8px; background: #fff; font-size: 13px; }
+details.msel > summary::-webkit-details-marker { display: none; }
+details.msel > summary::after { content: '▾'; float: right; color: #7c8ba0; }
+details.msel > summary .cnt { color: #0d5ba8; margin-left: 4px; }
+details.msel .msel-list { position: absolute; z-index: 30; left: 0; right: 0; margin-top: 4px; padding: 6px; border: 1px solid #cfd6de; border-radius: 8px; background: #fff; box-shadow: 0 8px 24px rgba(16,44,72,.15); display: flex; flex-direction: column; gap: 2px; }
+details.msel .msel-list label { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+details.msel .msel-list label:hover { background: #f3f8ff; }
+.qc-actions button.draft-red { background: #C00000; border-color: #C00000; color: #fff; font-weight: 700; }
+.qc-actions button.draft-red:hover { background: #9d0000; }
+/* 중요절차: 이름은 파란 글씨, ★ 는 작은 위첨자(사용자 지정 2026-10-08) */
+#draftMain .imp { color: #0d5ba8; font-weight: 700; }
+#draftMain sup.star { font-size: 9px; color: #d97706; margin-left: 1px; vertical-align: super; line-height: 0; font-style: normal; }
+/* 중요절차 줄(주요 점검 항목 ~ 점수)에 아주 연한 하늘색 — 구성요소 칸은 그대로(사용자 지정 2026-10-08) */
+table.dr-check tr.imp-row > td:not(.lab) { background: #f1f8fe; }
+#draftMain .dr-item:has(.imp) { background: #f1f8fe; }
+#draftMain .dr-warn { margin: 0 0 10px; }
+table.dr-check small.co-cnt { margin-left: 6px; font-size: 11px; color: #0d5ba8; font-weight: 700; }
+table.dr-check td.sub { padding-left: 18px; color: #334155; }
+table.dr-check tr.parent td.sumc { font-weight: 700; color: #0d3b66; }
+/* 왼쪽 메뉴 안 위반 혐의 체크 */
+.dr-navchk { display: flex; flex-direction: column; gap: 2px; margin: -2px 0 4px 10px; padding: 6px 8px; border-left: 2px solid #dbe3ec; }
+.dr-navchk label { display: flex; gap: 6px; align-items: center; font-size: 12.5px; cursor: pointer; padding: 2px 0; }
+/* 지적없음 항목도 숨기지 않고 회색 바탕(고칠 수 있게) — 사용자 지정 2026-10-08 */
+#draftMain .dr-grp .dr-item:not(.on) { background: #f1f3f5; }
+#draftMain .dr-grp .dr-item:not(.on) .dr-title { color: #5a6b7d; }
+/* 오른쪽 고정 단추줄을 패널 맨 위에 딱 붙게(.document 의 위 여백 20px 만큼 끌어올림) — 사용자 지정 2026-10-08 */
+#draftMain .dr-bar { top: -20px; margin: -20px -22px 10px; padding: 12px 22px 8px; box-shadow: 0 4px 10px rgba(16,44,72,.08); }
+/* 왼쪽 위반 혐의 체크 목록 접기 */
+.dr-navchk.folded { padding: 2px 8px; }
+.dr-fold { border: 0; background: none; color: #0d5ba8; font-size: 12px; font-weight: 700; cursor: pointer; padding: 2px 0; text-align: left; }
+/* 차감 표 손으로 고침 */
+.dr-viol input[type="number"] { width: 58px; }
+.dr-viol tr.manual td { background: #fffbe6; }
+.dr-viol td.auto { color: #7c8ba0; font-size: 11.5px; }
+.dr-viol .mtag { display: inline-block; padding: 0 6px; border-radius: 99px; background: #fde68a; color: #7a4a00; font-size: 10.5px; }
+.dr-mini { margin: 6px 10px 0; font-size: 12px; padding: 4px 10px; border-radius: 6px; border: 1px solid #cfd6de; background: #fff; cursor: pointer; }
+/* 표준문안 고르기는 분류 아랫줄 전체 폭(글이 잘리지 않게) — 사용자 지정 2026-10-08 */
+#draftMain select.dr-ex { display: block; width: 100%; max-width: none; margin-top: 6px; font-size: 12.5px; padding: 5px 8px; border: 1px solid #cfd6de; border-radius: 6px; background: #fff; }
+table.dr-check small.misul { margin-left: 3px; font-size: 10.5px; color: #b42318; }
+.dr-bar-btns button.navy { background: #1f3a5f; border-color: #1f3a5f; color: #fff; font-weight: 700; }
+/* 따라서 하나 고르기 · 관련 규정 */
+#draftMain .dr-ther { margin-top: 6px; padding: 6px 8px; border: 1px dashed #c9d6e6; border-radius: 8px; background: #fff; }
+#draftMain .dr-ther-h { font-size: 12px; font-weight: 700; color: #0d3b66; margin-bottom: 2px; }
+#draftMain .dr-ther label { display: flex; gap: 6px; align-items: flex-start; font-size: 12px; color: #334155; padding: 2px 0; }
+#draftMain .dr-ther textarea { margin-top: 4px; }
+#draftMain .autotag { display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 99px; background: #e0f2fe; color: #075985; font-size: 10.5px; font-weight: 700; }
+#draftMain .dr-ref { margin-top: 6px; font-size: 12px; color: #334155; }
+#draftMain .dr-ref b { color: #0d3b66; margin-right: 4px; }
+#draftMain .dr-ref details { display: inline-block; margin-left: 8px; }
+#draftMain .dr-ref summary { cursor: pointer; color: #0d5ba8; font-size: 11.5px; }
+#draftMain .dr-ref details p { margin: 4px 0 0; padding: 6px 8px; background: #f8fafc; border-radius: 6px; font-size: 12px; line-height: 1.55; }
+
+/* 개별 — 회사별 탭(2026-10-08) */
+#draftMain .co-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin: 2px 0 8px; border-bottom: 2px solid #0d5ba8; }
+#draftMain .co-tab { border: 1px solid #cfd6de; border-bottom: 0; background: #f4f7fb; padding: 6px 14px; border-radius: 8px 8px 0 0; font-size: 13px; cursor: pointer; color: #334155; }
+#draftMain .co-tab.on { background: #0d5ba8; border-color: #0d5ba8; color: #fff; font-weight: 700; }
+#draftMain .co-tab small { display: inline-block; min-width: 16px; margin-left: 4px; padding: 0 5px; border-radius: 99px; background: #fde68a; color: #7c4a03; font-size: 10.5px; font-weight: 700; }
+#draftMain .co-head { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; font-size: 13px; }
+#draftMain .co-head .dr-hint { margin: 0; }
+#draftMain .co-part { margin-top: 10px; }
+#draftMain .dr-item.co-none { background: #f3f4f6; border-color: #e5e7eb; }
+#draftMain .dr-item.co-none .dr-title { color: #9ca3af; }
+#draftMain .co-cls { margin-left: auto; display: inline-flex; gap: 10px; font-size: 12.5px; white-space: nowrap; }
+#draftMain .co-cls label { display: inline-flex; align-items: center; gap: 3px; cursor: pointer; }
+#draftMain .co-subs { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0; }
+#draftMain .dr-ref select[data-f="vsel"] { margin-left: 6px; font-size: 11.5px; max-width: 360px; }
+
+/* ⑩ 상위 계정 묶음 체크 */
+#draftMain .co-grps { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 6px 0 4px; padding: 6px 8px; background: #f4f8fd; border: 1px solid #dbe6f3; border-radius: 8px; }
+#draftMain .co-grps-h { font-size: 12px; font-weight: 700; color: #0d3b66; margin-right: 4px; }
+#draftMain .co-grps-n { margin: 2px 0 4px; }
+
+/* 심의안(미리보기) — 서버 PDF 창 */
+.dr-bar-btns button.teal-line { background: #fff; border-color: #0f766e; color: #0f766e; font-weight: 700; }
+.qc-pdfview { position: fixed; inset: 0; z-index: 9000; background: rgba(13,36,63,.45); display: flex; align-items: center; justify-content: center; padding: 18px; }
+.qc-pdfview .box { width: min(1100px, 100%); height: 100%; background: #fff; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
+.qc-pdfview .bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid #e5eaf0; font-size: 13px; }
+.qc-pdfview .bar .help { flex: 1; color: #64748b; font-size: 11.5px; }
+.qc-pdfview .bar a, .qc-pdfview .bar button { font-size: 12px; padding: 4px 10px; border: 1px solid #cfd6de; border-radius: 6px; background: #fff; color: #0d5ba8; text-decoration: none; cursor: pointer; }
+.qc-pdfview .bar a.hw { background: #0f766e; border-color: #0f766e; color: #fff; font-weight: 700; }
+.qc-pdfview iframe { flex: 1; border: 0; width: 100%; }
+
+/* 미흡인데 지적 문안 미선택 */
+#draftMain .dr-title .need, .dr-type.need { display: inline-block; padding: 0 7px; border-radius: 99px; background: #fee2e2; color: #b42318; font-size: 11px; font-weight: 700; margin-left: 4px; }
+
+/* 다른 화면으로 옮기기 전 — 체크되지 않은 항목 안내창 */
+.qc-nag { position: fixed; inset: 0; z-index: 9100; background: rgba(13,36,63,.35); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.qc-nag .box { width: min(440px, 100%); background: #fff; border-radius: 12px; padding: 18px 20px 14px; box-shadow: 0 18px 40px rgba(0,0,0,.2); font-size: 14px; color: #1e293b; }
+.qc-nag .box b { display: block; color: #b42318; margin-bottom: 8px; }
+.qc-nag .box ul { margin: 0 0 12px 18px; padding: 0; font-size: 13px; color: #334155; max-height: 40vh; overflow: auto; }
+.qc-nag .btns { text-align: right; }
+.qc-nag .btns button { font-size: 13px; padding: 6px 16px; border-radius: 8px; border: 1px solid #0d5ba8; background: #0d5ba8; color: #fff; cursor: pointer; }
+#draftMain .dr-item.flash-need { outline: 2px solid #e11d48; outline-offset: 2px; animation: qcNeed 1s ease-in-out 3; }
+@keyframes qcNeed { 50% { outline-color: #fecdd3; } }
+#draftMain tr.flash-need td { background: #fee2e2 !important; transition: background .3s; }

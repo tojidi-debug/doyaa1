@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<!-- 개발서버 전용(메뉴 「[품감] 심의안(개발)」, DB 에만 있음): 심의안 초안 작성·서식 채우기까지. 운영 메뉴는 qc.html -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow, noarchive, noimageindex">
+<meta name="googlebot" content="noindex, nofollow">
+<meta name="ClaudeBot" content="noindex, nofollow">
+<meta name="color-scheme" content="light">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>[품감] 심의안</title>
+<link rel="stylesheet" href="./css/font.css">
+<link rel="stylesheet" href="./css/base.css">
+<link rel="stylesheet" href="./css/ui.css">
+<!-- 뼈대·색은 [재무데이터 조회]와 같은 파일(review_case.css). 이 화면만의 차이는 qc.css -->
+<link rel="stylesheet" href="./css/review_case.css">
+<link rel="stylesheet" href="./css/qc.css">
+</head>
+<body data-mode="dev">
+  <header class="masthead">
+    <div class="masthead-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">QC</span>
+        <div>
+          <h1>심의안(개발)</h1>
+          <p>AUDIT FIRM QUALITY-CONTROL REVIEW · 전자공시 회계법인사업보고서</p>
+        </div>
+      </div>
+      <div class="source-links">
+        <span class="source-note">DART 회계법인사업보고서  (단위 : 백만원)</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="catalog" aria-labelledby="catalog-title">
+      <h2 id="catalog-title" class="sr-only">회계법인 찾기</h2>
+      <form id="searchForm" class="search-row">
+        <label class="search-wrap">
+          <span class="sr-only">회계법인명 검색</span>
+          <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+          <input id="query" class="search" type="search" placeholder="회계법인명 일부 (예: 삼일)" autocomplete="off">
+          <span class="key-hint" aria-hidden="true">/</span>
+        </label>
+        <button id="searchButton" class="filter-button" type="submit">찾기</button>
+      </form>
+      <div class="search-options">
+        <p class="search-hint">조회 대상은 회계법인사업보고서입니다(감사반은 공시 대상이 아닙니다).</p>
+      </div>
+      <div class="list-meta"><span id="resultCount">회계법인명을 입력해 주세요</span></div>
+      <div id="firmList" class="case-list" aria-live="polite"><div class="empty">검색어를 넣으면 회계법인 목록이 나옵니다.</div></div>
+
+      <div id="reportsBox" class="reports" hidden>
+        <div class="list-meta"><span id="reportsTitle"></span><span id="reportsHint">최근 3개 사업연도 · 정정 포함</span></div>
+        <div id="reportList" class="report-list" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <article id="document" class="document" aria-live="polite">
+      <div id="welcome" class="welcome">
+        <p class="eyebrow">AUDIT FIRM OVERVIEW</p>
+        <h2>회계법인의 사업보고서 등의 정보를 조회</h2>
+        <p>왼쪽에서 회계법인을 찾고 사업보고서의 [내역 보기]를 누르면 일반현황·감사실적·인원현황·재무현황·부문별 매출현황이 심의안 (붙임1) 모양으로 나옵니다. [엑셀 복사]로 붙여넣고, [심의안에 반영]으로 한글 초안을 내려받습니다.</p>
+        <div class="welcome-rule"></div>
+      </div>
+      <div id="detail" hidden></div>
+    </article>
+  </main>
+
+  <div id="qcToast" class="fs-toast" role="status" aria-live="polite"></div>
+
+  <!-- 한글(hwpx) 채우기 엔진은 안건 화면과 같은 파일(classic script). {{@표}} 를 안 쓰므로 docgen.js 는 필요 없다 -->
+  <script src="./agenda/hwpx.js"></script>
+  <script src="./agenda/hwpx_fill.js"></script>
+  <script src="./agenda2/tpl_names.js"></script>
+  <script src="./agenda2/tpl_transfer.js"></script>
+<script>window.QC_STATIC = true;</script>
+<script src="./qc/static/qc_static.js"></script>
+<script src="./qc/qc_draft.js"></script>
+<script src="./qc/qc_gangpyeong.js"></script>
+  <script type="module" src="./js/qc.js"></script>
+</body>
+</html>
