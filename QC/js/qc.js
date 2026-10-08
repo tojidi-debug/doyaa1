@@ -5,7 +5,8 @@
  *   서버: /api/v1/qc/* (api/v1/qc.py). 한글 채우기는 브라우저(HwpxFill, 안건 화면과 같은 엔진).
  */
 import './ui/guard.js';
-import { api, auth } from './api.js';
+import * as API from './api.js';
+const { api, auth } = API;
 import { showAlert, showConfirm } from './ui/dialog.js';
 import { $, esc, copyText } from './lookup_kit.js';
 import { grids, tsv, templateCtx, fmtCnt, periodLabel, fiscalSpan, firmName } from './qc_data.js';
@@ -66,6 +67,8 @@ function renderReports() {
 }
 
 async function downloadPdf(no, button) {
+  /* 정적 사이트: PDF 는 서버가 공시뷰어에서 받아야 해서, 전자공시 화면을 새 창으로 연다(거기서 [다운로드]) */
+  if (STATIC) { window.open(`https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${no}`, '_blank', 'noopener'); return; }
   const was = button.textContent; button.disabled = true; button.textContent = '받는 중…';
   try {
     const res = await fetch(`/api/v1/qc/reports/${no}/pdf`, { credentials: 'same-origin' });
@@ -563,7 +566,10 @@ function wireSelectCopy() {
 /* 정적 사이트: 개발서버에서 내보낸 회계법인 정보(JSON) 불러오기 */
 function wireStaticImport() {
   const box = document.createElement('div'); box.className = 'qc-static';
-  box.innerHTML = '<button type="button" id="btnImport" class="primary">회계법인 정보 불러오기(JSON)</button><p>이 사이트는 서버가 없어 전자공시를 바로 조회하지 못합니다. 개발서버 화면의 [정보 내보내기(JSON)]로 받은 파일을 불러오면 (붙임1)·심의안 초안 작성·평가표·강평을 그대로 쓸 수 있습니다.</p>';
+  const live = API.hasRelay && API.hasRelay();
+  box.innerHTML = '<button type="button" id="btnImport" class="primary">회계법인 정보 불러오기(JSON)</button>' + (live
+    ? '<p>회계법인을 찾아 사업보고서 [내역 보기]를 누르면 전자공시(중계)에서 바로 읽습니다(처음 한 번은 해석 엔진을 받느라 20초 안팎). 개발서버에서 내보낸 파일도 그대로 불러올 수 있습니다.</p>'
+    : '<p>이 사이트는 서버가 없어 전자공시를 바로 조회하지 못합니다. 개발서버 화면의 [정보 내보내기(JSON)]로 받은 파일을 불러오면 (붙임1)·심의안 초안 작성·평가표·강평을 그대로 쓸 수 있습니다.</p>');
   $('searchForm').after(box);
   $('btnImport').addEventListener('click', async () => {
     const f = await pickFile('.json'); if (!f) return;
