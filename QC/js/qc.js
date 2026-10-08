@@ -592,7 +592,7 @@ async function boot() {
   state.admin = (state.me.roles || []).includes('admin');
   await loadTemplates();
   wireSelectCopy();
-  if (STATIC) wireStaticImport();
+  if (STATIC && !(API.hasRelay && API.hasRelay())) wireStaticImport();   /* 전자공시 중계가 있으면 JSON 불러오기는 뺀다(사용자 지정 2026-10-08) */
   $('searchForm').addEventListener('submit', (e) => { e.preventDefault(); search($('query').value); });
   document.addEventListener('keydown', (e) => { if (e.key === '/' && document.activeElement !== $('query')) { e.preventDefault(); $('query').focus(); } });
   $('query').focus();
