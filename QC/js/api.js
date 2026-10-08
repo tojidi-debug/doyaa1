@@ -110,8 +110,11 @@ export const api = {
   async patch(path) { throw only(path); },
   async del() { throw only('서식 지우기'); },
   async upload(path) { throw only(path.includes('reconcile') ? '외감회사대사' : '서식 올리기'); },
-  async postBlob(path) {
-    if (path === '/agenda/hwp/pdf') throw new ApiError(503, '심의안(미리보기) PDF는 개발서버에서만 됩니다(한글→PDF 변환기가 서버에 있음). [심의안 초안(hwpx)]을 내려받아 한글에서 확인하세요.');
+  async postBlob(path, body) {
+    if (path === '/agenda/hwp/pdf') {   /* 서버 변환기(rhwp)의 브라우저판으로 그린 HTML 미리보기 */
+      const { previewHtml } = await import('../qc/static/hwp_preview.js');
+      try { return await previewHtml(body); } catch (e) { throw new ApiError(500, `미리보기를 만들지 못했습니다: ${e.message || e}`); }
+    }
     throw only(path);
   },
   async downloadPost(path) { throw only(path); },

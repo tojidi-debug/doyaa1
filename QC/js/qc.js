@@ -425,18 +425,19 @@ async function draftFile(inputs, model) {
 /* 심의안(미리보기) — 내려받을 hwpx 를 그대로 서버(rhwp)에서 PDF 로 바꿔 창에 띄운다(사용자 지정 2026-10-08).
  * ⚠ rhwp 는 한글이 아니라 글꼴·줄바꿈이 한두 글자 다를 수 있다 — 최종 확인은 한글에서 */
 async function previewDraft(model) {
-  const t0 = Date.now(); toast('심의안 미리보기를 만드는 중… (보통 5~10초)');
+  const t0 = Date.now(); toast(STATIC ? '심의안 미리보기를 만드는 중… (처음은 엔진을 받느라 20초 안팎)' : '심의안 미리보기를 만드는 중… (보통 5~10초)');
   try {
     const { r, name } = await draftFile(basicInputs(), model);
     const url = URL.createObjectURL(await api.postBlob('/agenda/hwp/pdf', r.bytes));
     const hurl = URL.createObjectURL(new Blob([r.bytes]));
     document.querySelectorAll('.qc-pdfview').forEach(x => x.remove());
     const ov = document.createElement('div'); ov.className = 'qc-pdfview';
-    ov.innerHTML = `<div class="box"><div class="bar"><b>심의안(미리보기)</b><span class="help">${esc(name)} · ${((Date.now() - t0) / 1000).toFixed(1)}초 · 서버가 만든 PDF라 글꼴·줄바꿈이 한글과 조금 다를 수 있습니다</span>
-      <a href="${url}" download="${esc(name.replace(/\.hwpx$/, '.pdf'))}">PDF 저장</a><a href="${hurl}" download="${esc(name)}" class="hw">hwpx 내려받기</a><button type="button" data-close>닫기</button></div>
+    ov.innerHTML = `<div class="box"><div class="bar"><b>심의안(미리보기)</b><span class="help">${esc(name)} · ${((Date.now() - t0) / 1000).toFixed(1)}초 · ${STATIC ? '브라우저에서 그린 미리보기라' : '서버가 만든 PDF라'} 글꼴·줄바꿈이 한글과 조금 다를 수 있습니다</span>
+      ${STATIC ? '<a href="#" data-print>인쇄(PDF 저장)</a>' : `<a href="${url}" download="${esc(name.replace(/\.hwpx$/, '.pdf'))}">PDF 저장</a>`}<a href="${hurl}" download="${esc(name)}" class="hw">hwpx 내려받기</a><button type="button" data-close>닫기</button></div>
       <iframe src="${url}#toolbar=1&view=FitH" title="심의안 미리보기"></iframe></div>`;
     document.body.append(ov);
     const close = () => { ov.remove(); URL.revokeObjectURL(url); URL.revokeObjectURL(hurl); };
+    ov.querySelector('[data-print]')?.addEventListener('click', (e) => { e.preventDefault(); ov.querySelector('iframe').contentWindow.print(); });
     ov.querySelector('[data-close]').onclick = close; ov.addEventListener('click', (e) => { if (e.target === ov) close(); });
     if ((r.missing || []).length) toast(`값을 찾지 못해 그대로 둔 자리 ${r.missing.length}종: ${r.missing.slice(0, 8).join(', ')}`);
   } catch (e) { await showAlert(describe(e), { title: '심의안(미리보기)' }); }
