@@ -9,8 +9,8 @@ import * as API from './api.js';
 const { api, auth } = API;
 import { showAlert, showConfirm } from './ui/dialog.js';
 import { $, esc, copyText } from './lookup_kit.js';
-import { grids, tsv, templateCtx, fmtCnt, periodLabel, fiscalSpan, firmName } from './qc_data.js';
-import { openDraft, closeDraft, isOpen as draftOpen } from './qc_draft_ui.js';
+import { grids, tsv, templateCtx, fmtCnt, periodLabel, fiscalSpan, firmName, orgWorkpaper, indiWorkpaper } from './qc_data.js';
+import { openDraft, closeDraft, isOpen as draftOpen, savedDraft, docReady } from './qc_draft_ui.js';
 
 /* 운영 메뉴(qc.html)는 조회·엑셀 복사·외감회사대사까지. 서식 채우기·기본 정보·심의안 초안 작성은 개발서버 메뉴(qc_dev.html, body[data-mode=dev])에서만(사용자 지정 2026-10-08) */
 const DEV = document.body.dataset.mode === 'dev';
@@ -116,7 +116,7 @@ function renderDetail() {
   const prevNote = p.prev ? `전기 인원현황은 ${esc(p.prev.report_nm)}(접수 ${esc(p.prev.rcept_no)})에서 읽었습니다.` : '전년도 사업보고서가 없어 인원현황 전기는 비어 있습니다.';
   d.innerHTML = `
     <div class="qc-head"><div><h2>(붙임1) 감사인 개요 — ${esc(p.corp_name)}</h2><div class="sub">${esc(p.report_nm)} · 접수 ${esc(p.rcept_no)} · 당기 ${esc(periodLabel(p.period))} / 전기 ${esc(periodLabel(p.prev_period))}</div></div>
-      <div class="qc-actions"><button type="button" id="btnCopy" title="두 표와 외부감사대상회사 수를 탭 구분 글로 복사합니다 — 엑셀에 그대로 붙여넣기">엑셀 복사</button>${DEV && !STATIC ? '<button type="button" id="btnJson" title="이 회계법인 정보((붙임1) 값)를 파일(.json)로 받습니다 — GitHub 사이트의 [회계법인 정보 불러오기]에서 씁니다">정보 내보내기(JSON)</button>' : ''}${DEV ? '<button type="button" id="tplDraft" class="draft-red" title="조직 부분·개별 부문의 체크리스트에서 지적사항을 골라 표준문안으로 심의안 초안(hwpx)과 품질관리수준 평가표(엑셀)를 만듭니다">심의안 초안 작성</button><button type="button" class="primary" id="btnFill" title="심의안 서식(hwpx)에 이 값을 채워 내려받습니다">심의안에 반영</button>' : ''}</div></div>
+      <div class="qc-actions"><button type="button" id="btnCopy" title="두 표와 외부감사대상회사 수를 탭 구분 글로 복사합니다 — 엑셀에 그대로 붙여넣기">엑셀 복사</button>${DEV && !STATIC ? '<button type="button" id="btnJson" title="이 회계법인 정보((붙임1) 값)를 파일(.json)로 받습니다 — GitHub 사이트의 [회계법인 정보 불러오기]에서 씁니다">정보 내보내기(JSON)</button>' : ''}${DEV ? '<button type="button" id="tplDraft" class="draft-red" title="조직 부분·개별 부문의 체크리스트에서 지적사항을 골라 표준문안으로 심의안 초안(hwpx)과 품질관리수준 평가표(엑셀)를 만듭니다">심의안 초안 작성</button><button type="button" class="primary" id="btnFill" title="심의안 서식(hwpx)에 이 값을 채워 내려받습니다">심의안에 반영</button><button type="button" class="wp" data-doc="org" title="심의안 초안 작성에서 체크한 상태로 팀장_조직 체크리스트·확인서·발견사항요약표(엑셀)를 만듭니다">조직 조서(초안)</button><button type="button" class="wp" data-doc="indi" title="심의안 초안 작성의 점검회사별 지적으로 팀원_개별 체크리스트·확인서(엑셀)를 만듭니다 — 회사마다 한 파일, 둘 이상이면 zip">개별 조서(초안)</button><details class="qc-docs"><summary title="개선권고사항 외부공개서식·공개 의견조회서(hwpx)">한글 서류 ▾</summary><div class="qc-docs-menu"><button type="button" data-doc="public">외부공개서식</button><button type="button" data-doc="opinion">의견조회서</button></div></details>' : ''}</div></div>
     ${warn}${checks}
     ${DEV ? '<div class="qc-tpl" id="tplBar"></div>' : ''}
     <div class="qc-count"><span>전자공시 개별 외부감사보고서 기준 — 당기 <b class="cur" id="dcCur">…</b>사<span id="dcSub" class="dc-sub"></span> · 전기 <b id="dcPrev">…</b>사<span id="dcCmp" class="dc-cmp"></span></span><button type="button" id="btnFold" class="fold-btn" hidden title="대사 내역 접기/펴기" aria-label="대사 내역 접기/펴기">−</button><button type="button" id="btnRecon" class="recon-btn" title="전자공시에 이 회계법인이 제출인으로 올린 감사보고서 목록을 보고 엑셀로 받거나, 피외감대상회사 목록과 맞춰 봅니다">외감회사대사</button></div>
@@ -155,7 +155,11 @@ function wireDetail() {
   $('btnFold').addEventListener('click', toggle);
   syncFold();
   if ($('reconPanel') && $('reconPanel').dataset.ready) wireRecon();   /* [← BACK] 으로 innerHTML 을 되돌리면 단추의 클릭 연결이 사라진다 — 다시 묶는다(①②③ 이 한 번만 되던 원인) */
-  if (DEV) { $('btnFill').addEventListener('click', fillDialog); $('tplDraft').addEventListener('click', startDraft); wireBasic(); renderTplBar(); }
+  if (DEV) {
+    $('btnFill').addEventListener('click', fillDialog); $('tplDraft').addEventListener('click', startDraft); wireBasic(); renderTplBar();
+    document.querySelector('#detail .qc-actions').addEventListener('click', (e) => { const b = e.target.closest('[data-doc]'); if (!b) return; b.closest('details')?.removeAttribute('open'); docFromSaved(b.dataset.doc, b); });
+    refreshDocButtons();
+  }
   loadDartCounts();
 }
 
@@ -391,6 +395,9 @@ const BASIC_FIELDS = [
   ['담당', '감리담당', '감리팀장 ○○○ 외 1명', 'common'], ['실시기간', '감리실시기간', '2026. 10. 00. ～ 2026. 10. 00.', 'common'],
   ['대상기간', '감리대상기간', '(사업연도에서 가져옴)', 'firm'], ['직전년도', '직전 감리년도', '20XX', 'firm'],
   ['사업자등록번호', '사업자등록번호', '000-86-00000', 'firm', 'nobiz'], ['법인등록번호', '법인등록번호', '000000-0000000', 'firm', 'nocorp'],
+  /* 개선권고사항 공개 의견조회서(사용자 지정 2026-10-15) — 비우면 서식의 보기값 그대로 */
+  ['의견담당', '의견조회 담당자', 'ㅇㅇㅇ 선임조사역', 'common'], ['의견전화', '담당 전화', '(02)3149-0299', 'common'], ['의견메일', '담당 전자우편', 'ㅇㅇ@kicpa.kr', 'common'],
+  ['의견기한', '의견제출 기한', '2026년 X월 X일(X요일)까지', 'firm'], ['위원회', '위탁감리위원회 일시', '2026년 X월 X일 14시 00분(예정)', 'firm'],
 ];
 const lsGet = (k) => { try { return JSON.parse(localStorage.getItem(k) || '{}') || {}; } catch { return {}; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* 사생활 모드 등 */ } };
@@ -469,21 +476,85 @@ async function assembled(model, inputs) {
   const entries = Object.entries(files).map(([n, d]) => { const b = n === name ? data : d; return { name: n, method: 0, crc: H.crc32(b), csize: b.length, usize: b.length, data: b }; });
   return H.zip(entries);
 }
-/* 강평(초안) — 공통 강평자료 사전(qc_gangpyeong.json) + 체크 상태 → hwpx. 서식은 임시로 심의안 서식(감사반 강평 서식이 들어오면 바꿈) */
+/* 강평(초안) — 공통 강평자료 샘플(qc/templates/강평_sample.hwpx, 원본 .hwp 를 rhwp 로 hwpx 변환)을 그대로 두고 체크한 지적만 채운다(2026-10-08, 개발 화면 전용) */
 async function downloadGangpyeong(model) {
   try {
     if (!window.QcGang) throw new Error('강평 엔진(qc_gangpyeong.js)이 없습니다.');
     const res = await fetch(`${ASSET}qc/qc_gangpyeong.json`, { cache: 'no-store' }); if (!res.ok) throw new Error('강평 사전(qc_gangpyeong.json)을 받지 못했습니다.');
     const data = await res.json();
-    const bytes = await templateBytes(); const H = window.HWPX; const files = await H.unzip(bytes); const name = 'Contents/section0.xml';
+    const tr = await fetch(`${ASSET}qc/templates/${encodeURIComponent('강평_sample.hwpx')}`, { cache: 'no-store' }); if (!tr.ok) throw new Error('강평 서식(강평_sample.hwpx)을 받지 못했습니다.');
+    const bytes = new Uint8Array(await tr.arrayBuffer()); const H = window.HWPX; const files = await H.unzip(bytes); const name = 'Contents/section0.xml';
     const today = new Date(); const firm = firmName(state.profile.corp_name);
     const sec = window.QcGang.build(new TextDecoder().decode(files[name]), data, model, { firm, year: today.getFullYear(), date: `${today.getFullYear()}. ${today.getMonth() + 1}. ${today.getDate()}.` });
     const enc = new TextEncoder().encode(sec);
     const out = H.zip(Object.entries(files).map(([n, d]) => { const b = n === name ? enc : d; return { name: n, method: 0, crc: H.crc32(b), csize: b.length, usize: b.length, data: b }; }));
     const fn = `강평(초안)_${firm.replace(/[\\/:*?"<>|]/g, '_')}_${today.toISOString().slice(2, 10).replace(/-/g, '')}.hwpx`;
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([out])); a.download = fn; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000);
-    toast(`${fn} — 서식은 임시(심의안 서식), 감사반 강평 서식이 들어오면 그 모양으로 바꿉니다.`);
+    toast(`${fn} — 공통 강평자료 샘플 서식에 체크한 지적사항을 채웠습니다.`);
   } catch (e) { await showAlert(describe(e), { title: '강평(초안)down' }); }
+}
+/* ── 조직 조서·개별 조서(엑셀) · 외부공개서식·의견조회서(hwpx) (사용자 지정 2026-10-15) ──
+ * 심의안 초안 작성에서 체크한 상태(이 PC 자동 저장)를 쓴다. 엑셀은 서버(services/qc_workpaper.py) — GitHub(정적)판은 브라우저 파이썬,
+ * hwpx 는 브라우저(qc/qc_pubdocs.js — 담당부서 「서류생성 시스템」의 gen_public·gen_opinion 을 옮김). 서버에 남기지 않는다. */
+const DOC_TITLE = { org: '조직 조서(초안)', indi: '개별 조서(초안)', public: '외부공개서식', opinion: '의견조회서' };
+const safeName = (s) => String(s || '').replace(/[\\/:*?"<>|]/g, '_').trim();
+function saveBlob(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000); }
+/* 펼침 목록은 화면 기준(fixed)으로 단추 바로 아래에 — 바깥을 누르면 닫는다 */
+document.addEventListener('toggle', (e) => {
+  const dt = e.target; if (!dt.matches || !dt.matches('details.qc-docs, details.dr-docs') || !dt.open) return;
+  const r = dt.querySelector('summary').getBoundingClientRect(); const m = dt.querySelector('.qc-docs-menu, .dr-docs-menu');
+  m.style.top = `${Math.round(r.bottom + 4)}px`; m.style.left = `${Math.round(Math.max(8, Math.min(r.left, window.innerWidth - 200)))}px`;
+}, true);
+document.addEventListener('click', (e) => { document.querySelectorAll('details.qc-docs[open], details.dr-docs[open]').forEach((dt) => { if (!dt.contains(e.target)) dt.removeAttribute('open'); }); });
+window.addEventListener('scroll', () => document.querySelectorAll('details.qc-docs[open], details.dr-docs[open]').forEach((dt) => dt.removeAttribute('open')), true);
+async function docFromSaved(kind, btn) {
+  try { await loadPhrases(); } catch (e) { await showAlert(describe(e), { title: DOC_TITLE[kind] }); return; }
+  const { model, sel } = savedDraft(state.phrases, state.profile.corp_code);
+  await downloadDoc(kind, model, sel, btn);
+}
+/* 조서 단추는 채운 만큼만 — 아직이면 흐리게(누르면 무엇이 남았는지 알림). 초안 작성에서 고칠 때마다 다시 본다 */
+async function refreshDocButtons() {
+  const bs = document.querySelectorAll('#detail .qc-actions button.wp[data-doc]'); if (!bs.length || !state.profile) return;
+  try { await loadPhrases(); } catch { return; }
+  const { sel } = savedDraft(state.phrases, state.profile.corp_code);
+  bs.forEach((b) => { const why = docReady(b.dataset.doc, state.phrases, sel); b.classList.toggle('wp-off', why.length > 0);
+    b.title = why.length ? `아직 받을 수 없습니다 — 심의안 초안 작성에서 채워 주세요:\n· ${why.join('\n· ')}` : (b.dataset.doc === 'org' ? '체크한 상태로 팀장_조직 체크리스트·확인서·발견사항요약표(엑셀)를 만듭니다' : '점검회사별 지적으로 팀원_개별 체크리스트·확인서(엑셀)를 만듭니다 — 회사마다 한 파일, 둘 이상이면 zip'); });
+}
+async function downloadDoc(kind, model, sel, btn) {
+  const title = DOC_TITLE[kind]; const p = state.profile; const inputs = basicInputs(); const firm = firmName(p.corp_name);
+  if (kind === 'org' || kind === 'indi') {   /* 채우기 전엔 받지 않는다(사용자 지정 2026-10-15) */
+    const why = docReady(kind, state.phrases, sel);
+    if (why.length) { await showAlert(`심의안 초안 작성에서 아래를 먼저 채워 주세요.\n\n· ${why.join('\n· ')}`, { title: `${title} — 아직 받을 수 없습니다` }); return; }
+  } else if (!model.org.groups.length && !(await showConfirm(`심의안 초안 작성에서 조직(품질관리절차) 지적을 아직 체크하지 않았습니다.\n그래도 빈 ${title}을(를) 만들까요?`, { title, okText: '만들기' }))) return;
+
+  const was = btn ? btn.textContent : ''; if (btn) { btn.disabled = true; btn.textContent = '만드는 중…'; }
+  try {
+    if (kind === 'org' || kind === 'indi') {
+      const payload = kind === 'org' ? orgWorkpaper(model, sel, p, inputs) : indiWorkpaper(model, sel, p, inputs);
+      const fd = new FormData(); fd.append('payload', JSON.stringify(payload));
+      if (kind === 'org') { const t = await fetch(`${ASSET}qc/templates/${encodeURIComponent('조직조서.xlsx')}`, { cache: 'no-store' }); if (!t.ok) throw new Error('조직 조서 서식(조직조서.xlsx)을 받지 못했습니다.'); fd.append('template', await t.blob(), '조직조서.xlsx'); }
+      if (STATIC) {   /* 정적 사이트: 같은 파이썬(services/qc_workpaper.py)을 브라우저(Pyodide)에서 — 개별 조서 서식은 중계의 공유 자료 */
+        const { blob, name } = await API.staticWorkpaper(kind, payload, fd.get('template'));
+        saveBlob(blob, name); toast(`${name} — 체크한 상태로 서식을 채웠습니다.`); return;
+      }
+      const res = await fetch(`/api/v1/qc/workpaper/${kind}`, { method: 'POST', credentials: 'same-origin', body: fd });
+      if (!res.ok) { let dd = null; try { dd = (await res.json()).detail; } catch { /* */ } throw new Error(typeof dd === 'string' ? dd : `${title}을(를) 만들지 못했습니다(${res.status})`); }
+      const m = /filename\*=UTF-8''([^;]+)/.exec(res.headers.get('Content-Disposition') || '');
+      const name = m ? decodeURIComponent(m[1]) : `${title}_${safeName(firm)}.xlsx`;
+      saveBlob(await res.blob(), name); toast(`${name} — 체크한 상태로 서식을 채웠습니다.`);
+      return;
+    }
+    if (!window.QcPubDocs) throw new Error('한글 서류 엔진(qc/qc_pubdocs.js)이 없습니다.');
+    const file = kind === 'public' ? '외부공개서식.hwpx' : '의견조회서.hwpx';
+    const r = await fetch(`${ASSET}qc/templates/${encodeURIComponent(file)}`, { cache: 'no-store' }); if (!r.ok) throw new Error(`서식(${file})을 받지 못했습니다.`);
+    const g = p.general || {};
+    const out = await window.QcPubDocs.build(kind, new Uint8Array(await r.arrayBuffer()), model, {
+      firm, ceo: g.ceo || '', addr: g.head_office || '', span: inputs.대상기간 || fiscalSpan(p),
+      contact: inputs.의견담당, tel: inputs.의견전화, email: inputs.의견메일, due: inputs.의견기한, committee: inputs.위원회 });
+    const name = kind === 'public' ? `${safeName(firm)}_외부공개서식.hwpx` : `${safeName(firm)} 개선권고사항 외부공개 의견 조회서.hwpx`;
+    saveBlob(new Blob([out]), name); toast(`${name} — 체크한 지적사항으로 만들었습니다. 한글에서 열어 확인하세요.`);
+  } catch (e) { await showAlert(describe(e), { title }); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = was; } }
 }
 async function loadPhrases() { if (state.phrases) return state.phrases; const res = await fetch(`${ASSET}qc/qc_phrases.json`, { cache: 'no-store' }); if (!res.ok) throw new Error('표준문안 사전(qc_phrases.json)을 받지 못했습니다.'); state.phrases = await res.json(); return state.phrases; }
 async function startDraft() {
@@ -493,6 +564,8 @@ async function startDraft() {
     downloadDraft: (model) => fillTemplate(basicInputs(), model),
     previewDraft: (model) => previewDraft(model),
     downloadGangpyeong: (model) => downloadGangpyeong(model),
+    downloadDoc: (kind, model, sel) => downloadDoc(kind, model, sel),
+    onSaved: () => refreshDocButtons(),
     downloadEval: async (model, sel) => {
       const p = state.profile; const st = p.staff || {}, ac = (p.audit_counts || {}).indi || {}, seg = p.segments || {};
       const org = {}; for (const [k, v] of Object.entries((sel.org || {}).items || {})) if (v && v.cls && v.cls !== '미지적') org[k] = v.cls;

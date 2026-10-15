@@ -130,3 +130,47 @@ export function templateCtx(p, inputs = {}) {
       .flatMap(([k, s]) => [[`${k}_금액`, fmtMn((seg[s] || {}).amount)], [`${k}_비율`, fmtRatio((seg[s] || {}).ratio)]])),
   };
 }
+
+/* ── 조직 조서(초안)·개별 조서(초안) 입력 자료(사용자 지정 2026-10-15) — 서버 services/qc_workpaper.py 가 서식에 채운다 ── */
+const WP_LETTER = { '미설계': 'A', '미운영': 'B', '일부미흡': 'C' };
+const num0 = (v) => (Number.isFinite(Number(v)) && v !== null && v !== '' ? Number(v) : null);
+/* 「감리팀장 홍길동 외 1명」 → 홍길동 */
+export function leadName(s) { const m = /팀장\s*([^\s,·]+)/.exec(String(s || '')); return m && !/○/.test(m[1]) ? m[1] : ''; }
+export function branchCount(s) { const t = String(s || '').trim(); if (!t || t === DASH) return null; if (t === '없음') return 0; return t.split(/\s*[,·]\s*/).filter(Boolean).length; }
+
+export function orgWorkpaper(model, sel, p, inputs = {}) {
+  const g = p.general || {}, st = p.staff || {}, ac = (p.audit_counts || {}).indi || {};
+  const groups = {}, items = {};
+  for (const gr of model.org.groups) {
+    groups[gr.key] = WP_LETTER[gr.type] || 'C';
+    for (const it of gr.items) items[it.key] = { cls: it.cls, text: it.text || '' };
+  }
+  const indi = {}; for (const it of model.indi.items) indi[it.key] = (it.perCo || []).reduce((a, b) => a + (Number(b) || 0), 0);
+  const v = {}; for (const r of (model.score && model.score.violRows) || []) v[r.row] = Number(r.n) || 0;
+  const other = Object.entries(v).filter(([k]) => k !== 'GAAP' && k !== 'GAAS').reduce((a, [, n]) => a + n, 0);
+  const d = new Date();
+  const dir = num0((st.director || [])[0]), cpa = num0((st.cpa || [])[0]);
+  return {
+    firm: firmName(p.corp_name), span: inputs.대상기간 || fiscalSpan(p), ceo: g.ceo || '', writer: leadName(inputs.담당),
+    today: [d.getFullYear(), d.getMonth() + 1, d.getDate()], groups, items, indi,
+    companies: Number((sel && sel.indi && sel.indi.K) || model.indi.K || 0),
+    viol: { gaap: v.GAAP || 0, gaas: v.GAAS || 0, other },
+    profile: { branches: branchCount(g.branches), cpa: dir != null && cpa != null ? dir + cpa : null, directors: dir,
+      audited: num0((ac.total || [])[0]), listed: num0((ac.issuer || [])[0]) },
+  };
+}
+
+/* 점검회사마다 항목별 지적 문구 — 지적 예시 없이 평가표에만 체크한 항목은 항목 제목(「… 미흡」)을 넣는다(빈 칸이면 확인서가 「지적없음」이 된다) */
+export function indiWorkpaper(model, sel, p, inputs = {}) {
+  const names = ((sel && sel.indi && sel.indi.companies) || []).map((c, i) => String(c || '').trim() || `회사${i + 1}`);
+  const companies = names.map((name, i) => {
+    const items = {};
+    for (const it of model.indi.items) {
+      const texts = (it.findings || []).filter((f) => f.cos && f.cos[i]).map((f) => f.text);
+      if (!texts.length && Number((it.perCo || [])[i]) > 0) texts.push(it.title);
+      if (texts.length) items[it.key] = texts;
+    }
+    return { name, items };
+  });
+  return { firm: firmName(p.corp_name), lead: leadName(inputs.담당), member: '', companies };
+}

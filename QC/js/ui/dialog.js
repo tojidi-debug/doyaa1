@@ -304,6 +304,18 @@ export function showConfirm(message, {
   });
 }
 
+/** 단추 몇 개 중 하나(「닫기」 없이). 창을 닫거나 Esc 면 `null`.
+ *
+ *     const how = await showAsk('zip파일로 다운할까요?', { title: '모두 받기',
+ *       buttons: [{ label: 'NO', value: 'each' }, { label: 'YES', value: 'zip', primary: true }] });
+ */
+export function showAsk(message, { title = '확인', buttons = [] } = {}) {
+  return open({
+    title, body: message, cancelValue: null,
+    buttons: buttons.map((b) => ({ label: b.label, value: b.value, cls: b.primary ? 'kd-primary' : '' })),
+  });
+}
+
 /** 한 줄 입력. 취소하면 `null`. */
 export function showPrompt(message, {
   title = '입력', value = '', placeholder = '', okText = '확인',

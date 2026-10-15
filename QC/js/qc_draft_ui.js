@@ -34,6 +34,7 @@ function save() {
     const p = ctx.state.profile;
     sel._meta = { corp_code: p.corp_code, firm: p.corp_name, report: p.report_nm || '', saved: Date.now() };
     try { localStorage.setItem(KEY(p.corp_code), JSON.stringify(sel)); } catch { /* */ }
+    if (ctx.onSaved) ctx.onSaved();
   }, 150);
 }
 const summary = (v) => {
@@ -95,6 +96,44 @@ export function closeDraft() {
 export function isOpen() { const p = $('draftPanel'); return !!(p && !p.hidden); }
 export function currentModel() { return Q().model(ctx.phrases, sel, K()); }
 export function currentSel() { return sel; }
+/* 조서를 받을 만큼 채웠는가(사용자 지정 2026-10-15: 「아직 선택한 게 없는데 바로 다운로드되지 않게」) — 못 받는 까닭 목록(비면 받을 수 있음)
+ *   조직 조서: 10항목 모두 분류(미지적 포함)를 고르고, 지적한 항목은 문안이 있어야
+ *   개별 조서: 점검회사 이름이 모두 있고, 개별 지적을 하나 이상 체크하고, 체크한 지적은 문안(지적 예시)을 골라야 */
+export function docReady(kind, phrases, s) {
+  const why = [];
+  if (kind === 'org') {
+    const none = [], blank = [];
+    for (const g of phrases.org.groups) for (const it of g.items) {
+      const st = (s.org.items || {})[it.key] || {};
+      if (!st.cls) none.push(it.title); else if (st.cls !== '미지적' && !String(st.text || '').trim()) blank.push(it.title);
+    }
+    if (none.length) why.push(`조직 ${none.length}개 항목의 분류(미지적·일부미흡·미운영·미설계)를 아직 고르지 않았습니다 — ${none.slice(0, 4).join(', ')}${none.length > 4 ? ` 외 ${none.length - 4}개` : ''}`);
+    if (blank.length) why.push(`지적한 조직 항목의 문안이 비어 있습니다 — ${blank.join(', ')}`);
+    return why;
+  }
+  const k = Math.max(0, Number(s.indi.K) || 0); const names = (s.indi.companies || []).slice(0, k);
+  const empty = names.map((n, i) => (String(n || '').trim() ? '' : `회사${i + 1}`)).filter(Boolean);
+  if (!k) why.push('점검회사 수를 정해 주세요.');
+  if (empty.length) why.push(`점검회사 이름을 넣어 주세요 — ${empty.join(', ')}`);
+  let any = 0; const miss = [];
+  for (const it of phrases.indi.items) {
+    const c = Q().indiCounts(it, s, k); const st = (s.indi.items || {})[it.key] || {};
+    for (let ci = 0; ci < k; ci++) {
+      const has = (c.perCo[ci] || 0) > 0 || (Number((st.marks || [])[ci]) || 0) > 0; if (!has) continue;
+      any += 1; const mine = c.co[ci] || { f: [], etc: '' };
+      if (!mine.f.length && !mine.etc && !(it.key === 'i17' && c.rows.some((r) => r.cos[ci]))) miss.push(`${String(names[ci] || '').trim() || `회사${ci + 1}`} · ${it.title.replace(/\s*미흡\s*$/, '')}`);
+    }
+  }
+  if (!any) why.push('개별(점검회사별) 지적을 아직 하나도 체크하지 않았습니다.');
+  if (miss.length) why.push(`체크했지만 지적 문안(예시)을 고르지 않은 항목이 있습니다 — ${miss.slice(0, 4).join(', ')}${miss.length > 4 ? ` 외 ${miss.length - 4}개` : ''}`);
+  return why;
+}
+/* 초안 작성 창을 열지 않고도 그 회계법인의 자동 저장 상태로 모형을 만든다 — (붙임1) 줄의 조서·서류 단추(사용자 지정 2026-10-15) */
+export function savedDraft(phrases, code) {
+  if (isOpen() && ctx && ctx.state.profile.corp_code === code) return { model: currentModel(), sel };
+  const v = load(code); const k = Math.max(0, Number(v.indi.K) || 0);
+  return { model: Q().model(phrases, v, k), sel: v };
+}
 
 /* ── 그리기 ── */
 function render() { const m = currentModel(); renderLeft(m); renderMain(m); }
@@ -140,6 +179,12 @@ function renderMain(m) {
         <button type="button" id="drPdf" class="teal-line" title="내려받을 심의안 초안(hwpx)을 그대로 PDF로 바꿔 미리 봅니다 — 내려받기 전 확인용">심의안(미리보기)</button>
         <button type="button" id="drHwpx" class="teal" title="체크한 항목으로 심의안 초안(hwpx)을 내려받습니다 — 일부만 작성돼 있어도 그 상태로">심의안 초안(hwpx)</button>
         <button type="button" id="drGang" class="navy" title="체크한 지적사항으로 감사인감리 결과 강평자료 초안(hwpx) — 개선방향·이행보고 제출문서·감리 지적사례 포함">강평(초안)down</button>
+        <details class="dr-docs"><summary title="체크한 상태로 조서·확인서(엑셀)와 외부공개서식·의견조회서(hwpx)를 내려받습니다">조서·서류 ▾</summary><div class="dr-docs-menu">
+          <button type="button" data-doc="org" title="팀장_조직 체크리스트·확인서·발견사항요약표(엑셀)">조직 조서(초안)</button>
+          <button type="button" data-doc="indi" title="팀원_개별 체크리스트·확인서(엑셀) — 점검회사마다 한 파일, 둘 이상이면 zip">개별 조서(초안)</button>
+          <button type="button" data-doc="public" title="개선권고사항 외부공개서식(hwpx)">외부공개서식</button>
+          <button type="button" data-doc="opinion" title="개선권고사항 공개 의견조회서(hwpx)">의견조회서</button>
+        </div></details>
         <span class="sep"></span>
         <button type="button" id="drSave" title="지금 탭(${tab === 'org' ? '조직' : '개별'})의 체크·작성 내용을 파일(.json)로 저장합니다 — 다른 담당자에게 보내 합치거나 다른 PC에서 이어 쓸 때만(이 PC에는 자동 저장)">파일로 저장</button>
         <button type="button" id="drLoad" title="다른 담당자가 [파일로 저장]으로 보낸 파일(.json)을 골라 이 화면에 합칩니다(예: 조직 담당 + 개별 담당)">파일 불러오기</button>
@@ -485,6 +530,7 @@ function wire(root) {
       ctx.showConfirm(`아래는 아직 체크되지 않았습니다(지적 문안 없이 항목 제목만 들어갑니다).\n\n${lines.join('\n')}\n\n그래도 만들까요?`, { title: '체크할 곳', okText: '그래도 만들기' }).then(ok => { if (ok) go(); });
       return;
     }
+    if (t.dataset.doc) { t.closest('details')?.removeAttribute('open'); ctx.downloadDoc && ctx.downloadDoc(t.dataset.doc, currentModel(), sel); return; }
     if (t.id === 'drGang') { ctx.downloadGangpyeong(currentModel(), sel); return; }
     if (t.id === 'drXlsx') { ctx.downloadEval(currentModel(), sel); return; }
     if (t.id === 'drSave') { saveFile(); return; }

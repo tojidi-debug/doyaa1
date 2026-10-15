@@ -1,24 +1,55 @@
 /**
- * [품감] 심의안 — OpenDART 중계(구글 Apps Script 웹 앱)  2026-10-08
+ * [품감] 심의안 · 개별선정 — 전자공시 중계 + 공유 자료 보관(구글 Apps Script 웹 앱)   2026-10-15
  *
- * 왜 필요한가: GitHub 사이트(브라우저)는 전자공시(opendart.fss.or.kr)를 직접 부를 수 없고(CORS),
- *            인증키를 공개 사이트에 둘 수도 없다. 이 스크립트가 키를 숨긴 채 대신 받아 준다.
- * 인증키 자리: 프로젝트 설정(⚙) → 스크립트 속성 → 속성 이름 DART_KEY, 값 = OpenDART 인증키(40자).
- *            ※ 키를 이 코드에 적지 마세요. 코드가 아니라 스크립트 속성에만 둡니다.
- * 허용 기능: list(회계법인사업보고서 목록) · doc(사업보고서 원문 zip) · company(기업개황) — OpenDART(키 사용)
- *           dsab(공시통합검색: 제출인명으로 감사보고서 목록, 외감회사대사용) — dart.fss.or.kr(키 없이 열린 검색)
- * 배포: 배포 → 새 배포 → 유형 「웹 앱」 → 실행 사용자 「나」 · 액세스 권한 「모든 사용자」 → 웹 앱 URL 을 사이트에 등록.
+ * 왜 필요한가: GitHub 사이트(브라우저)는 전자공시(opendart.fss.or.kr · dart.fss.or.kr)를 직접 부를 수 없고(CORS),
+ *            인증키·직원 명단을 공개 사이트에 둘 수도 없다. 이 스크립트가 키를 숨긴 채 대신 받아 주고,
+ *            개별선정의 공유 자료(감리일정·명부·인뎁스 서식·관리자 조정 이력)는 「내 드라이브」 폴더에 암호를 걸어 둔다.
+ *
+ * 스크립트 속성(프로젝트 설정 ⚙ → 스크립트 속성) — ※ 키·암호를 이 코드에 적지 마세요.
+ *   DART_KEY    OpenDART 인증키(40자)                                   — 필수(기존)
+ *   VIEW_PASS   개별선정 공유 자료 「열람」 암호(팀원)                      — 개별선정을 쓸 때
+ *   ADMIN_PASS  개별선정 공유 자료 「올리기·고치기」 암호(관리자)            — 개별선정을 쓸 때
+ *   FOLDER_ID   자료 폴더 ID — 비워 두면 처음 저장할 때 「QC_개별선정_공유자료」 폴더를 만들고 스스로 적는다
+ *
+ * 기능(op)
+ *   ping · list · doc · company · dsab   — 2026-10-08 판 그대로(심의안 사이트가 쓴다. 바꾸지 않음)
+ *   api      OpenDART 원문 API 중 list.json · company.json · document.xml 만 — 인증키는 이 스크립트가 붙인다
+ *   web      공시뷰어(dart.fss.or.kr)의 정해진 주소만 GET — 감사보고서 PDF 받기(뷰어 → PDF 목록 → PDF, 쿠키는 사이트가 넘겨줌)
+ *   auth     암호 확인 → { view, admin }
+ *   store_list · store_get        (열람 암호)   공유 자료 목록 · 하나 읽기
+ *   store_put · store_del         (관리자 암호) 공유 자료 저장(POST) · 지우기
+ *   개별선정의 사전제출자료·대사 자료·매출장은 여기로 보내지 않는다(브라우저 안에서만 읽고 버린다).
+ *
+ * 배포: 처음이면 배포 → 새 배포 → 유형 「웹 앱」 → 실행 사용자 「나」 · 액세스 권한 「모든 사용자」.
+ *       고칠 때는 배포 → 배포 관리 → (연필) 편집 → 버전 「새 버전」 → 배포 — 이렇게 하면 웹 앱 URL 이 바뀌지 않는다.
+ *       처음 store 를 쓸 때 드라이브 권한 승인 창이 한 번 뜬다(편집기에서 setupFolder 를 한 번 실행해 미리 승인해도 된다).
  */
 const OPENDART = 'https://opendart.fss.or.kr/api/';
 const DART = 'https://dart.fss.or.kr';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+const API_PATHS = ['list.json', 'company.json', 'document.xml'];
+const WEB_PATHS = [/^\/dsaf001\/main\.do$/, /^\/pdf\/download\/main\.do$/, /^\/pdf\/download\/pdf\.do$/];
+const STORE_NAME = /^[A-Za-z0-9_.\-]{1,80}$/;
+const MAX_BYTES = 40 * 1024 * 1024;      // 한 번에 돌려줄 원문·PDF 상한(웹 앱 응답 한도 안쪽)
+const MAX_STORE = 20 * 1024 * 1024;      // 공유 자료 한 건 상한(글자 수)
 
-function doGet(e) {
-  const p = (e && e.parameter) || {};
+function doGet(e) { return handle_((e && e.parameter) || {}); }
+
+/* 큰 자료(공유 자료 저장)는 POST — 사이트가 Content-Type: text/plain 으로 JSON 을 보낸다(브라우저 사전 확인 요청이 없게) */
+function doPost(e) {
+  let p = {};
+  try { p = JSON.parse((e && e.postData && e.postData.contents) || '{}'); } catch (err) { return out_({ ok: false, error: '요청 본문(JSON)을 읽지 못했습니다.' }); }
+  return handle_(p);
+}
+
+function handle_(p) {
   try {
-    const key = PropertiesService.getScriptProperties().getProperty('DART_KEY');
+    const props = PropertiesService.getScriptProperties();
+    const key = props.getProperty('DART_KEY');
     if (!key) return out_({ ok: false, error: '중계에 OpenDART 인증키가 없습니다(스크립트 속성 DART_KEY).' });
-    if (p.op === 'ping') return out_({ ok: true, op: 'ping' });
+    if (p.op === 'ping') return out_({ ok: true, op: 'ping', version: '2026-10-15', store: !!props.getProperty('VIEW_PASS') });
+
+    // ── 2026-10-08 판(심의안) — 그대로 ──
     if (p.op === 'list') {
       need_(/^\d{8}$/.test(p.corp_code || ''), '고유번호(8자리)가 아닙니다.');
       need_(/^\d{8}$/.test(p.bgn_de || '') && /^\d{8}$/.test(p.end_de || ''), '조회 기간(YYYYMMDD)이 올바르지 않습니다.');
@@ -60,17 +91,101 @@ function doGet(e) {
       }
       return out_({ ok: true, pages });
     }
+
+    // ── 2026-10-15 추가(개별선정) ──
+    if (p.op === 'api') {    /* OpenDART 원문 API — 사이트의 파이썬(Pyodide)이 서버와 같은 코드로 부른다. 인증키는 여기서만 붙인다 */
+      need_(API_PATHS.indexOf(p.path) >= 0, '허용하지 않는 OpenDART 주소입니다: ' + p.path);
+      const q = typeof p.params === 'string' ? JSON.parse(p.params || '{}') : (p.params || {});
+      const params = {};
+      Object.keys(q).forEach(k => { if (k !== 'crtfc_key' && /^[a-z_]{1,20}$/.test(k)) params[k] = String(q[k]).slice(0, 100); });
+      params.crtfc_key = key;
+      const r = UrlFetchApp.fetch(OPENDART + p.path + '?' + qs_(params), { muteHttpExceptions: true, followRedirects: true });
+      const bytes = r.getContent();
+      need_(bytes.length <= MAX_BYTES, '전자공시 응답이 너무 큽니다(' + Math.round(bytes.length / 1048576) + 'MB).');
+      const ctype = String(r.getHeaders()['Content-Type'] || '');
+      return out_({ ok: true, status: r.getResponseCode(), ctype, b64: Utilities.base64Encode(bytes) });
+    }
+    if (p.op === 'web') {    /* 공시뷰어 — 정해진 세 주소만, 리다이렉트는 사이트가 따라간다(쿠키를 이어 받으려고) */
+      const m = /^https:\/\/dart\.fss\.or\.kr(\/[^?#]*)(\?[^#]*)?$/.exec(String(p.url || ''));
+      need_(m && WEB_PATHS.some(re => re.test(m[1])), '허용하지 않는 공시뷰어 주소입니다.');
+      const head = { 'User-Agent': UA, 'Accept-Language': 'ko-KR,ko;q=0.9' };
+      if (p.referer && String(p.referer).indexOf(DART + '/') === 0) head.Referer = String(p.referer).slice(0, 500);
+      if (p.cookie) head.Cookie = String(p.cookie).replace(/[\r\n]/g, '').slice(0, 4000);
+      const r = UrlFetchApp.fetch(String(p.url), { muteHttpExceptions: true, followRedirects: false, headers: head });
+      const bytes = r.getContent();
+      need_(bytes.length <= MAX_BYTES, '전자공시 응답이 너무 큽니다(' + Math.round(bytes.length / 1048576) + 'MB).');
+      const all = r.getAllHeaders();
+      let sc = all['Set-Cookie'] || []; if (!Array.isArray(sc)) sc = [sc];
+      return out_({ ok: true, status: r.getResponseCode(), b64: Utilities.base64Encode(bytes), headers: {
+        'content-type': String(all['Content-Type'] || ''), location: String(all['Location'] || ''),
+        'content-disposition': String(all['Content-Disposition'] || ''), 'set-cookie': sc.map(String) } });
+    }
+    if (p.op === 'auth') {
+      const who = role_(props, p.pass);
+      return out_({ ok: true, view: who !== '', admin: who === 'admin' });
+    }
+    if (p.op === 'store_list' || p.op === 'store_get') {
+      need_(role_(props, p.pass) !== '', '열람 암호가 맞지 않습니다.');
+      const folder = folder_(props);
+      if (p.op === 'store_list') {
+        const out = []; const it = folder.getFiles();
+        while (it.hasNext()) { const f = it.next(); out.push({ name: f.getName(), size: f.getSize(), updated: f.getLastUpdated().toISOString() }); }
+        return out_({ ok: true, items: out });
+      }
+      need_(STORE_NAME.test(p.name || ''), '자료 이름이 올바르지 않습니다.');
+      const f = find_(folder, p.name);
+      if (!f) return out_({ ok: true, exists: false });
+      return out_({ ok: true, exists: true, name: p.name, data: f.getBlob().getDataAsString('UTF-8'), updated: f.getLastUpdated().toISOString(), size: f.getSize() });
+    }
+    if (p.op === 'store_put' || p.op === 'store_del') {
+      need_(role_(props, p.pass) === 'admin', '관리자 암호가 맞지 않습니다.');
+      need_(STORE_NAME.test(p.name || ''), '자료 이름이 올바르지 않습니다.');
+      const lock = LockService.getScriptLock(); lock.waitLock(20000);
+      try {
+        const folder = folder_(props);
+        const old = find_(folder, p.name);
+        if (p.op === 'store_del') { if (old) old.setTrashed(true); return out_({ ok: true, deleted: !!old }); }
+        const data = String(p.data == null ? '' : p.data);
+        need_(data.length <= MAX_STORE, '자료가 너무 큽니다(' + Math.round(data.length / 1048576) + 'MB, 20MB 까지).');
+        const f = folder.createFile(Utilities.newBlob(data, 'text/plain', p.name));   // 새 파일을 먼저 만들고 옛것을 버린다(반쯤 쓴 파일이 남지 않게)
+        if (old) old.setTrashed(true);
+        return out_({ ok: true, name: p.name, size: f.getSize(), updated: f.getLastUpdated().toISOString() });
+      } finally { lock.releaseLock(); }
+    }
     return out_({ ok: false, error: '알 수 없는 요청입니다.' });
   } catch (err) {
     return out_({ ok: false, error: String(err && err.message || err) });
   }
 }
 
+function role_(props, pass) {
+  const v = props.getProperty('VIEW_PASS') || '', a = props.getProperty('ADMIN_PASS') || '';
+  const s = String(pass || '');
+  if (!s) return '';
+  if (a && s === a) return 'admin';
+  if (v && s === v) return 'view';
+  return '';
+}
+function folder_(props) {
+  const id = props.getProperty('FOLDER_ID');
+  if (id) { try { return DriveApp.getFolderById(id); } catch (e) { /* 지워졌으면 새로 만든다 */ } }
+  const f = DriveApp.createFolder('QC_개별선정_공유자료');
+  props.setProperty('FOLDER_ID', f.getId());
+  return f;
+}
+function find_(folder, name) {
+  const it = folder.getFilesByName(name); let best = null;
+  while (it.hasNext()) { const f = it.next(); if (!best || f.getLastUpdated() > best.getLastUpdated()) best = f; }
+  return best;
+}
+/* 편집기에서 한 번 실행하면 드라이브 권한을 미리 승인하고 폴더를 만든다(선택) */
+function setupFolder() { Logger.log(folder_(PropertiesService.getScriptProperties()).getUrl()); }
+
 function fetch_(path, params) {
-  const qs = Object.keys(params).map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k])).join('&');
-  const r = UrlFetchApp.fetch(OPENDART + path + '?' + qs, { muteHttpExceptions: true, followRedirects: true });
+  const r = UrlFetchApp.fetch(OPENDART + path + '?' + qs_(params), { muteHttpExceptions: true, followRedirects: true });
   if (r.getResponseCode() !== 200) throw new Error('전자공시 응답 ' + r.getResponseCode());
   return r;
 }
+function qs_(params) { return Object.keys(params).map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k])).join('&'); }
 function need_(ok, msg) { if (!ok) throw new Error(msg); }
 function out_(obj) { return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON); }

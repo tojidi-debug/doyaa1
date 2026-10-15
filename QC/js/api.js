@@ -120,7 +120,7 @@ export async function staticDownload(url, body) {
   throw only(url);
 }
 
-export const api = {
+const qcApi = {
   async get(path) {
     if (path.startsWith('/qc/templates')) return { templates: [], active_id: null, builtin: 'qc/templates/심의안.hwpx' };
     if (path.startsWith('/qc/firms?')) return firms(new URLSearchParams(path.split('?')[1]).get('q'));
@@ -160,4 +160,163 @@ export const api = {
   },
   async downloadPost(path) { throw only(path); },
 };
-export const auth = { async me() { return { id: 'github', name: 'GitHub', roles: [] }; }, async logout() { /* */ } };
+
+
+/* ══ [품감] 개별선정 — GitHub(정적) 사이트판(2026-10-15) ══════════════════════════════════════════
+ * 개발서버의 /qc-sample/* · /finstmt/* 를 대신한다.
+ *   계산·해석: 서버와 같은 파이썬(py/gumiho.zip)을 브라우저(Pyodide)에서 — window.QcStatic.sample(이름, 인자)
+ *   공유 자료(감리일정·명부·인뎁스 서식·관리자 조정): 구글 Apps Script 중계의 store(내 드라이브) — 열람/관리자 암호(이 브라우저에 기억)
+ *   사전제출자료·대사 자료: 이 브라우저 안에서만 읽는다(중계·GitHub 어디에도 보내지 않음)
+ *   감사보고서 PDF: 공시뷰어가 주는 파일 이름 머리글을 중계가 읽지 못해 → 전자공시 화면을 새 창으로 연다 */
+const PASS_KEY = 'qc.pass';
+const getPass = () => { try { return localStorage.getItem(PASS_KEY) || ''; } catch { return ''; } };
+const setPass = (v) => { try { if (v) localStorage.setItem(PASS_KEY, v); else localStorage.removeItem(PASS_KEY); } catch { /* */ } };
+async function relayPost(payload) {
+  const url = relayUrl(); if (!url) throw new ApiError(503, '전자공시 중계(구글 Apps Script) 주소가 없습니다(qc/static/relay_config.js).');
+  let r; try { r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload), redirect: 'follow' }); }
+  catch (e) { throw new ApiError(502, `중계(구글 Apps Script)에 연결하지 못했습니다: ${e.message || e}`); }
+  let d; try { d = await r.json(); } catch { throw new ApiError(502, '중계의 응답을 읽지 못했습니다(웹 앱 액세스 권한이 「모든 사용자」인지 확인하세요).'); }
+  if (!d.ok) throw new ApiError(/암호/.test(d.error || '') ? 401 : 502, d.error || '중계 오류');
+  return d;
+}
+let ROLE = null;   /* { view, admin } */
+async function role(force = false) {
+  if (ROLE && !force) return ROLE;
+  const pass = getPass(); if (!pass) return (ROLE = { view: false, admin: false });
+  try { const d = await relayPost({ op: 'auth', pass }); ROLE = { view: !!d.view, admin: !!d.admin }; } catch { ROLE = { view: false, admin: false }; }
+  return ROLE;
+}
+/** 열람·관리자 암호 넣기(이 브라우저에 기억). 맞으면 { view, admin } */
+export async function askPass(message = '') {
+  const { showPrompt, showAlert } = await import('./ui/dialog.js');
+  setTimeout(() => { const i = document.querySelector('#kd-f0'); if (i) i.type = 'password'; }, 0);
+  const v = await showPrompt(`${message ? message + '\n\n' : ''}개별선정 공유 자료(감리일정·명부·인뎁스 서식)는 구글 드라이브에 있고 암호로 막혀 있습니다.\n팀원은 열람 암호, 관리자는 관리자 암호를 넣으세요. 이 브라우저에 기억합니다.`, { title: '중계 암호', placeholder: '암호', okText: '확인' });
+  if (v == null) return ROLE || { view: false, admin: false };
+  setPass(String(v).trim()); const r = await role(true);
+  if (!r.view) { setPass(''); await showAlert('암호가 맞지 않습니다.', { title: '중계 암호' }); }
+  return r;
+}
+const STORE = new Map();
+async function storeGet(name) {
+  if (STORE.has(name)) return STORE.get(name);
+  if (!(await role()).view) { const r = await askPass(); if (!r.view) throw new ApiError(401, '중계 암호가 필요합니다(오른쪽 위 [암호]).'); }
+  const p = relayPost({ op: 'store_get', pass: getPass(), name }).then((d) => (d.exists ? d.data : ''));
+  STORE.set(name, p); p.catch(() => STORE.delete(name)); return p;
+}
+async function storePut(name, data) {
+  if (!(await role()).admin) { const r = await askPass('관리자 암호가 필요합니다.'); if (!r.admin) throw new ApiError(403, '관리자 암호가 필요합니다.'); }
+  const d = await relayPost({ op: 'store_put', pass: getPass(), name, data }); STORE.set(name, Promise.resolve(data)); return d;
+}
+const jsonOf = async (name, empty) => { const t = await storeGet(name); try { return t ? JSON.parse(t) : empty; } catch { return empty; } };
+/* 파이썬 한 번 부르기 — 오류는 서버와 같은 꼴(status·detail) */
+async function py(fn, args) {
+  if (!window.QcStatic || !window.QcStatic.sample) throw new ApiError(503, '브라우저 파이썬(qc/static/qc_static.js)이 없습니다.');
+  let out; try { out = await window.QcStatic.sample(fn, args); } catch (e) { throw new ApiError(500, `처리 중 오류: ${e.message || e}`); }
+  if (out && out.error) { const d = out.error.detail; const e = new ApiError(out.error.status, typeof d === 'string' ? d : (d && d.message) || '처리하지 못했습니다.', d); e.detail = d; throw e; }
+  return out;
+}
+const fileB64 = async (f) => ({ name: f.name || '파일', b64: await b64of(f) });
+const KINDS = { full: '상근용', part: '비상근용' };
+const nowIso = () => new Date().toISOString().slice(0, 19) + '+00:00';
+const binResponse = (o) => { const bin = atob(o.b64); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return new Response(new Blob([u], { type: o.type || 'application/octet-stream' }), { status: 200, headers: { 'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(o.name)}` } }); };
+const jsonResponse = (o) => new Response(JSON.stringify(o), { status: 200, headers: { 'Content-Type': 'application/json' } });
+async function scheduleParts() { return { xlsx: await storeGet('schedule_xlsx'), settings: await jsonOf('settings_json', {}) }; }
+
+async function sampleGet(path) {
+  const [p, qs] = path.split('?'); const q = new URLSearchParams(qs || '');
+  if (p === '/qc-sample/templates') {
+    const out = [];
+    for (const [kind, label] of Object.entries(KINDS)) { const m = await jsonOf(`tpl_${kind}_meta`, null); out.push({ kind, label, ready: !!m, name: m && m.name, size: m && m.size, date: m && m.date, by: m && m.by }); }
+    return out;
+  }
+  if (p === '/qc-sample/schedule') { const { xlsx, settings } = await scheduleParts(); return py('schedule_view', [xlsx, settings]); }
+  if (p === '/qc-sample/holidays') return py('holidays', [q.get('start'), q.get('end')]);
+  if (p === '/qc-sample/registers') {
+    const regs = {}; for (const k of ['prev', 'next', 'review', 'screened']) regs[k] = await jsonOf(`register_${k}`, null);
+    return py('registers_view', [regs, q.get('firm') || '']);
+  }
+  if (p === '/finstmt/companies') return py('companies', [q.get('q') || '']);
+  return null;
+}
+async function sampleUpload(path, fd) {
+  const [p, qs] = path.split('?'); const q = new URLSearchParams(qs || ''); const fy = fd.get('fy') ? Number(fd.get('fy')) : null;
+  if (p === '/qc-sample/parse') return py('parse', [fd.get('file').name, await b64of(fd.get('file')), fy]);
+  if (p === '/qc-sample/reconcile') return py('reconcile', [await Promise.all(fd.getAll('files').map(fileB64)), fy]);
+  if (p === '/qc-sample/other') return py('other', [await fileB64(fd.get('presubmit')), await Promise.all(fd.getAll('files').map(fileB64)), fy]);
+  let m = /^\/qc-sample\/templates\/(full|part)$/.exec(p);
+  if (m) {
+    const f = fd.get('file'); const b64 = await b64of(f); await py('template_check', [f.name, b64]);
+    const meta = { name: f.name, size: f.size, date: nowIso(), by: '관리자' };
+    await storePut(`tpl_${m[1]}`, b64); await storePut(`tpl_${m[1]}_meta`, JSON.stringify(meta)); return { ok: true, ...meta };
+  }
+  if (p === '/qc-sample/schedule') {
+    const f = fd.get('file'); const b64 = await b64of(f); const res = await py('schedule_check', [b64]);
+    const settings = await jsonOf('settings_json', {}); settings.schedule = { name: f.name, date: nowIso(), by: '관리자' };
+    await storePut('schedule_xlsx', b64); await storePut('settings_json', JSON.stringify(settings)); return res;
+  }
+  m = /^\/qc-sample\/registers\/(prev|next|review|screened)$/.exec(p);
+  if (m) {
+    const f = fd.get('file'); const mode = q.get('mode') || 'replace';
+    const old = mode === 'append' ? await jsonOf(`register_${m[1]}`, null) : null;
+    const r = await py('register_upload', [m[1], f.name, await b64of(f), mode, old]);
+    await storePut(`register_${m[1]}`, JSON.stringify(r.register)); return r.result;
+  }
+  return null;
+}
+async function scheduleEdit(fn, args) {
+  const { xlsx, settings } = await scheduleParts(); const r = await py(fn, fn === 'schedule_meetings' ? [settings, ...args] : [xlsx, settings, ...args]);
+  if (JSON.stringify(r.settings) !== JSON.stringify(settings)) await storePut('settings_json', JSON.stringify(r.settings));
+  return r.result;
+}
+/** qc_sample.js 의 call() 자리(서버 주소 /api/v1/… 를 그대로 받아 Response 꼴로 돌려준다) */
+async function fetchRaw(url, options = {}) {
+  const u = new URL(url, location.href); const p = u.pathname.replace(/^.*\/api\/v1/, ''); const q = u.searchParams;
+  try {
+    let m = /^\/qc-sample\/templates\/(full|part)$/.exec(p);
+    if (m) { const b64 = await storeGet(`tpl_${m[1]}`); if (!b64) throw new ApiError(404, `${KINDS[m[1]]} 서식이 아직 없습니다. 관리자가 올려 주세요.`);
+      const meta = await jsonOf(`tpl_${m[1]}_meta`, {}); return binResponse({ b64, name: meta.name || `in-depth_AR_Format_${KINDS[m[1]]}.xlsx`, type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }); }
+    if (p === '/qc-sample/indepth') {
+      const body = JSON.parse(options.body || '{}'); const tpl = await storeGet(`tpl_${body.kind}`);
+      return binResponse(await py('indepth', [body, tpl]));
+    }
+    if (p === '/finstmt/dart/report-versions') return jsonResponse(await py('versions', [q.get('company'), +q.get('year'), q.get('basis') || 'indi', +(q.get('fiscal_month') || 12), q.get('corp_code') || '', q.get('auditor') || '']));
+    if (p === '/qc-sample/opinion-basis') return jsonResponse(await py('opinion_basis', [q.get('company'), +q.get('year'), +(q.get('fiscal_month') || 12), q.get('corp_code') || '', q.get('auditor') || '']));
+    m = /^\/qc-sample\/dart\/pdf\/(\d{14})$/.exec(p);
+    if (m) { window.open(`https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${m[1]}`, '_blank', 'noopener');
+      throw new ApiError(409, '이 사이트에서는 PDF 를 바로 받지 못해 전자공시 화면을 새 창으로 열었습니다 — 그 화면의 [다운로드]로 받으세요.'); }
+    throw only(p);
+  } catch (e) { const err = new Error(e.message || String(e)); err.status = e.status || 500; err.detail = e.detail !== undefined ? e.detail : e.message; throw err; }
+}
+/** [품감] 심의안의 조직·개별 조서(엑셀) — 서버 /qc/workpaper 대신 */
+export async function staticWorkpaper(kind, payload, templateBlob) {
+  let tpl = '';
+  if (kind === 'org') tpl = await b64of(templateBlob);
+  else tpl = (await storeGet('tpl_full')) || (await storeGet('tpl_part'));
+  const o = await py('workpaper', [kind, payload, tpl]);
+  const r = binResponse(o); return { blob: await r.blob(), name: o.name };
+}
+
+export const api = {
+  fetchRaw, askPass,
+  async get(path) {
+    if (path.startsWith('/qc-sample/') || path.startsWith('/finstmt/')) { const r = await sampleGet(path); if (r !== null) return r; throw only(path); }
+    return qcApi.get(path);
+  },
+  async upload(path, fd) {
+    if (path.startsWith('/qc-sample/')) { const r = await sampleUpload(path, fd); if (r !== null) return r; throw only(path); }
+    return qcApi.upload(path, fd);
+  },
+  async put(path, body) {
+    if (path === '/qc-sample/schedule/firm') return scheduleEdit('schedule_firm', [body, false]);
+    if (path === '/qc-sample/schedule/meetings') return scheduleEdit('schedule_meetings', [body.rules || {}]);
+    return qcApi.put(path, body);
+  },
+  async del(path) {
+    if (path.startsWith('/qc-sample/schedule/firm')) return scheduleEdit('schedule_firm', [{ firm: new URLSearchParams(path.split('?')[1] || '').get('firm') || '' }, true]);
+    return qcApi.del(path);
+  },
+  post: (...a) => qcApi.post(...a), patch: (...a) => qcApi.patch(...a), postBlob: (...a) => qcApi.postBlob(...a), downloadPost: (...a) => qcApi.downloadPost(...a),
+};
+/* 관리자 여부 = 관리자 암호를 넣었는가(중계가 확인). 이름은 없음(강조할 이름은 각자 [강조할 이름]으로) */
+export const auth = { async me() { const r = await role(); return { id: 'github', name: 'GitHub', display_name: '', roles: r.admin ? ['admin'] : [] }; }, async logout() { setPass(''); ROLE = null; } };

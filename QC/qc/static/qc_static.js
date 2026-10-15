@@ -48,5 +48,25 @@
     } catch (e) { throw new Error(pyMessage(e)); }
     finally { p.globals.delete('QC_ARGS'); }
   }
-  root.QcStatic = { evalXlsx, parseFirm, audited, py };
+  /* [품감] 개별선정·조서(2026-10-15): 서버와 같은 파이썬 패키지(py/gumiho.zip — backend/src/gumiho 의 필요한 것 + 정적판 대역)를 올리고
+   * qs_web.call(이름, 인자 JSON) 으로 부른다. 전자공시는 py/httpx.py(대역)가 중계로 보낸다. 처음 한 번 엔진·패키지를 받느라 30초 안팎 */
+  let sampleReady = null;
+  async function sampleMod() {
+    if (!sampleReady) sampleReady = (async () => {
+      const p = await py();
+      await p.loadPackage(['micropip', 'lxml']);
+      await p.runPythonAsync('import micropip\nawait micropip.install(["openpyxl", "xlrd", "holidays", "pypdf"])');
+      const zip = await fetch('py/gumiho.zip', { cache: 'no-store' }); if (!zip.ok) throw new Error('파이썬 패키지(py/gumiho.zip)를 받지 못했습니다.');
+      p.unpackArchive(await zip.arrayBuffer(), 'zip', { extractDir: '/home/pyodide' });
+      const qs = p.pyimport('qs_web'); qs.init(root.QC_RELAY || ((() => { try { return localStorage.getItem('qc.relay') || ''; } catch { return ''; } })()));
+      return qs;
+    })();
+    try { return await sampleReady; } catch (e) { sampleReady = null; throw e; }
+  }
+  async function sample(fn, args) {
+    const qs = await sampleMod();
+    const out = await qs.call(fn, JSON.stringify(args || []));   /* async def 를 JS 에서 부르면 Promise — 전역 변수를 쓰지 않아 여러 건이 겹쳐도 섞이지 않는다 */
+    return JSON.parse(out);
+  }
+  root.QcStatic = { evalXlsx, parseFirm, audited, py, sample };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
