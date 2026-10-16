@@ -166,7 +166,7 @@ const qcApi = {
  * 개발서버의 /qc-sample/* · /finstmt/* 를 대신한다.
  *   계산·해석: 서버와 같은 파이썬(py/gumiho.zip)을 브라우저(Pyodide)에서 — window.QcStatic.sample(이름, 인자)
  *   공유 자료(감리일정·명부·인뎁스 서식·관리자 조정): 구글 Apps Script 중계의 store(내 드라이브 폴더 하나, 이름마다 파일 하나를 덮어씀)
- *     — 보기는 암호 없이, 올리기·지우기만 관리자 확인(관리자 구글 이메일, 이 브라우저에 기억) (2026-10-16 사용자 지정)
+ *     — 품감 일정·명부 보기는 열람 암호, 서식은 누구나, 올리기·지우기는 관리자 확인(관리자 구글 이메일) — 이 브라우저에 기억 (2026-10-16 사용자 지정)
  *   사전제출자료·대사 자료: 이 브라우저 안에서만 읽는다(중계·GitHub 어디에도 보내지 않음)
  *   감사보고서 PDF: 공시뷰어가 주는 파일 이름 머리글을 중계가 읽지 못해 → 전자공시 화면을 새 창으로 연다 */
 const PASS_KEY = 'qc.pass';
@@ -183,8 +183,8 @@ async function relayPost(payload) {
 let ROLE = null;   /* { view, admin } */
 async function role(force = false) {
   if (ROLE && !force) return ROLE;
-  const pass = getPass(); if (!pass) return (ROLE = { view: true, admin: false });   /* 보기는 누구나 */
-  try { const d = await relayPost({ op: 'auth', pass }); ROLE = { view: true, admin: !!d.admin }; } catch { ROLE = { view: true, admin: false }; }
+  const pass = getPass(); if (!pass) return (ROLE = { view: false, admin: false });
+  try { const d = await relayPost({ op: 'auth', pass }); ROLE = { view: !!d.view || !!d.admin, admin: !!d.admin }; } catch { ROLE = { view: false, admin: false }; }
   return ROLE;
 }
 /** 관리자 확인 — 관리자 구글 이메일 주소(이 브라우저에 기억). 서식·일정·명부를 올리거나 지울 때만 필요(2026-10-16 사용자 지정).
@@ -193,17 +193,31 @@ export async function askPass(message = '') {
   const { showPrompt, showAlert } = await import('./ui/dialog.js');
   setTimeout(() => { const i = document.querySelector('#kd-f0'); if (i) { i.type = 'email'; i.autocomplete = 'email'; } }, 0);
   const v = await showPrompt(`${message ? message + '\n\n' : ''}관리자 구글 이메일 주소를 입력하세요.\n서식·일정·명부를 올릴 때만 필요하며, 이 브라우저가 기억합니다.`, { title: '관리자 확인', placeholder: 'ooo@gmail.com', okText: '확인' });
-  if (v == null) return ROLE || { view: true, admin: false };
-  setPass(String(v).trim().toLowerCase()); const r = await role(true);
-  if (!r.admin) { setPass(''); ROLE = null; await showAlert('관리자 이메일 주소가 아닙니다.', { title: '관리자 확인' }); }
+  if (v == null) return ROLE || { view: false, admin: false };
+  const old = getPass(); setPass(String(v).trim().toLowerCase()); const r = await role(true);
+  if (!r.admin) { setPass(old); ROLE = null; await showAlert('관리자 이메일 주소가 아닙니다.', { title: '관리자 확인' }); }
+  return r;
+}
+/** 열람 확인 — 품감 일정·명부를 볼 때만(2026-10-16 사용자 지정). 열람 암호(관리자는 관리자 이메일도 됨), 이 브라우저에 기억 */
+async function askView() {
+  const { showPrompt, showAlert } = await import('./ui/dialog.js');
+  setTimeout(() => { const i = document.querySelector('#kd-f0'); if (i) i.type = 'password'; }, 0);
+  const v = await showPrompt('품감 일정·명부를 보려면 열람 암호를 넣어 주세요.\n한 번만 넣으면 이 브라우저가 기억합니다.', { title: '열람 확인', placeholder: '열람 암호', okText: '확인' });
+  if (v == null) return ROLE || { view: false, admin: false };
+  const t = String(v).trim(); setPass(/@/.test(t) ? t.toLowerCase() : t); const r = await role(true);
+  if (!r.view) { setPass(''); ROLE = null; await showAlert('열람 암호가 맞지 않습니다.', { title: '열람 확인' }); }
   return r;
 }
 const STORE = new Map();
-/* 보기는 암호 없이(2026-10-16 사용자 지정) — 기억된 관리자 암호가 있으면 같이 보낸다(옛 판 중계와도 맞게) */
+const OPEN_TO_ALL = (name) => /^tpl_/.test(name);   /* 인뎁스 서식은 암호 없이 — 품감 일정·설정·명부만 열람 확인 */
+let viewAsk = null;   /* 여러 자료를 한꺼번에 읽어도 열람 확인 창은 한 번만 */
 async function storeGet(name) {
   if (STORE.has(name)) return STORE.get(name);
-  const p = relayPost({ op: 'store_get', pass: getPass(), name }).then((d) => (d.exists ? d.data : ''))
-    .catch((e) => { if (e.status === 401) throw new ApiError(401, '공유 자료를 열지 못했습니다 — 중계(구글 Apps Script)를 새 판(Code.gs)으로 다시 배포하면 암호 없이 열립니다.'); throw e; });
+  if (!OPEN_TO_ALL(name) && !(await role()).view) {
+    if (!viewAsk) viewAsk = askView().finally(() => { viewAsk = null; });
+    const r = await viewAsk; if (!r.view) throw new ApiError(401, '품감 일정·명부는 열람 암호가 필요합니다 — 화면을 다시 열면 열람 확인 창이 뜹니다.');
+  }
+  const p = relayPost({ op: 'store_get', pass: getPass(), name }).then((d) => (d.exists ? d.data : ''));
   STORE.set(name, p); p.catch(() => STORE.delete(name)); return p;
 }
 async function storePut(name, data) {
@@ -301,7 +315,7 @@ export async function staticWorkpaper(kind, payload, templateBlob) {
 }
 
 export const api = {
-  fetchRaw, askPass,
+  fetchRaw, askPass, askView,
   async get(path) {
     if (path.startsWith('/qc-sample/') || path.startsWith('/finstmt/')) { const r = await sampleGet(path); if (r !== null) return r; throw only(path); }
     return qcApi.get(path);
