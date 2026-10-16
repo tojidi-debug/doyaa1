@@ -1,0 +1,50 @@
+{
+ "v": 1,
+ "kdf": "PBKDF2-SHA256",
+ "iter": 250000,
+ "salt": "xOCibK+0UZiCDVfJaJIHJg==",
+ "check": "k/hDxISiMjwTI6nS1YmWJfQmz0EnVmdl86YV1tKdP7Am9V5fi3c=",
+ "made": "2026-10-16T04:19:55+00:00",
+ "items": {
+  "schedule_xlsx": {
+   "file": "schedule_xlsx.bin",
+   "enc": true
+  },
+  "settings_json": {
+   "file": "settings_json.bin",
+   "enc": true
+  },
+  "register_prev": {
+   "file": "register_prev.bin",
+   "enc": true
+  },
+  "register_next": {
+   "file": "register_next.bin",
+   "enc": true
+  },
+  "register_review": {
+   "file": "register_review.bin",
+   "enc": true
+  },
+  "register_screened": {
+   "file": "register_screened.bin",
+   "enc": true
+  },
+  "tpl_full": {
+   "file": "tpl_full.txt",
+   "enc": false
+  },
+  "tpl_full_meta": {
+   "file": "tpl_full_meta.txt",
+   "enc": false
+  },
+  "tpl_part": {
+   "file": "tpl_part.txt",
+   "enc": false
+  },
+  "tpl_part_meta": {
+   "file": "tpl_part_meta.txt",
+   "enc": false
+  }
+ }
+}

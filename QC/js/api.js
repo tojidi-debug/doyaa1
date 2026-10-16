@@ -170,13 +170,14 @@ const qcApi = {
  *     — 품감 일정·명부 보기는 열람 암호, 서식은 누구나, 올리기·지우기는 관리자 확인(관리자 구글 이메일 + 관리자 암호, 2중) — 이 브라우저에 기억 (2026-10-16 사용자 지정)
  *   사전제출자료·대사 자료: 이 브라우저 안에서만 읽는다(중계·GitHub 어디에도 보내지 않음)
  *   감사보고서 PDF: 공시뷰어가 주는 파일 이름 머리글을 중계가 읽지 못해 → 전자공시 화면을 새 창으로 연다 */
-const PASS_KEY = 'qc.pass';
-const getPass = () => { try { return localStorage.getItem(PASS_KEY) || ''; } catch { return ''; } };
-const setPass = (v) => { try { if (v) localStorage.setItem(PASS_KEY, v); else localStorage.removeItem(PASS_KEY); } catch { /* */ } };
-const EMAIL_KEY = 'qc.email';   /* 관리자 확인 때만 — 열람 암호만 넣었으면 비어 있다 */
-const getEmail = () => { try { return localStorage.getItem(EMAIL_KEY) || ''; } catch { return ''; } };
-const setEmail = (v) => { try { if (v) localStorage.setItem(EMAIL_KEY, v); else localStorage.removeItem(EMAIL_KEY); } catch { /* */ } };
-const creds = () => ({ pass: getPass(), email: getEmail() });
+const store = (k) => [() => { try { return localStorage.getItem(k) || ''; } catch { return ''; } },
+  (v) => { try { if (v) localStorage.setItem(k, v); else localStorage.removeItem(k); } catch { /* */ } }];
+const [getPass, setPass] = store('qc.pass');     /* 관리자 암호 — 관리자 확인 때만 */
+const [getEmail, setEmail] = store('qc.email');  /* 관리자 이메일 — 관리자 확인 때만 */
+const [getView, setView] = store('qc.view');     /* 열람 암호 */
+if (getPass() && !getEmail() && !getView()) { setView(getPass()); setPass(''); }   /* 예전 판은 열람 암호를 qc.pass 에 두었다 */
+const adminCreds = () => ({ pass: getPass(), email: getEmail() });
+const creds = () => (getEmail() && getPass() ? adminCreds() : { pass: getView(), email: '' });
 async function relayPost(payload) {
   const url = relayUrl(); if (!url) throw new ApiError(503, '전자공시 중계(구글 Apps Script) 주소가 없습니다(qc/static/relay_config.js).');
   let r; try { r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload), redirect: 'follow' }); }
@@ -184,6 +185,37 @@ async function relayPost(payload) {
   let d; try { d = await r.json(); } catch { throw new ApiError(502, '중계의 응답을 읽지 못했습니다(웹 앱 액세스 권한이 「모든 사용자」인지 확인하세요).'); }
   if (!d.ok) throw new ApiError(/암호/.test(d.error || '') ? 401 : 502, d.error || '중계 오류');
   return d;
+}
+/* GitHub 에 실은 공유 자료(QC/data/ — backend/scripts/qc_data_pack.py, 2026-10-16 사용자 지정)
+ *   품감 일정·설정·명부는 열람 암호로 잠겨 있다(공개 저장소라) — 열람 확인을 통과한 이 브라우저에서만 푼다(AES-GCM, 키 = PBKDF2(열람 암호)).
+ *   인뎁스 서식은 그대로. 관리자가 사이트에서 새로 올린 자료(드라이브)가 이 파일보다 새것이면 그것을 쓴다. */
+let LOCAL = null;
+const localManifest = () => (LOCAL ||= fetch('data/manifest.json', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null));
+const unb64 = (t) => Uint8Array.from(atob(t), (c) => c.charCodeAt(0));
+const unseal = async (key, bytes) => new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: bytes.slice(0, 12) }, key, bytes.slice(12)));
+const KEYS = new Map();
+async function localKey(pass) {
+  const m = await localManifest(); if (!m || !pass || !(crypto && crypto.subtle)) return null;
+  if (!KEYS.has(pass)) KEYS.set(pass, (async () => {
+    const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt: unb64(m.salt), iterations: m.iter }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+    try { return (await unseal(key, unb64(m.check))) === 'qc-view-ok' ? key : null; } catch { return null; }
+  })());
+  return KEYS.get(pass);
+}
+async function localGet(name) {
+  const m = await localManifest(); const it = m && m.items && m.items[name]; if (!it) return null;
+  const r = await fetch(`data/${it.file}`, { cache: 'no-store' }); if (!r.ok) return null;
+  if (!it.enc) return r.text();
+  let key = await localKey(getView());
+  if (!key) { await needView(); key = await localKey(getView()); }
+  if (!key) throw new ApiError(401, '품감 일정·명부는 열람 암호가 필요합니다 — 화면을 다시 열면 열람 확인 창이 뜹니다.');
+  return unseal(key, new Uint8Array(await r.arrayBuffer()));
+}
+/* 열람 암호 확인 — GitHub 자료로 먼저(중계 없이도), 안 되면 중계(스크립트 속성 VIEW_PASS) */
+async function viewOk(pass) {
+  if (!pass) return false; if (await localKey(pass)) return true;
+  try { return !!(await relayPost({ op: 'auth', pass })).view; } catch { return false; }
 }
 let ROLE = null;   /* { view, admin } */
 /* 관리자 이메일은 글자로 두지 않고 지문(SHA-256)만 견준다(2026-10-16 사용자 지정 — 페이지 코드에서 주소가 보이지 않게) */
@@ -194,12 +226,9 @@ async function seedOk(email) {
 }
 async function role(force = false) {
   if (ROLE && !force) return ROLE;
-  const pass = getPass(); if (!pass) return (ROLE = { view: false, admin: false });
-  try {
-    const d = await relayPost({ op: 'auth', ...creds() }); const admin = !!d.admin && await seedOk(getEmail());
-    ROLE = { view: !!d.view || admin, admin };
-  } catch { ROLE = { view: false, admin: false }; }
-  return ROLE;
+  let admin = false;
+  if (getEmail() && getPass() && await seedOk(getEmail())) { try { admin = !!(await relayPost({ op: 'auth', ...adminCreds() })).admin; } catch { /* */ } }
+  return (ROLE = { view: admin || await viewOk(getView()), admin });
 }
 /** 관리자 확인 — 관리자 구글 이메일 + 관리자 암호 둘 다(2중 확인, 이 브라우저에 기억). 서식·일정·명부를 올리거나 지울 때만 필요(2026-10-16 사용자 지정).
  *  이메일은 이 페이지에서 지문으로, 암호는 중계(Apps Script)의 스크립트 속성 ADMIN_PASS 와 견준다(암호는 사이트 코드에 없음). 맞으면 { view, admin } */
@@ -219,31 +248,39 @@ export async function askPass(message = '') {
   if (!r.admin) { setPass(old.pass); setEmail(old.email); ROLE = null; await showAlert('관리자 암호가 맞지 않습니다.', { title: '관리자 확인' }); }
   return r;
 }
-/** 열람 확인 — 품감 일정·명부를 볼 때만(2026-10-16 사용자 지정). 열람 암호(관리자로 확인돼 있으면 묻지 않음), 이 브라우저에 기억 */
+/** 열람 확인 — 품감 일정·명부를 볼 때만(2026-10-16 사용자 지정). 열람 암호, 이 브라우저에 기억 */
 async function askView() {
   const { showPrompt, showAlert } = await import('./ui/dialog.js');
   setTimeout(() => { const i = document.querySelector('#kd-f0'); if (i) i.type = 'password'; }, 0);
   const v = await showPrompt('품감 일정·명부를 보려면 열람 암호를 넣어 주세요.\n한 번만 넣으면 이 브라우저가 기억합니다.', { title: '열람 확인', placeholder: '열람 암호', okText: '확인' });
   if (v == null) return ROLE || { view: false, admin: false };
-  setEmail(''); setPass(String(v).trim()); const r = await role(true);
-  if (!r.view) { setPass(''); ROLE = null; await showAlert('열람 암호가 맞지 않습니다.', { title: '열람 확인' }); }
-  return r;
+  const t = String(v).trim();
+  if (!(await viewOk(t))) { await showAlert('열람 암호가 맞지 않습니다.', { title: '열람 확인' }); return ROLE || { view: false, admin: false }; }
+  setView(t); return role(true);
 }
+let viewAsk = null;   /* 여러 자료를 한꺼번에 읽어도 열람 확인 창은 한 번만 */
+const needView = () => (viewAsk ||= askView().finally(() => { viewAsk = null; }));
 const STORE = new Map();
 const OPEN_TO_ALL = (name) => /^tpl_/.test(name);   /* 인뎁스 서식은 암호 없이 — 품감 일정·설정·명부만 열람 확인 */
-let viewAsk = null;   /* 여러 자료를 한꺼번에 읽어도 열람 확인 창은 한 번만 */
 async function storeGet(name) {
   if (STORE.has(name)) return STORE.get(name);
   if (!OPEN_TO_ALL(name) && !(await role()).view) {
-    if (!viewAsk) viewAsk = askView().finally(() => { viewAsk = null; });
-    const r = await viewAsk; if (!r.view) throw new ApiError(401, '품감 일정·명부는 열람 암호가 필요합니다 — 화면을 다시 열면 열람 확인 창이 뜹니다.');
+    const r = await needView(); if (!r.view) throw new ApiError(401, '품감 일정·명부는 열람 암호가 필요합니다 — 화면을 다시 열면 열람 확인 창이 뜹니다.');
   }
-  const p = relayPost({ op: 'store_get', ...creds(), name }).then((d) => (d.exists ? d.data : ''));
+  const p = (async () => {
+    let d = null, err = null;
+    try { d = await relayPost({ op: 'store_get', ...creds(), name }); } catch (e) { err = e; }   /* 중계가 없거나 예전 판이어도 GitHub 자료로 */
+    const m = await localManifest();
+    if (d && d.exists && !(m && m.items && m.items[name] && String(d.updated || '') < String(m.made || ''))) return d.data;   /* 드라이브 쪽이 더 새것 */
+    const loc = await localGet(name); if (loc != null) return loc;
+    if (d) return d.exists ? d.data : '';
+    throw err;
+  })();
   STORE.set(name, p); p.catch(() => STORE.delete(name)); return p;
 }
 async function storePut(name, data) {
   if (!(await role()).admin) { const r = await askPass(); if (!r.admin) throw new ApiError(403, '관리자 확인(구글 이메일 + 관리자 암호)이 필요합니다.'); }
-  const d = await relayPost({ op: 'store_put', ...creds(), name, data }); STORE.set(name, Promise.resolve(data)); return d;
+  const d = await relayPost({ op: 'store_put', ...adminCreds(), name, data }); STORE.set(name, Promise.resolve(data)); return d;
 }
 const jsonOf = async (name, empty) => { const t = await storeGet(name); try { return t ? JSON.parse(t) : empty; } catch { return empty; } };
 /* 파이썬 한 번 부르기 — 오류는 서버와 같은 꼴(status·detail) */
@@ -357,4 +394,4 @@ export const api = {
   post: (...a) => qcApi.post(...a), patch: (...a) => qcApi.patch(...a), postBlob: (...a) => qcApi.postBlob(...a), downloadPost: (...a) => qcApi.downloadPost(...a),
 };
 /* 관리자 여부 = 관리자 암호를 넣었는가(중계가 확인). 이름은 없음(강조할 이름은 각자 [강조할 이름]으로) */
-export const auth = { async me() { const r = await role(); return { id: 'github', name: 'GitHub', display_name: '', roles: r.admin ? ['admin'] : [] }; }, async logout() { setPass(''); setEmail(''); ROLE = null; } };
+export const auth = { async me() { const r = await role(); return { id: 'github', name: 'GitHub', display_name: '', roles: r.admin ? ['admin'] : [] }; }, async logout() { setPass(''); setEmail(''); setView(''); ROLE = null; } };
