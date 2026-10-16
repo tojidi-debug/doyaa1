@@ -3,21 +3,22 @@
  *
  * 왜 필요한가: GitHub 사이트(브라우저)는 전자공시(opendart.fss.or.kr · dart.fss.or.kr)를 직접 부를 수 없고(CORS),
  *            인증키·직원 명단을 공개 사이트에 둘 수도 없다. 이 스크립트가 키를 숨긴 채 대신 받아 주고,
- *            개별선정의 공유 자료(감리일정·명부·인뎁스 서식·관리자 조정 이력)는 「내 드라이브」 폴더에 암호를 걸어 둔다.
+ *            개별선정의 공유 자료(감리일정·명부·인뎁스 서식·관리자 조정 이력)는 「내 드라이브」 폴더 하나에 둔다
+ *            (이름마다 파일 하나를 계속 덮어씀 · 새 파일·시트를 계속 만들거나 휴지통에 옛 판을 남기지 않음 · 보기는 누구나, 올리기는 관리자 이메일 확인).
  *
  * 스크립트 속성(프로젝트 설정 ⚙ → 스크립트 속성) — ※ 키·암호를 이 코드에 적지 마세요.
  *   DART_KEY    OpenDART 인증키(40자)                                   — 필수(기존)
- *   VIEW_PASS   개별선정 공유 자료 「열람」 암호(팀원)                      — 개별선정을 쓸 때
- *   ADMIN_PASS  개별선정 공유 자료 「올리기·고치기」 암호(관리자)            — 개별선정을 쓸 때
+ *   VIEW_PASS   (더 쓰지 않음, 2026-10-16 — 보기는 암호 없이) 있어도 그대로 둬도 됨
+ *   ADMIN_PASS  관리자 구글 이메일 주소(예: ooo@gmail.com) — 공유 자료 올리기·고치기 때 사이트에서 이 주소를 넣으면 관리자(2026-10-16)
  *   FOLDER_ID   자료 폴더 ID — 비워 두면 처음 저장할 때 「QC_개별선정_공유자료」 폴더를 만들고 스스로 적는다
  *
  * 기능(op)
  *   ping · list · doc · company · dsab   — 2026-10-08 판 그대로(심의안 사이트가 쓴다. 바꾸지 않음)
  *   api      OpenDART 원문 API 중 list.json · company.json · document.xml 만 — 인증키는 이 스크립트가 붙인다
  *   web      공시뷰어(dart.fss.or.kr)의 정해진 주소만 GET — 감사보고서 PDF 받기(뷰어 → PDF 목록 → PDF, 쿠키는 사이트가 넘겨줌)
- *   auth     암호 확인 → { view, admin }
- *   store_list · store_get        (열람 암호)   공유 자료 목록 · 하나 읽기
- *   store_put · store_del         (관리자 암호) 공유 자료 저장(POST) · 지우기
+ *   auth     관리자 이메일 확인 → { view: true, admin }
+ *   store_list · store_get        (암호 없음)   공유 자료 목록 · 하나 읽기(2026-10-16 — 보기는 누구나)
+ *   store_put · store_del         (관리자 이메일) 공유 자료 덮어쓰기(POST) · 비우기
  *   개별선정의 사전제출자료·대사 자료·매출장은 여기로 보내지 않는다(브라우저 안에서만 읽고 버린다).
  *
  * 배포: 처음이면 배포 → 새 배포 → 유형 「웹 앱」 → 실행 사용자 「나」 · 액세스 권한 「모든 사용자」.
@@ -32,6 +33,8 @@ const WEB_PATHS = [/^\/dsaf001\/main\.do$/, /^\/pdf\/download\/main\.do$/, /^\/p
 const STORE_NAME = /^[A-Za-z0-9_.\-]{1,80}$/;
 const MAX_BYTES = 40 * 1024 * 1024;      // 한 번에 돌려줄 원문·PDF 상한(웹 앱 응답 한도 안쪽)
 const MAX_STORE = 20 * 1024 * 1024;      // 공유 자료 한 건 상한(글자 수)
+const PART_CHARS = 3 * 1024 * 1024;     // 조각 하나 글자 수(한글이 섞여도 setContent 10MB 아래)
+const PART_RE = /\.part\d+$/;            // 조각 파일 이름(목록에서 숨김)
 
 function doGet(e) { return handle_((e && e.parameter) || {}); }
 
@@ -47,7 +50,7 @@ function handle_(p) {
     const props = PropertiesService.getScriptProperties();
     const key = props.getProperty('DART_KEY');
     if (!key) return out_({ ok: false, error: '중계에 OpenDART 인증키가 없습니다(스크립트 속성 DART_KEY).' });
-    if (p.op === 'ping') return out_({ ok: true, op: 'ping', version: '2026-10-15', store: !!props.getProperty('VIEW_PASS') });
+    if (p.op === 'ping') return out_({ ok: true, op: 'ping', version: '2026-10-16', store: true });
 
     // ── 2026-10-08 판(심의안) — 그대로 ──
     if (p.op === 'list') {
@@ -124,32 +127,40 @@ function handle_(p) {
       const who = role_(props, p.pass);
       return out_({ ok: true, view: who !== '', admin: who === 'admin' });
     }
-    if (p.op === 'store_list' || p.op === 'store_get') {
-      need_(role_(props, p.pass) !== '', '열람 암호가 맞지 않습니다.');
+    if (p.op === 'store_list' || p.op === 'store_get') {   // 보기는 암호 없이(2026-10-16 사용자 지정) — 올리기·지우기만 관리자 암호
       const folder = folder_(props);
       if (p.op === 'store_list') {
         const out = []; const it = folder.getFiles();
-        while (it.hasNext()) { const f = it.next(); out.push({ name: f.getName(), size: f.getSize(), updated: f.getLastUpdated().toISOString() }); }
+        while (it.hasNext()) { const f = it.next(); if (f.isTrashed() || PART_RE.test(f.getName()) || f.getSize() === 0) continue; out.push({ name: f.getName(), size: f.getSize(), updated: f.getLastUpdated().toISOString() }); }
         return out_({ ok: true, items: out });
       }
       need_(STORE_NAME.test(p.name || ''), '자료 이름이 올바르지 않습니다.');
       const f = find_(folder, p.name);
-      if (!f) return out_({ ok: true, exists: false });
-      return out_({ ok: true, exists: true, name: p.name, data: f.getBlob().getDataAsString('UTF-8'), updated: f.getLastUpdated().toISOString(), size: f.getSize() });
+      const data = readParts_(folder, p.name);
+      if (!f || data === '') return out_({ ok: true, exists: false });
+      return out_({ ok: true, exists: true, name: p.name, data: data, updated: f.getLastUpdated().toISOString(), size: data.length });
     }
     if (p.op === 'store_put' || p.op === 'store_del') {
-      need_(role_(props, p.pass) === 'admin', '관리자 암호가 맞지 않습니다.');
-      need_(STORE_NAME.test(p.name || ''), '자료 이름이 올바르지 않습니다.');
+      need_(role_(props, p.pass) === 'admin', '관리자 이메일 주소가 아닙니다.');
+      need_(STORE_NAME.test(p.name || '') && !PART_RE.test(p.name), '자료 이름이 올바르지 않습니다.');
       const lock = LockService.getScriptLock(); lock.waitLock(20000);
       try {
         const folder = folder_(props);
-        const old = find_(folder, p.name);
-        if (p.op === 'store_del') { if (old) old.setTrashed(true); return out_({ ok: true, deleted: !!old }); }
-        const data = String(p.data == null ? '' : p.data);
+        // 늘 같은 파일을 덮어쓴다(2026-10-16 사용자 지정) — 새 파일을 계속 만들거나 휴지통에 옛 판을 남기지 않는다.
+        // setContent 는 한 번에 10MB 까지라 큰 자료는 고정된 조각 파일(이름.part2 · .part3 …)에 나눠 덮어쓴다. 지우기는 내용을 비운다.
+        const data = p.op === 'store_del' ? '' : String(p.data == null ? '' : p.data);
         need_(data.length <= MAX_STORE, '자료가 너무 큽니다(' + Math.round(data.length / 1048576) + 'MB, 20MB 까지).');
-        const f = folder.createFile(Utilities.newBlob(data, 'text/plain', p.name));   // 새 파일을 먼저 만들고 옛것을 버린다(반쯤 쓴 파일이 남지 않게)
-        if (old) old.setTrashed(true);
-        return out_({ ok: true, name: p.name, size: f.getSize(), updated: f.getLastUpdated().toISOString() });
+        const chunks = []; for (let i = 0; i < data.length; i += PART_CHARS) chunks.push(data.slice(i, i + PART_CHARS));
+        if (!chunks.length) chunks.push('');
+        for (let i = 0; ; i++) {
+          const nm = i === 0 ? p.name : p.name + '.part' + (i + 1);
+          const f = find_(folder, nm);
+          if (i >= chunks.length) { if (!f) break; if (f.getSize() > 0) f.setContent(''); continue; }   // 남는 조각은 비워 둔다(지우지 않음)
+          const g = f || (chunks[i] === '' ? null : folder.createFile(nm, ' ', MimeType.PLAIN_TEXT));   // 없을 때만 한 번 만든다
+          if (g) g.setContent(chunks[i]);
+        }
+        if (p.op === 'store_del') return out_({ ok: true, deleted: true });
+        return out_({ ok: true, name: p.name, size: data.length, updated: new Date().toISOString() });
       } finally { lock.releaseLock(); }
     }
     return out_({ ok: false, error: '알 수 없는 요청입니다.' });
@@ -158,13 +169,11 @@ function handle_(p) {
   }
 }
 
-function role_(props, pass) {
-  const v = props.getProperty('VIEW_PASS') || '', a = props.getProperty('ADMIN_PASS') || '';
-  const s = String(pass || '');
-  if (!s) return '';
-  if (a && s === a) return 'admin';
-  if (v && s === v) return 'view';
-  return '';
+function role_(props, pass) {   // ADMIN_PASS = 관리자 구글 이메일(대소문자·앞뒤 빈칸 무시, 2026-10-16) — 보기는 암호 없이
+  const norm = (x) => String(x || '').trim().toLowerCase();
+  const a = norm(props.getProperty('ADMIN_PASS')), s = norm(pass);
+  if (a && s && s === a) return 'admin';
+  return 'view';
 }
 function folder_(props) {
   const id = props.getProperty('FOLDER_ID');
@@ -173,9 +182,13 @@ function folder_(props) {
   props.setProperty('FOLDER_ID', f.getId());
   return f;
 }
+function readParts_(folder, name) {   // 조각까지 이어 읽기
+  let out = ''; for (let i = 0; i < 20; i++) { const f = find_(folder, i === 0 ? name : name + '.part' + (i + 1)); if (!f) break; const t = f.getBlob().getDataAsString('UTF-8'); if (t === '' || t === ' ') { if (i === 0) return ''; break; } out += t; }
+  return out;
+}
 function find_(folder, name) {
   const it = folder.getFilesByName(name); let best = null;
-  while (it.hasNext()) { const f = it.next(); if (!best || f.getLastUpdated() > best.getLastUpdated()) best = f; }
+  while (it.hasNext()) { const f = it.next(); if (f.isTrashed()) continue; if (!best || f.getLastUpdated() > best.getLastUpdated()) best = f; }
   return best;
 }
 /* 편집기에서 한 번 실행하면 드라이브 권한을 미리 승인하고 폴더를 만든다(선택) */

@@ -179,11 +179,11 @@ function renderMain(m) {
         <button type="button" id="drPdf" class="teal-line" title="내려받을 심의안 초안(hwpx)을 그대로 PDF로 바꿔 미리 봅니다 — 내려받기 전 확인용">심의안(미리보기)</button>
         <button type="button" id="drHwpx" class="teal" title="체크한 항목으로 심의안 초안(hwpx)을 내려받습니다 — 일부만 작성돼 있어도 그 상태로">심의안 초안(hwpx)</button>
         <button type="button" id="drGang" class="navy" title="체크한 지적사항으로 감사인감리 결과 강평자료 초안(hwpx) — 개선방향·이행보고 제출문서·감리 지적사례 포함">강평(초안)down</button>
-        <details class="dr-docs"><summary title="체크한 상태로 조서·확인서(엑셀)와 외부공개서식·의견조회서(hwpx)를 내려받습니다">조서·서류 ▾</summary><div class="dr-docs-menu">
+        <details class="dr-docs"><summary title="${window.QC_STATIC ? '체크한 상태로 조서·확인서(엑셀)를 내려받습니다' : '체크한 상태로 조서·확인서(엑셀)와 외부공개서식·의견조회서(hwpx)를 내려받습니다'}">${window.QC_STATIC ? '조서 ▾' : '조서·서류 ▾'}</summary><div class="dr-docs-menu">
           <button type="button" data-doc="org" title="팀장_조직 체크리스트·확인서·발견사항요약표(엑셀)">조직 조서(초안)</button>
           <button type="button" data-doc="indi" title="팀원_개별 체크리스트·확인서(엑셀) — 점검회사마다 한 파일, 둘 이상이면 zip">개별 조서(초안)</button>
-          <button type="button" data-doc="public" title="개선권고사항 외부공개서식(hwpx)">외부공개서식</button>
-          <button type="button" data-doc="opinion" title="개선권고사항 공개 의견조회서(hwpx)">의견조회서</button>
+          ${window.QC_STATIC ? '' : `<button type="button" data-doc="public" title="개선권고사항 외부공개서식(hwpx)">외부공개서식</button>
+          <button type="button" data-doc="opinion" title="개선권고사항 공개 의견조회서(hwpx)">의견조회서</button>`}
         </div></details>
         <span class="sep"></span>
         <button type="button" id="drSave" title="지금 탭(${tab === 'org' ? '조직' : '개별'})의 체크·작성 내용을 파일(.json)로 저장합니다 — 다른 담당자에게 보내 합치거나 다른 PC에서 이어 쓸 때만(이 PC에는 자동 저장)">파일로 저장</button>

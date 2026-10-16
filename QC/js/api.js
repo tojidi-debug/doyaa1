@@ -165,7 +165,8 @@ const qcApi = {
 /* ══ [품감] 개별선정 — GitHub(정적) 사이트판(2026-10-15) ══════════════════════════════════════════
  * 개발서버의 /qc-sample/* · /finstmt/* 를 대신한다.
  *   계산·해석: 서버와 같은 파이썬(py/gumiho.zip)을 브라우저(Pyodide)에서 — window.QcStatic.sample(이름, 인자)
- *   공유 자료(감리일정·명부·인뎁스 서식·관리자 조정): 구글 Apps Script 중계의 store(내 드라이브) — 열람/관리자 암호(이 브라우저에 기억)
+ *   공유 자료(감리일정·명부·인뎁스 서식·관리자 조정): 구글 Apps Script 중계의 store(내 드라이브 폴더 하나, 이름마다 파일 하나를 덮어씀)
+ *     — 보기는 암호 없이, 올리기·지우기만 관리자 확인(관리자 구글 이메일, 이 브라우저에 기억) (2026-10-16 사용자 지정)
  *   사전제출자료·대사 자료: 이 브라우저 안에서만 읽는다(중계·GitHub 어디에도 보내지 않음)
  *   감사보고서 PDF: 공시뷰어가 주는 파일 이름 머리글을 중계가 읽지 못해 → 전자공시 화면을 새 창으로 연다 */
 const PASS_KEY = 'qc.pass';
@@ -182,29 +183,31 @@ async function relayPost(payload) {
 let ROLE = null;   /* { view, admin } */
 async function role(force = false) {
   if (ROLE && !force) return ROLE;
-  const pass = getPass(); if (!pass) return (ROLE = { view: false, admin: false });
-  try { const d = await relayPost({ op: 'auth', pass }); ROLE = { view: !!d.view, admin: !!d.admin }; } catch { ROLE = { view: false, admin: false }; }
+  const pass = getPass(); if (!pass) return (ROLE = { view: true, admin: false });   /* 보기는 누구나 */
+  try { const d = await relayPost({ op: 'auth', pass }); ROLE = { view: true, admin: !!d.admin }; } catch { ROLE = { view: true, admin: false }; }
   return ROLE;
 }
-/** 열람·관리자 암호 넣기(이 브라우저에 기억). 맞으면 { view, admin } */
+/** 관리자 확인 — 관리자 구글 이메일 주소(이 브라우저에 기억). 서식·일정·명부를 올리거나 지울 때만 필요(2026-10-16 사용자 지정).
+ *  주소는 사이트 코드에 두지 않고 중계(Apps Script)의 ADMIN_PASS 값과만 견준다(공개 저장소라). 맞으면 { view, admin } */
 export async function askPass(message = '') {
   const { showPrompt, showAlert } = await import('./ui/dialog.js');
-  setTimeout(() => { const i = document.querySelector('#kd-f0'); if (i) i.type = 'password'; }, 0);
-  const v = await showPrompt(`${message ? message + '\n\n' : ''}개별선정 공유 자료(감리일정·명부·인뎁스 서식)는 구글 드라이브에 있고 암호로 막혀 있습니다.\n팀원은 열람 암호, 관리자는 관리자 암호를 넣으세요. 이 브라우저에 기억합니다.`, { title: '중계 암호', placeholder: '암호', okText: '확인' });
-  if (v == null) return ROLE || { view: false, admin: false };
-  setPass(String(v).trim()); const r = await role(true);
-  if (!r.view) { setPass(''); await showAlert('암호가 맞지 않습니다.', { title: '중계 암호' }); }
+  setTimeout(() => { const i = document.querySelector('#kd-f0'); if (i) { i.type = 'email'; i.autocomplete = 'email'; } }, 0);
+  const v = await showPrompt(`${message ? message + '\n\n' : ''}관리자 구글 이메일 주소를 입력하세요.\n서식·일정·명부를 올릴 때만 필요하며, 이 브라우저가 기억합니다.`, { title: '관리자 확인', placeholder: 'ooo@gmail.com', okText: '확인' });
+  if (v == null) return ROLE || { view: true, admin: false };
+  setPass(String(v).trim().toLowerCase()); const r = await role(true);
+  if (!r.admin) { setPass(''); ROLE = null; await showAlert('관리자 이메일 주소가 아닙니다.', { title: '관리자 확인' }); }
   return r;
 }
 const STORE = new Map();
+/* 보기는 암호 없이(2026-10-16 사용자 지정) — 기억된 관리자 암호가 있으면 같이 보낸다(옛 판 중계와도 맞게) */
 async function storeGet(name) {
   if (STORE.has(name)) return STORE.get(name);
-  if (!(await role()).view) { const r = await askPass(); if (!r.view) throw new ApiError(401, '중계 암호가 필요합니다(오른쪽 위 [암호]).'); }
-  const p = relayPost({ op: 'store_get', pass: getPass(), name }).then((d) => (d.exists ? d.data : ''));
+  const p = relayPost({ op: 'store_get', pass: getPass(), name }).then((d) => (d.exists ? d.data : ''))
+    .catch((e) => { if (e.status === 401) throw new ApiError(401, '공유 자료를 열지 못했습니다 — 중계(구글 Apps Script)를 새 판(Code.gs)으로 다시 배포하면 암호 없이 열립니다.'); throw e; });
   STORE.set(name, p); p.catch(() => STORE.delete(name)); return p;
 }
 async function storePut(name, data) {
-  if (!(await role()).admin) { const r = await askPass('관리자 암호가 필요합니다.'); if (!r.admin) throw new ApiError(403, '관리자 암호가 필요합니다.'); }
+  if (!(await role()).admin) { const r = await askPass(); if (!r.admin) throw new ApiError(403, '관리자 확인(구글 이메일)이 필요합니다.'); }
   const d = await relayPost({ op: 'store_put', pass: getPass(), name, data }); STORE.set(name, Promise.resolve(data)); return d;
 }
 const jsonOf = async (name, empty) => { const t = await storeGet(name); try { return t ? JSON.parse(t) : empty; } catch { return empty; } };
