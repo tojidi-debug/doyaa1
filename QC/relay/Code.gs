@@ -5,21 +5,22 @@
  *            인증키·직원 명단을 공개 사이트에 둘 수도 없다. 이 스크립트가 키를 숨긴 채 대신 받아 주고,
  *            개별선정의 공유 자료(감리일정·명부·인뎁스 서식·관리자 조정 이력)는 「내 드라이브」 폴더 하나에 둔다
  *            (이름마다 파일 하나를 계속 덮어씀 · 새 파일·시트를 계속 만들거나 휴지통에 옛 판을 남기지 않음 ·
- *             품감 일정·명부 보기는 열람 암호, 서식은 누구나, 올리기는 관리자 이메일 확인).
+ *             품감 일정·명부 보기는 열람 암호, 서식은 누구나, 올리기는 관리자 이메일+관리자 암호 둘 다 확인).
  *
  * 스크립트 속성(프로젝트 설정 ⚙ → 스크립트 속성) — ※ 키·암호를 이 코드에 적지 마세요.
  *   DART_KEY    OpenDART 인증키(40자)                                   — 필수(기존)
  *   VIEW_PASS   열람 암호(팀원) — 품감 일정·명부를 볼 때만 묻는다. 인뎁스 서식은 암호 없이(2026-10-16)
- *   ADMIN_PASS  관리자 구글 이메일 주소(예: ooo@gmail.com) — 공유 자료 올리기·고치기 때 사이트에서 이 주소를 넣으면 관리자(2026-10-16)
+ *   ADMIN_PASS  관리자 암호 — 공유 자료 올리기·고치기 때 사이트에서 관리자 이메일(사이트가 확인)과 이 암호를 둘 다 맞게 넣어야 관리자(2중 확인, 2026-10-16)
+ *   ADMIN_EMAIL (선택) 관리자 구글 이메일 — 적어 두면 중계도 이메일을 한 번 더 견준다
  *   FOLDER_ID   자료 폴더 ID — 비워 두면 처음 저장할 때 「QC_개별선정_공유자료」 폴더를 만들고 스스로 적는다
  *
  * 기능(op)
  *   ping · list · doc · company · dsab   — 2026-10-08 판 그대로(심의안 사이트가 쓴다. 바꾸지 않음)
  *   api      OpenDART 원문 API 중 list.json · company.json · document.xml 만 — 인증키는 이 스크립트가 붙인다
  *   web      공시뷰어(dart.fss.or.kr)의 정해진 주소만 GET — 감사보고서 PDF 받기(뷰어 → PDF 목록 → PDF, 쿠키는 사이트가 넘겨줌)
- *   auth     열람 암호·관리자 이메일 확인 → { view, admin }
+ *   auth     열람 암호 · 관리자(이메일+암호) 확인 → { view, admin }
  *   store_list · store_get        (열람 암호)   공유 자료 목록 · 하나 읽기 — 인뎁스 서식(tpl_…)만 암호 없이
- *   store_put · store_del         (관리자 이메일) 공유 자료 덮어쓰기(POST) · 비우기
+ *   store_put · store_del         (관리자 이메일+암호) 공유 자료 덮어쓰기(POST) · 비우기
  *   개별선정의 사전제출자료·대사 자료·매출장은 여기로 보내지 않는다(브라우저 안에서만 읽고 버린다).
  *
  * 배포: 처음이면 배포 → 새 배포 → 유형 「웹 앱」 → 실행 사용자 「나」 · 액세스 권한 「모든 사용자」.
@@ -51,7 +52,7 @@ function handle_(p) {
     const props = PropertiesService.getScriptProperties();
     const key = props.getProperty('DART_KEY');
     if (!key) return out_({ ok: false, error: '중계에 OpenDART 인증키가 없습니다(스크립트 속성 DART_KEY).' });
-    if (p.op === 'ping') return out_({ ok: true, op: 'ping', version: '2026-10-16', store: true });
+    if (p.op === 'ping') return out_({ ok: true, op: 'ping', version: '2026-10-16b', store: true });
 
     // ── 2026-10-08 판(심의안) — 그대로 ──
     if (p.op === 'list') {
@@ -125,11 +126,11 @@ function handle_(p) {
         'content-disposition': String(all['Content-Disposition'] || ''), 'set-cookie': sc.map(String) } });
     }
     if (p.op === 'auth') {
-      const who = role_(props, p.pass);
+      const who = role_(props, p.pass, p.email);
       return out_({ ok: true, view: who !== '', admin: who === 'admin' });
     }
     if (p.op === 'store_list' || p.op === 'store_get') {   // 품감 일정·명부는 열람 암호, 서식(tpl_)은 누구나(2026-10-16 사용자 지정)
-      if (!(p.op === 'store_get' && openToAll_(p.name))) need_(role_(props, p.pass) !== '', '열람 암호가 맞지 않습니다.');
+      if (!(p.op === 'store_get' && openToAll_(p.name))) need_(role_(props, p.pass, p.email) !== '', '열람 암호가 맞지 않습니다.');
       const folder = folder_(props);
       if (p.op === 'store_list') {
         const out = []; const it = folder.getFiles();
@@ -143,7 +144,7 @@ function handle_(p) {
       return out_({ ok: true, exists: true, name: p.name, data: data, updated: f.getLastUpdated().toISOString(), size: data.length });
     }
     if (p.op === 'store_put' || p.op === 'store_del') {
-      need_(role_(props, p.pass) === 'admin', '관리자 이메일 주소가 아닙니다.');
+      need_(role_(props, p.pass, p.email) === 'admin', '관리자 암호가 맞지 않습니다.');
       need_(STORE_NAME.test(p.name || '') && !PART_RE.test(p.name), '자료 이름이 올바르지 않습니다.');
       const lock = LockService.getScriptLock(); lock.waitLock(20000);
       try {
@@ -171,11 +172,12 @@ function handle_(p) {
   }
 }
 
-function role_(props, pass) {   // ADMIN_PASS = 관리자 구글 이메일(대소문자·앞뒤 빈칸 무시) · VIEW_PASS = 열람 암호 (2026-10-16)
+function role_(props, pass, email) {   // 관리자 = ADMIN_PASS (+ ADMIN_EMAIL 을 적었으면 이메일도, 대소문자·앞뒤 빈칸 무시) · VIEW_PASS = 열람 암호 (2026-10-16)
   const norm = (x) => String(x || '').trim().toLowerCase();
-  const a = norm(props.getProperty('ADMIN_PASS')), v = String(props.getProperty('VIEW_PASS') || '').trim(), s = String(pass || '').trim();
+  const ae = norm(props.getProperty('ADMIN_EMAIL')), ap = String(props.getProperty('ADMIN_PASS') || '').trim();
+  const v = String(props.getProperty('VIEW_PASS') || '').trim(), s = String(pass || '').trim();
   if (!s) return '';
-  if (a && norm(s) === a) return 'admin';
+  if (ap && s === ap && (!ae || norm(email) === ae)) return 'admin';
   if (v && s === v) return 'view';
   return '';
 }

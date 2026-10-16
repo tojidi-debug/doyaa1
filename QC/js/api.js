@@ -89,6 +89,7 @@ async function firmProfile(no, corp) {
 
 /* ── 외감회사대사(서버 /qc/audited · /qc/audited.xlsx · /qc/reconcile 와 같은 결과) ── */
 const PAGES = new Map();   /* 같은 제출인·기간의 검색은 한 번만 */
+const PAGE_SEED = ['9aa88164b2041ec3', 'c45d2eec2065e4bf', '4c5154a464d44c4d', '015ddd6f24d7be2f'];
 function dsabPages(filer, s, e) {
   const k = `${filer}|${s}|${e}`;
   if (!PAGES.has(k)) { const p = relay({ op: 'dsab', filer, start: s.replace(/-/g, ''), end: e.replace(/-/g, '') }).then(d => d.pages || []); PAGES.set(k, p); p.catch(() => PAGES.delete(k)); }
@@ -166,12 +167,16 @@ const qcApi = {
  * 개발서버의 /qc-sample/* · /finstmt/* 를 대신한다.
  *   계산·해석: 서버와 같은 파이썬(py/gumiho.zip)을 브라우저(Pyodide)에서 — window.QcStatic.sample(이름, 인자)
  *   공유 자료(감리일정·명부·인뎁스 서식·관리자 조정): 구글 Apps Script 중계의 store(내 드라이브 폴더 하나, 이름마다 파일 하나를 덮어씀)
- *     — 품감 일정·명부 보기는 열람 암호, 서식은 누구나, 올리기·지우기는 관리자 확인(관리자 구글 이메일) — 이 브라우저에 기억 (2026-10-16 사용자 지정)
+ *     — 품감 일정·명부 보기는 열람 암호, 서식은 누구나, 올리기·지우기는 관리자 확인(관리자 구글 이메일 + 관리자 암호, 2중) — 이 브라우저에 기억 (2026-10-16 사용자 지정)
  *   사전제출자료·대사 자료: 이 브라우저 안에서만 읽는다(중계·GitHub 어디에도 보내지 않음)
  *   감사보고서 PDF: 공시뷰어가 주는 파일 이름 머리글을 중계가 읽지 못해 → 전자공시 화면을 새 창으로 연다 */
 const PASS_KEY = 'qc.pass';
 const getPass = () => { try { return localStorage.getItem(PASS_KEY) || ''; } catch { return ''; } };
 const setPass = (v) => { try { if (v) localStorage.setItem(PASS_KEY, v); else localStorage.removeItem(PASS_KEY); } catch { /* */ } };
+const EMAIL_KEY = 'qc.email';   /* 관리자 확인 때만 — 열람 암호만 넣었으면 비어 있다 */
+const getEmail = () => { try { return localStorage.getItem(EMAIL_KEY) || ''; } catch { return ''; } };
+const setEmail = (v) => { try { if (v) localStorage.setItem(EMAIL_KEY, v); else localStorage.removeItem(EMAIL_KEY); } catch { /* */ } };
+const creds = () => ({ pass: getPass(), email: getEmail() });
 async function relayPost(payload) {
   const url = relayUrl(); if (!url) throw new ApiError(503, '전자공시 중계(구글 Apps Script) 주소가 없습니다(qc/static/relay_config.js).');
   let r; try { r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload), redirect: 'follow' }); }
@@ -181,30 +186,46 @@ async function relayPost(payload) {
   return d;
 }
 let ROLE = null;   /* { view, admin } */
+/* 관리자 이메일은 글자로 두지 않고 지문(SHA-256)만 견준다(2026-10-16 사용자 지정 — 페이지 코드에서 주소가 보이지 않게) */
+async function seedOk(email) {
+  const t = String(email || '').trim().toLowerCase(); if (!t || !(crypto && crypto.subtle)) return false;
+  const h = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map((b) => b.toString(16).padStart(2, '0')).join('');
+  return h === [...PAGE_SEED].reverse().join('');
+}
 async function role(force = false) {
   if (ROLE && !force) return ROLE;
   const pass = getPass(); if (!pass) return (ROLE = { view: false, admin: false });
-  try { const d = await relayPost({ op: 'auth', pass }); ROLE = { view: !!d.view || !!d.admin, admin: !!d.admin }; } catch { ROLE = { view: false, admin: false }; }
+  try {
+    const d = await relayPost({ op: 'auth', ...creds() }); const admin = !!d.admin && await seedOk(getEmail());
+    ROLE = { view: !!d.view || admin, admin };
+  } catch { ROLE = { view: false, admin: false }; }
   return ROLE;
 }
-/** 관리자 확인 — 관리자 구글 이메일 주소(이 브라우저에 기억). 서식·일정·명부를 올리거나 지울 때만 필요(2026-10-16 사용자 지정).
- *  주소는 사이트 코드에 두지 않고 중계(Apps Script)의 ADMIN_PASS 값과만 견준다(공개 저장소라). 맞으면 { view, admin } */
+/** 관리자 확인 — 관리자 구글 이메일 + 관리자 암호 둘 다(2중 확인, 이 브라우저에 기억). 서식·일정·명부를 올리거나 지울 때만 필요(2026-10-16 사용자 지정).
+ *  이메일은 이 페이지에서 지문으로, 암호는 중계(Apps Script)의 스크립트 속성 ADMIN_PASS 와 견준다(암호는 사이트 코드에 없음). 맞으면 { view, admin } */
 export async function askPass(message = '') {
-  const { showPrompt, showAlert } = await import('./ui/dialog.js');
-  setTimeout(() => { const i = document.querySelector('#kd-f0'); if (i) { i.type = 'email'; i.autocomplete = 'email'; } }, 0);
-  const v = await showPrompt(`${message ? message + '\n\n' : ''}관리자 구글 이메일 주소를 입력하세요.\n서식·일정·명부를 올릴 때만 필요하며, 이 브라우저가 기억합니다.`, { title: '관리자 확인', placeholder: 'ooo@gmail.com', okText: '확인' });
+  const { showForm, showAlert } = await import('./ui/dialog.js');
+  setTimeout(() => {
+    const e = document.querySelector('#kd-f0'); if (e) { e.type = 'email'; e.autocomplete = 'email'; }
+    const w = document.querySelector('#kd-f1'); if (w) { w.type = 'password'; w.autocomplete = 'current-password'; }
+  }, 0);
+  const v = await showForm({ title: '관리자 확인', okText: '확인',
+    description: `${message ? message + '\n\n' : ''}관리자 구글 이메일 주소와 관리자 암호를 입력하세요.\n서식·일정·명부를 올릴 때만 필요하며, 이 브라우저가 기억합니다.`,
+    fields: [{ name: 'email', label: '관리자 이메일', placeholder: 'ooo@gmail.com', required: true },
+             { name: 'pass', label: '관리자 암호', placeholder: '관리자 암호', required: true }] });
   if (v == null) return ROLE || { view: false, admin: false };
-  const old = getPass(); setPass(String(v).trim().toLowerCase()); const r = await role(true);
-  if (!r.admin) { setPass(old); ROLE = null; await showAlert('관리자 이메일 주소가 아닙니다.', { title: '관리자 확인' }); }
+  if (!(await seedOk(v.email))) { await showAlert('관리자 이메일 주소가 아닙니다.', { title: '관리자 확인' }); return ROLE || { view: false, admin: false }; }
+  const old = creds(); setEmail(String(v.email).trim().toLowerCase()); setPass(String(v.pass).trim()); const r = await role(true);
+  if (!r.admin) { setPass(old.pass); setEmail(old.email); ROLE = null; await showAlert('관리자 암호가 맞지 않습니다.', { title: '관리자 확인' }); }
   return r;
 }
-/** 열람 확인 — 품감 일정·명부를 볼 때만(2026-10-16 사용자 지정). 열람 암호(관리자는 관리자 이메일도 됨), 이 브라우저에 기억 */
+/** 열람 확인 — 품감 일정·명부를 볼 때만(2026-10-16 사용자 지정). 열람 암호(관리자로 확인돼 있으면 묻지 않음), 이 브라우저에 기억 */
 async function askView() {
   const { showPrompt, showAlert } = await import('./ui/dialog.js');
   setTimeout(() => { const i = document.querySelector('#kd-f0'); if (i) i.type = 'password'; }, 0);
   const v = await showPrompt('품감 일정·명부를 보려면 열람 암호를 넣어 주세요.\n한 번만 넣으면 이 브라우저가 기억합니다.', { title: '열람 확인', placeholder: '열람 암호', okText: '확인' });
   if (v == null) return ROLE || { view: false, admin: false };
-  const t = String(v).trim(); setPass(/@/.test(t) ? t.toLowerCase() : t); const r = await role(true);
+  setEmail(''); setPass(String(v).trim()); const r = await role(true);
   if (!r.view) { setPass(''); ROLE = null; await showAlert('열람 암호가 맞지 않습니다.', { title: '열람 확인' }); }
   return r;
 }
@@ -217,12 +238,12 @@ async function storeGet(name) {
     if (!viewAsk) viewAsk = askView().finally(() => { viewAsk = null; });
     const r = await viewAsk; if (!r.view) throw new ApiError(401, '품감 일정·명부는 열람 암호가 필요합니다 — 화면을 다시 열면 열람 확인 창이 뜹니다.');
   }
-  const p = relayPost({ op: 'store_get', pass: getPass(), name }).then((d) => (d.exists ? d.data : ''));
+  const p = relayPost({ op: 'store_get', ...creds(), name }).then((d) => (d.exists ? d.data : ''));
   STORE.set(name, p); p.catch(() => STORE.delete(name)); return p;
 }
 async function storePut(name, data) {
-  if (!(await role()).admin) { const r = await askPass(); if (!r.admin) throw new ApiError(403, '관리자 확인(구글 이메일)이 필요합니다.'); }
-  const d = await relayPost({ op: 'store_put', pass: getPass(), name, data }); STORE.set(name, Promise.resolve(data)); return d;
+  if (!(await role()).admin) { const r = await askPass(); if (!r.admin) throw new ApiError(403, '관리자 확인(구글 이메일 + 관리자 암호)이 필요합니다.'); }
+  const d = await relayPost({ op: 'store_put', ...creds(), name, data }); STORE.set(name, Promise.resolve(data)); return d;
 }
 const jsonOf = async (name, empty) => { const t = await storeGet(name); try { return t ? JSON.parse(t) : empty; } catch { return empty; } };
 /* 파이썬 한 번 부르기 — 오류는 서버와 같은 꼴(status·detail) */
@@ -336,4 +357,4 @@ export const api = {
   post: (...a) => qcApi.post(...a), patch: (...a) => qcApi.patch(...a), postBlob: (...a) => qcApi.postBlob(...a), downloadPost: (...a) => qcApi.downloadPost(...a),
 };
 /* 관리자 여부 = 관리자 암호를 넣었는가(중계가 확인). 이름은 없음(강조할 이름은 각자 [강조할 이름]으로) */
-export const auth = { async me() { const r = await role(); return { id: 'github', name: 'GitHub', display_name: '', roles: r.admin ? ['admin'] : [] }; }, async logout() { setPass(''); ROLE = null; } };
+export const auth = { async me() { const r = await role(); return { id: 'github', name: 'GitHub', display_name: '', roles: r.admin ? ['admin'] : [] }; }, async logout() { setPass(''); setEmail(''); ROLE = null; } };

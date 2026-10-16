@@ -2262,9 +2262,9 @@ async function start() {
   keepDialogsInView();
   try { state.me = await auth.me(); } catch { document.body.insertAdjacentHTML('afterbegin', '<div class="qs-warn">로그인이 필요합니다. 포털에서 다시 열어 주세요.</div>'); return; }
   state.admin = (state.me.roles || []).includes('admin');
-  if (api.askPass) {   // GitHub(정적) 사이트 — 보기는 암호 없이, 서식·일정·명부 올리기만 관리자 확인(구글 이메일, 2026-10-16)
+  if (api.askPass) {   // GitHub(정적) 사이트 — 보기는 암호 없이, 서식·일정·명부 올리기만 관리자 확인(구글 이메일 + 관리자 암호, 2026-10-16)
     const b = document.createElement('button'); b.type = 'button'; b.className = 'qs-tab qs-pass'; b.textContent = state.admin ? '관리자(로그인됨)' : '관리자';
-    b.title = '서식·감리일정·명부를 올리거나 바꿀 때만 관리자 구글 이메일로 확인합니다 — 이 브라우저에 기억합니다';
+    b.title = '서식·감리일정·명부를 올리거나 바꿀 때만 관리자 구글 이메일과 관리자 암호로 확인합니다 — 이 브라우저에 기억합니다';
     b.addEventListener('click', async () => { await api.askPass(); location.reload(); });
     document.querySelector('.qs-tabs').append(b);
   }
