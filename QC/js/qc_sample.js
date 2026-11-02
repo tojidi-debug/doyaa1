@@ -9,7 +9,7 @@
  */
 import './ui/guard.js';
 import { api, auth } from './api.js';
-import { showAlert, showAsk, showChoice, showConfirm, showDetail, showPrompt } from './ui/dialog.js';
+import { showAlert, showAsk, showChoice, showConfirm, showDetail, showForm, showPrompt } from './ui/dialog.js';
 import { $, esc, toast } from './lookup_kit.js';
 import { collectCreport, sendToCreport } from './qc_creport_send.js';
 import {
@@ -1952,7 +1952,8 @@ function renderSchedule() {
         // 1일짜리(회의 등)는 평소 마우스 오버 없음 — 글자가 잘렸을 때만 이름을 띄운다(사용자 지정 2026-10-15, 아래 markClipped)
         const oneDay = c.ev.kind === 'meeting' || (c.ev.days && c.ev.days.length === 1);
         const hover = oneDay ? `data-tip="${esc(c.ev.label)}"` : `title="${esc(tip)} · ${c.ev.days && c.ev.days.length ? c.ev.days.length : c.span}일"`;
-        return `<td colspan="${c.span}" class="ev ${c.ev.kind} ${five} ${c.ev.region ? 'is-region' : ''} ${now} ${c.ev.firm && focus.has(c.ev.firm) ? 'is-firm' : ''}" ${hover}><span>${esc(c.ev.label)}</span></td>`;
+        const editable = state.admin && (c.ev.kind === 'lead' || c.ev.kind === 'member') && firmOf(c.ev.firm);   // 관리자는 막대를 눌러 바로 고친다
+        return `<td colspan="${c.span}" class="ev ${c.ev.kind} ${five} ${c.ev.region ? 'is-region' : ''} ${now} ${c.ev.firm && focus.has(c.ev.firm) ? 'is-firm' : ''} ${editable ? 'is-edit' : ''}" ${editable ? `data-firm="${esc(c.ev.firm)}"` : ''} ${hover}><span>${esc(c.ev.label)}</span></td>`;
       }).join('')}`;
     }).join('');
     return `<tr class="${hl.has(String(name).replace(/\s/g, '')) ? 'is-hl' : ''}"><td class="name" title="${esc(name)}">${esc(name)}</td>${cells}</tr>`;
@@ -1983,6 +1984,38 @@ function renderSchedule() {
   // 처음엔 이번 달 첫날부터(사용자 지정 2026-10-15), 다시 그릴 때는 보던 자리 그대로
   if (state.schedScrolled) $('schedGrid').scrollLeft = keepLeft;
   else { scrollSchedTo(null, state.schedMonth); state.schedScrolled = true; }
+}
+
+/* 품감 일정 막대 → 그 회계법인 일정·인원 고치기. 저장은 관리자설정과 같은 경로라 이력에 남고 엑셀을 다시 올려도 유지된다 */
+async function editFirm(name) {
+  const f = firmOf(name);
+  if (!f || !state.admin) return;
+  let list = $('schedStaffList');
+  if (!list) { list = document.createElement('datalist'); list.id = 'schedStaffList'; document.body.append(list); }
+  list.innerHTML = (state.sched.staff || []).map((n) => `<option value="${esc(n)}">`).join('');
+  setTimeout(() => {
+    for (const i of [0, 1]) { const e = document.querySelector(`#kd-f${i}`); if (e) e.type = 'date'; }
+    for (const i of [2, 3]) { const e = document.querySelector(`#kd-f${i}`); if (e) e.setAttribute('list', 'schedStaffList'); }
+  }, 0);
+  const v = await showForm({
+    title: `${f.firm} 일정·인원`, okText: '반영',
+    description: '바꾼 값은 일정 엑셀을 다시 올려도 유지되고, 아래 변경 이력에 남습니다. 엑셀 값으로 되돌리기는 관리자설정에서 합니다.',
+    fields: [
+      { name: 'start', label: '시작일', value: f.start || '', required: true },
+      { name: 'end', label: '종료일', value: f.end || '', required: true },
+      { name: 'lead', label: '팀장', value: f.lead || '' },
+      { name: 'member', label: '팀원', value: f.member || '', hint: '품감 정규 인원이 아니면 비상근으로 봅니다' },
+    ],
+    validate: (x) => (x.start > x.end ? '종료일이 시작일보다 빠릅니다.' : ''),
+  });
+  if (!v) return;
+  try {
+    const res = await api.put('/qc-sample/schedule/firm', { firm: f.firm, start: v.start.trim(), end: v.end.trim(), lead: v.lead.trim(), member: v.member.trim() });
+    const kinds = ((res && res.changes) || []).map((c) => (c.kind === 'schedule' ? '일정' : '참여인원'));
+    toast(kinds.length ? `${f.firm} ${kinds.join('·')}을(를) 바꿨습니다.` : '바뀐 것이 없습니다.');
+    await loadSchedule();
+    if (state.adminMode) renderAdmin();
+  } catch (err) { showAlert(err.message, { title: '품감 일정' }); }
 }
 
 /* 강조할 이름(이 브라우저에만) */
@@ -2398,6 +2431,7 @@ async function start() {
     scrollSchedTo(null, state.schedMonth);
   });
   // 스크롤하면 보이는 달로 단추 불을 옮긴다
+  $('schedGrid').addEventListener('click', (e) => { const td = e.target.closest('td[data-firm]'); if (td) editFirm(td.dataset.firm); });
   $('schedGrid').addEventListener('scroll', () => {
     const wrap = $('schedGrid');
     const edge = (wrap.querySelector('th.name') || wrap).getBoundingClientRect().right;
