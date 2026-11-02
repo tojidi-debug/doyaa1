@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>은행연합회 상세신용 조회</title>
+  <link rel="stylesheet" href="lookup.css">
+</head>
+<body>
+  <div class="layout">
+    <aside>
+      <section class="card">
+        <h2>조회 기준</h2>
+        <label for="inq">조회기준일</label>
+        <input id="inq" type="date">
+        <p id="login-state" class="hint">은행연합회 연결 상태를 확인하고 있습니다.</p>
+      </section>
+
+      <section class="card soft">
+        <h2>한 건 조회</h2>
+        <label for="biz">사업자등록번호 <em>필수</em></label>
+        <input id="biz" type="text" placeholder="123-45-67890" autocomplete="off" spellcheck="false">
+        <p class="hint">숫자 10자리입니다.</p>
+        <button id="run-one" class="primary" type="button">이 번호로 조회</button>
+      </section>
+
+      <section class="card soft">
+        <h2>여러 건 — 엑셀 올리기</h2>
+        <p class="hint">A열 사업자등록번호(필수) · B열 회사명 · C열 대표자성명. 첫 줄은 제목으로 봅니다.</p>
+        <label id="drop" class="drop" for="file">
+          <span id="drop-text">파일을 끌어다 놓거나 눌러서 고르기</span>
+          <input id="file" type="file" accept=".xlsx,.csv,.txt" hidden>
+        </label>
+        <div class="row">
+          <button id="run-many" class="primary" type="button" disabled>조회</button>
+          <button id="template" type="button">양식</button>
+        </div>
+      </section>
+    </aside>
+
+    <main>
+      <div id="banner" class="banner" hidden>
+        <span>은행연합회에 로그인되어 있지 않습니다. 로그인한 다음 이 화면으로 돌아오면 바로 조회할 수 있습니다.</span>
+        <button id="open-login" class="primary" type="button">로그인 화면 열기</button>
+      </div>
+      <div id="install" class="install" hidden>
+        <strong>처음 한 번만 연결 프로그램을 설치해 주세요.</strong>
+        <ol>
+          <li><a href="creport-bridge.zip" download>연결 프로그램(zip)</a>을 내려받아 압축을 풉니다.</li>
+          <li>크롬 주소창에 <code>chrome://extensions</code> 를 입력하고 오른쪽 위 <b>개발자 모드</b>를 켭니다.</li>
+          <li><b>압축해제된 확장 프로그램을 로드합니다</b>를 눌러 압축을 푼 폴더를 고릅니다.</li>
+          <li>이 화면을 새로고침합니다.</li>
+        </ol>
+      </div>
+      <div id="progress" class="progress" hidden></div>
+      <div id="empty" class="empty">
+        <strong>조회 결과가 여기에 나옵니다.</strong>
+        <span>사업자등록번호를 넣거나 목록 엑셀을 올려 주세요. 양식은 왼쪽에서 받으세요.</span>
+      </div>
+      <div id="result" hidden>
+        <div class="result-head">
+          <h2 id="result-title"></h2>
+          <button id="download" class="primary" type="button">엑셀 다운로드</button>
+        </div>
+        <div class="scroll"><table id="summary"></table></div>
+        <nav id="tabs" class="tabs"></nav>
+        <div id="detail"></div>
+      </div>
+      <p class="hint">조회 결과는 이 브라우저 안에서만 처리하며 어디에도 저장하거나 보내지 않습니다.</p>
+    </main>
+  </div>
+  <script src="sheet.js"></script>
+  <script src="xlsx.js"></script>
+  <script src="bridge.js"></script>
+  <script src="lookup.js"></script>
+</body>
+</html>
