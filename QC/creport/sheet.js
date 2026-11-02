@@ -1,4 +1,4 @@
-// 조회 원자료 → 표. 규칙은 scripts/creport_json_to_excel.py 및 검증된 콘솔 코드와 같다.
+// 조회 원자료 → 표. 집계 규칙은 검증된 콘솔 코드와 같다.
 const num = (v) => {
   if (v === null || v === undefined || v === "") return null;
   const n = parseFloat(String(v).replace(/,/g, ""));
@@ -25,9 +25,9 @@ function 변환(dto) {
   const 소계열 = (s) => /(계|합계|총계|소계)$/.test((s || "").trim());
   const 소계행 = (g) => { g = (g || "").trim(); return g.endsWith("계") && g !== "신용장개설관계"; };
   const 보증어 = ["지보", "지급보증", "채무인수", "이행보증", "대지급", "인수", "신용장개설"];
-  const 구분 = (rep, g) => rep === "32" ? "한도" : rep === "33" ? "담보" : rep === "34" ? "지급보증"
-    : 보증어.some((k) => g.includes(k)) ? "지급보증" : "차입금";
-  const jobs = dto.loan_jobId || [], 합계 = { 차입금: 0, 지급보증: 0, 한도: 0, 담보: 0 };
+  const 구분 = (rep, g) => rep === "32" ? "한도" : rep === "33" ? "담보" : rep === "34" ? "법인채무보증"
+    : 보증어.some((k) => g.includes(k)) ? "지급보증" : "대출채권";
+  const jobs = dto.loan_jobId || [], 합계 = { 대출채권: 0, 지급보증: 0, 법인채무보증: 0, 한도: 0, 담보: 0 };
   let 공여명세 = 0, 공여합계 = 0;
   for (let n = 1; n <= 30; n++) {
     const rows = dto["loan_" + pad2(n)];
@@ -86,15 +86,54 @@ function secTotal(rows, name) {
 }
 
 function summary(secs) {
-  const s = { 은행계: 0, 비은행계: 0, 총계: 0, 한도: 0, 담보: 0, 법인채무보증: 0 };
+  const s = { 은행계: 0, 보험: 0, 기타: 0, 비은행계: 0, 총계: 0, 한도: 0, 담보: 0, 법인채무보증: 0 };
   for (const x of secs) {
-    if (x.rep === "31") s[x.job === "31" ? "은행계" : "비은행계"] += secTotal(x.rows, "신용공여합계");
+    if (x.rep === "31") s[x.job === "31" ? "은행계" : x.name.includes("보험") ? "보험" : "기타"] += secTotal(x.rows, "신용공여합계");
     else if (x.rep === "32") s.한도 += secTotal(x.rows, "한도계");
     else if (x.rep === "33") s.담보 += secTotal(x.rows, "담보총계");
     else if (x.rep === "34") s.법인채무보증 += secTotal(x.rows);
   }
+  s.비은행계 = s.보험 + s.기타;
   s.총계 = s.은행계 + s.비은행계;
   return s;
+}
+
+// 회사 시트·화면 맨 위 요약 한 줄
+const headline = (s) => ["은행계", "보험", "기타", "한도", "담보", ...(s.법인채무보증 ? ["법인채무보증"] : [])].map((k) => [k, s[k] || null]);
+
+// 보기 좋게 정리한 표. 금액 판단이 달라지지 않도록, 값이 그대로 드러나는 소계만 줄인다.
+function compact(sec) {
+  const isSum = (c) => /계$/.test(c);
+  const last = sec.cols.length - 1, indiv = sec.cols.map((_, j) => j).filter((j) => !isSum(sec.cols[j]));
+  // 마지막 총계 열이 개별 기관 합과 맞을 때만 중간 소계 열을 뺀다. 한 기관뿐이면 총계 열도 뺀다.
+  const covers = indiv.length > 0 && isSum(sec.cols[last]) && sec.rows.every(([, v]) =>
+    Math.abs((v[last] ?? 0) - indiv.reduce((a, j) => a + (v[j] ?? 0), 0)) <= indiv.length);
+  const keep = !covers ? sec.cols.map((_, j) => j) : indiv.length > 1 ? [...indiv, last] : indiv;
+
+  const hasLoan = sec.rows.some(([g]) => g === "대출채권계");
+  const rows = [];
+  let group = [];
+  for (const [g, v] of sec.rows) {
+    const row = [g, keep.map((j) => v[j])];
+    if (g === "신용공여대출채권계" || g === "신용공여주석계" || (g === "주석계" && !hasLoan)) continue;
+    if (/지급보증계$/.test(g) && group.length === 1) {  // 한 줄뿐인 지급보증 소계는 계정명 표시로 대신한다
+      const name = rows[group[0]][0];
+      if (!/지보|확정/.test(name)) rows[group[0]][0] = `${name}(${g.startsWith("미확정") ? "미확정" : "확정"})`;
+      group = [];
+      continue;
+    }
+    rows.push(row);
+    if (/계$/.test(g) && g !== "신용장개설관계") group = [];
+    else group.push(rows.length - 1);
+  }
+  return { ...sec, cols: keep.map((j) => sec.cols[j]), rows };
+}
+
+// 행 강조: sub 소계 / total 합계 / coll 담보총계
+function rowKind(g, final) {
+  if (g === "담보총계") return "coll";
+  if (final || /^(주석계|대출채권계|한도계)$|합계$/.test(g)) return "total";
+  return /소계$|지급보증계$/.test(g) ? "sub" : "";
 }
 
 // 시트명: (주)·주식회사 표현과 띄어쓰기를 뺀 간단한 명칭

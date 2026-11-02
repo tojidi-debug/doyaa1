@@ -40,15 +40,16 @@ class Book {
     this.style({});
   }
   idx(list, v) { let i = list.indexOf(v); if (i < 0) { list.push(v); i = list.length - 1; } return i; }
-  // {bold,color,size,under,fill,align,fmt,box,top}
+  // {bold,color,size,under,fill,align,fmt,box,top,dot,shrink}
   style(o) {
     const font = `<font>${o.bold ? "<b/>" : ""}${o.under ? "<u/>" : ""}<sz val="${o.size || 10}"/><color rgb="FF${o.color || "000000"}"/><name val="맑은 고딕"/><family val="2"/></font>`;
-    const line = (tag, on) => on ? `<${tag} style="thin"><color rgb="FFBFBFBF"/></${tag}>` : `<${tag}/>`;
-    const top = o.top ? `<top style="medium"><color rgb="FF404040"/></top>` : line("top", o.box);
-    const border = `<border>${line("left", o.box)}${line("right", o.box)}${top}${line("bottom", o.box)}<diagonal/></border>`;
+    const on = o.box || o.dot;
+    const line = (tag) => on ? `<${tag} style="${o.dot ? "hair" : "thin"}"><color rgb="FFBFBFBF"/></${tag}>` : `<${tag}/>`;
+    const top = o.top ? `<top style="medium"><color rgb="FF404040"/></top>` : line("top");
+    const border = `<border>${line("left")}${line("right")}${top}${line("bottom")}<diagonal/></border>`;
     const fontId = this.idx(this.fonts, font), borderId = this.idx(this.borders, border);
     const fillId = o.fill ? this.idx(this.fills, o.fill) : 0, numFmtId = o.fmt ? 164 : 0;
-    const xf = `<xf numFmtId="${numFmtId}" fontId="${fontId}" fillId="${fillId}" borderId="${borderId}" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="${o.align || "center"}" vertical="center"/></xf>`;
+    const xf = `<xf numFmtId="${numFmtId}" fontId="${fontId}" fillId="${fillId}" borderId="${borderId}" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="${o.align || "center"}" vertical="center"${o.shrink ? ' shrinkToFit="1"' : ""}/></xf>`;
     return this.idx(this.xfs, xf);
   }
   addSheet(name) { const s = new BookSheet(this, name); this.sheets.push(s); return s; }
@@ -108,45 +109,53 @@ class BookSheet {
 }
 
 // ── 조회결과 → 엑셀 (화면·파이썬 변환본과 같은 모양) ──────
-const C = { head: "F2F2F2", tot: "E6F1FA", navy: "1F3864", blue: "0B5394", fmt: true };
+const C = { head: "F2F2F2", tot: "E6F1FA", total: "DDEBF7", coll: "FFF2CC", blue: "0B5394" };
 const box = (o) => ({ box: true, ...o });
 
-function buildCompanySheet(ws, co, secs, s) {
-  ws.widths = { 1: 2, 2: 30 };
-  for (let c = 3; c < 3 + Math.max(5, ...secs.map((x) => x.cols.length)); c++) ws.widths[c] = 15;
-  const title = (r, t) => { ws.set(r, 2, t, { bold: true, size: 13, align: "left" }); return r + 1; };
-  let r = title(1, "기본정보");
-  const start = r;
-  for (const [a, b, c, d] of [["기업명", co.회사명, "대표자명", co.대표자], ["사업자번호", fmtBiz(co.사업자번호), "법인번호", fmtCorp(co.법인번호)], ["산업명", co.산업명, "데이터 기준일자", fmtDate(co.기준일)]]) {
-    const top = r === start;
-    ws.set(r, 2, a, box({ fill: C.head, top })); ws.set(r, 3, b, box({ align: "left", top })); ws.set(r, 4, "", box({ top })); ws.merge(r, 3, 4);
-    ws.set(r, 5, c, box({ fill: C.head, top })); ws.set(r, 6, d, box({ align: "left", top }));
-    r++;
-  }
-  ws.set(r, 2, "주소", box({ fill: C.head })); ws.set(r, 3, co.주소, box({ align: "left" }));
-  for (let c = 4; c <= 6; c++) ws.set(r, c, "", box({}));
-  ws.merge(r, 3, 6);
-  r = title(r + 2, "요약");
-  const items = Object.entries(s).filter(([, v]) => v);
-  items.forEach(([k, v], j) => { ws.set(r, 2 + j, k, box({ fill: C.head, top: true })); ws.set(r + 1, 2 + j, v, box({ align: "right", fmt: true })); });
-  r += 3;
-  ws.set(r, 2, "상세현황 (단위 : 백만원)", { bold: true, size: 13, align: "left" });
-  r += 2;
-  for (const x of secs) {
-    r = title(r, x.name);
-    ws.set(r, 2, "구분", box({ fill: C.head, top: true }));
-    x.cols.forEach((c, j) => ws.set(r, 3 + j, c, box({ fill: C.head, top: true })));
-    r++;
-    x.rows.forEach(([g, v], i) => {
-      const final = i === x.rows.length - 1;
-      ws.set(r, 2, g, box({ bold: final, fill: final ? C.tot : null, color: final ? C.navy : null }));
-      v.forEach((n, j) => {
-        const hi = final || (j === v.length - 1 && v.length > 1);
-        ws.set(r, 3 + j, n, box({ bold: final, align: "right", fmt: true, fill: hi ? C.tot : null, color: hi ? C.blue : null }));
-      });
-      r++;
+// 표 한 개를 (r, c0) 위치부터 그리고 다음 행 번호를 돌려준다.
+function drawTable(ws, r, c0, x) {
+  ws.set(r++, c0, x.name, { bold: true, size: 13, align: "left" });
+  ws.set(r, c0, "구분", { dot: true, fill: C.head, align: "left" });
+  x.cols.forEach((c, j) => ws.set(r, c0 + 1 + j, c, { dot: true, fill: C.head, align: "left", shrink: true }));
+  r++;
+  x.rows.forEach(([g, v], i) => {
+    const kind = rowKind(g, i === x.rows.length - 1);
+    const fill = { sub: C.head, total: C.total, coll: C.coll }[kind] || null;
+    const color = kind === "total" ? C.blue : null;
+    ws.set(r, c0, g, { dot: true, fill, color, align: "left" });
+    v.forEach((n, j) => {
+      const hi = j === v.length - 1 && v.length > 1;   // 총계 열
+      ws.set(r, c0 + 1 + j, n, { dot: true, align: "right", fmt: true, fill: fill || (hi ? C.tot : null), color: color || (hi ? C.blue : null) });
     });
     r++;
+  });
+  return r;
+}
+
+function buildCompanySheet(ws, co, secs, s) {
+  const tabs = secs.map(compact);
+  ws.set(1, 1, co.회사명, { bold: true, size: 13, align: "left" });
+  ws.set(2, 1, [fmtBiz(co.사업자번호), fmtCorp(co.법인번호), co.대표자, co.산업명, `기준일 ${fmtDate(co.기준일)}`].filter(Boolean).join("  |  "), { size: 9, color: "595959", align: "left" });
+  ws.set(3, 1, "(단위 : 백만원)", { size: 9, color: "595959", align: "left" });
+  headline(s).forEach(([k, v], j) => {
+    ws.set(4, 1 + j, k, { fill: C.head, align: "left" });
+    ws.set(5, 1 + j, v, { align: "right", fmt: true });
+  });
+  // 기관이 적으면 나란히, 많으면 세로로 쌓는다.
+  const narrow = Math.max(...tabs.map((t) => t.cols.length)) <= 3;
+  const blocks = narrow
+    ? [tabs.filter((t) => t.rep === "31" && t.job === "31"), [...tabs.filter((t) => t.rep === "32"), ...tabs.filter((t) => t.rep === "31" && t.job !== "31")],
+       tabs.filter((t) => t.rep !== "31" && t.rep !== "32")].filter((b) => b.length)
+    : [tabs];
+  let c0 = 1;
+  for (const b of blocks) {
+    const wide = Math.max(...b.map((t) => t.cols.length));
+    ws.widths[c0] = 23;
+    for (let c = c0 + 1; c <= c0 + wide; c++) ws.widths[c] = 12;
+    let r = 7;
+    for (const t of b) r = drawTable(ws, r, c0, t) + 1;
+    c0 += wide + 2;
+    ws.widths[c0 - 1] = 9;
   }
 }
 
@@ -155,21 +164,21 @@ function buildWorkbook(results) {
   ws0.landscape = true;
   ws0.set(1, 2, "은행연합회 상세신용공여 요약", { bold: true, size: 14, align: "left" });
   ws0.set(2, 2, "(단위 : 백만원)", { size: 9, color: "595959", align: "left" });
-  const heads = ["No", "회사명", "사업자번호", "대표자", "산업명", "기준일", "은행계", "비은행계", "신용공여 총계", "차입금", "지급보증", "한도", "담보", "검산 차이", "비고"];
+  const heads = ["No", "회사명", "사업자번호", "대표자", "산업명", "기준일", "은행계", "비은행계", "신용공여 총계", "대출채권", "지급보증", "법인채무보증", "한도", "담보", "검산 차이", "비고"];
   heads.forEach((h, j) => ws0.set(4, 2 + j, h, box({ fill: C.head, top: true })));
-  [2, 5, 24, 14, 10, 28, 11, 10, 10, 12, 10, 10, 10, 10, 9, 16].forEach((w, i) => { ws0.widths[i + 1] = w; });
+  [2, 5, 24, 14, 10, 28, 11, 10, 10, 12, 10, 10, 12, 10, 10, 9, 16].forEach((w, i) => { ws0.widths[i + 1] = w; });
   results.forEach((co, i) => {
     const r = 5 + i, ok = isOk(co), name = co.회사명 || co.사업자번호;
-    let nums = Array(8).fill(null), link = null;
+    let nums = Array(9).fill(null), link = null;
     if (ok) {
       const secs = sections(co.원자료), s = summary(secs), sheet = book.addSheet(safeName(name, used));
       buildCompanySheet(sheet, co, secs, s);
-      nums = [s.은행계, s.비은행계, s.총계, co.합계.차입금, co.합계.지급보증, co.합계.한도, co.합계.담보, co.검산.차이];
+      nums = [s.은행계, s.비은행계, s.총계, co.합계.대출채권, co.합계.지급보증, co.합계.법인채무보증, co.합계.한도, co.합계.담보, co.검산.차이];
       link = sheet.name;
     }
     const vals = [i + 1, name, fmtBiz(co.사업자번호), co.대표자, co.산업명, fmtDate(co.기준일), ...nums, co.비고 || ""];
     vals.forEach((v, j) => {
-      const isNum = j >= 6 && j < 14;
+      const isNum = j >= 6 && j < 15;
       ws0.set(r, 2 + j, v ?? "", box({ align: isNum ? "right" : j === 1 || j === 4 ? "left" : "center", fmt: isNum,
         ...(j === 1 && link ? { color: C.blue, under: true } : {}) }));
     });
@@ -180,8 +189,8 @@ function buildWorkbook(results) {
 
 function buildTemplate() {
   const book = new Book(), ws = book.addSheet("조회목록");
-  ws.widths = { 1: 20, 2: 26, 3: 14 };
-  ["사업자등록번호", "회사명", "대표자성명"].forEach((h, j) => ws.set(1, 1 + j, h, box({ fill: C.head, top: true })));
+  ws.widths = { 1: 20, 2: 26 };
+  ["사업자등록번호", "회사명"].forEach((h, j) => ws.set(1, 1 + j, h, box({ fill: C.head, top: true })));
   return book.toBlob();
 }
 
@@ -235,15 +244,25 @@ async function readRows(file) {
   });
 }
 
-// A열 사업자등록번호(필수)·B열 회사명·C열 대표자성명, 첫 줄은 제목
+// 사업자등록번호는 어느 열에 있든 형식으로 찾는다(- 유무 무관, 앞자리 0이 빠진 9자리 숫자도 인정).
+const bizOf = (cell) => {
+  const t = String(cell ?? "").trim();
+  if (/^\d{3}[\s.\-–—]*\d{2}[\s.\-–—]*\d{5}$/.test(t)) return t.replace(/\D/g, "");
+  return /^\d{9}$/.test(t) ? t.padStart(10, "0") : "";
+};
+
+// 첫 줄이 제목이면 건너뛴다. 회사명은 있으면 쓰고, 대표자명 등 다른 열은 보지 않는다.
 async function readList(file) {
   const rows = await readRows(file);
   const list = [];
-  rows.forEach(([a, b], i) => {
-    const biz = String(a || "").replace(/\D/g, "");
-    if (i === 0 && biz.length !== 10) return;
-    if (!a && !b) return;
-    list.push({ biz, name: b || "" });
+  rows.forEach((row, i) => {
+    const cells = row.map((x) => String(x ?? "").trim()).filter(Boolean);
+    if (!cells.length) return;
+    const found = cells.find(bizOf);
+    const name = cells.find((x) => x !== found && !/^[\d\s.\-–—]+$/.test(x)) || "";
+    if (found) { list.push({ biz: bizOf(found), name }); return; }
+    if (i === 0 || cells.some((x) => x.includes("사업자"))) return;   // 제목 줄
+    list.push({ biz: (cells.find((x) => /\d/.test(x)) || "").replace(/\D/g, ""), name });
   });
   return list;
 }

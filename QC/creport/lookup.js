@@ -58,12 +58,12 @@ function renderSummary() {
 }
 
 function renderTable(x) {
-  const t = el("table");
+  const t = el("table", { className: "tbl" });
   t.append(row(["구분", ...x.cols], "th"));
   x.rows.forEach(([g, v], i) => {
     const tr = row([el("td", { className: "g", textContent: g }),
       ...v.map((n, j) => el("td", { className: "n" + (j === v.length - 1 && v.length > 1 ? " hi" : ""), textContent: fmtNum(n) }))]);
-    if (i === x.rows.length - 1) tr.className = "total";
+    tr.className = rowKind(g, i === x.rows.length - 1);
     t.append(tr);
   });
   return el("div", { className: "scroll" }, [t]);
@@ -86,10 +86,10 @@ function selectCompany(i) {
   pair("사업자번호", fmtBiz(co.사업자번호), "법인번호", fmtCorp(co.법인번호));
   pair("산업명", co.산업명, "데이터 기준일자", fmtDate(co.기준일));
   info.append(el("tr", {}, [el("th", { textContent: "주소" }), el("td", { textContent: co.주소 || "", colSpan: 3 })]));
-  const items = Object.entries(s).filter(([, v]) => v);
+  const items = headline(s);
   const sum = el("table", {}, [row(items.map(([k]) => k), "th"), row(items.map(([, v]) => el("td", { className: "n", textContent: fmtNum(v) })))]);
   d.replaceChildren(el("h3", { textContent: "기본정보" }), info, el("h3", { textContent: "요약" }), sum,
-    ...secs.flatMap((x) => [el("h3", { textContent: x.name }), renderTable(x)]));
+    ...secs.map(compact).flatMap((x) => [el("h3", { textContent: x.name }), renderTable(x)]));
 }
 
 function renderResult() {
@@ -180,3 +180,4 @@ drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove
 // 처음 열 때와, 로그인하고 이 화면으로 돌아올 때 연결 상태를 다시 본다.
 refreshConn();
 window.addEventListener("focus", refreshConn);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshConn(); });   // QC 틀 안에서는 focus가 오지 않는다
