@@ -810,7 +810,16 @@ function renderStatus() {
     [t.total.name, t.total.pop, t.total.pick, t.total.rate]].map((r) => r.join('\t')).join('\n');
 }
 
+/* [신용정보 조회로 보내기]는 체크한 회사가 있을 때만 켠다 */
+function syncSendButton() {
+  const b = $('sendCreport'), n = state.chosen.size;
+  if (!b) return;
+  b.disabled = !n;
+  b.title = n ? `체크한 ${n}개사의 신용정보를 조회해 엑셀로 내려받습니다` : '개별 선정에서 회사를 체크하면 켜집니다';
+}
+
 function renderPicked() {
+  syncSendButton();
   autoSavePicks();
   const list = [...state.chosen.values()];
   if (state.data) renderStatus();
@@ -2260,7 +2269,6 @@ function keepDialogsInView() {
 /* 선정 회사의 사업자등록번호를 찾아 [신용정보 조회] 화면으로 보낸다 — 그 화면이 조회하고 엑셀까지 내려받는다 */
 async function sendCreport() {
   const cards = [...state.chosen.values()];
-  if (!cards.length) { await showAlert('개별 선정에서 회사를 먼저 체크해 주세요.', { title: '신용정보 조회' }); return; }
   await busy($('sendCreport'), '사업자번호 확인 중…', async () => {
     const register = ((state.reg && state.reg.nextCur) || []).concat((state.reg && state.reg.nextNext) || []);
     const list = await collectCreport(cards, { company: (c) => displayName(cell(c.row, 'company')), bizOf: (c) => cell(c.row, 'biz_no'), register, nameKey });
@@ -2290,6 +2298,7 @@ async function start() {
     document.querySelector('.qs-tab[data-tab="other"]').before(send);
   }
   send.addEventListener('click', sendCreport);
+  syncSendButton();
   $('pickFile').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) loadPresubmit(f); e.target.value = ''; });
   $('recentSel').addEventListener('change', onRecentChange);
   $('pickSave').addEventListener('click', savePicks);

@@ -27,6 +27,7 @@ body { height: auto; min-height: 100vh; overflow: auto; }
   box-shadow: 0 4px 12px rgba(46, 127, 184, 0.06); }
 .qs-tab:hover { background: var(--primary-light); border-color: var(--primary); color: var(--primary-hover); }
 .qs-tab.is-on { background: var(--primary); border-color: var(--primary); color: #fff; }
+.qs-tab:disabled, .qs-tab:disabled:hover { background: var(--paper); border-color: var(--primary-border); color: var(--primary); opacity: .45; cursor: default; box-shadow: none; }
 
 .qs-pane { width: min(1480px, calc(100% - 36px)); margin: 0 auto; padding: 16px 0 40px; }
 .qs-pane-frame { width: calc(100% - 36px); }
