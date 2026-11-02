@@ -2283,7 +2283,13 @@ async function start() {
     document.querySelector('.qs-tabs').append(b);
   }
   document.querySelectorAll('.qs-tab[data-tab]').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
-  $('sendCreport').addEventListener('click', sendCreport);
+  let send = $('sendCreport');
+  if (!send) {   // 브라우저에 남은 옛 sample.html 로 열려도 멈추지 않고 버튼이 보이게
+    send = document.createElement('button');
+    Object.assign(send, { type: 'button', id: 'sendCreport', className: 'qs-tab', textContent: '신용정보 조회로 보내기' });
+    document.querySelector('.qs-tab[data-tab="other"]').before(send);
+  }
+  send.addEventListener('click', sendCreport);
   $('pickFile').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) loadPresubmit(f); e.target.value = ''; });
   $('recentSel').addEventListener('change', onRecentChange);
   $('pickSave').addEventListener('click', savePicks);
