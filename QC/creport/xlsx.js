@@ -40,11 +40,11 @@ class Book {
     this.style({});
   }
   idx(list, v) { let i = list.indexOf(v); if (i < 0) { list.push(v); i = list.length - 1; } return i; }
-  // {bold,color,size,under,fill,align,fmt,box,top,dot,shrink}
+  // {bold,color,size,under,fill,align,fmt,box,top,dot,shrink,noto}
   style(o) {
-    const font = `<font>${o.bold ? "<b/>" : ""}${o.under ? "<u/>" : ""}<sz val="${o.size || 10}"/><color rgb="FF${o.color || "000000"}"/><name val="맑은 고딕"/><family val="2"/></font>`;
+    const font = `<font>${o.bold ? "<b/>" : ""}${o.under ? "<u/>" : ""}<sz val="${o.size || 10}"/><color rgb="FF${o.color || "000000"}"/><name val="${o.noto ? "Noto Sans KR" : "맑은 고딕"}"/><family val="2"/></font>`;
     const on = o.box || o.dot;
-    const line = (tag) => on ? `<${tag} style="${o.dot ? "hair" : "thin"}"><color rgb="FFBFBFBF"/></${tag}>` : `<${tag}/>`;
+    const line = (tag) => on ? `<${tag} style="${o.dot ? "hair" : "thin"}"><color rgb="${o.dot ? "FFFFFFFF" : "FFBFBFBF"}"/></${tag}>` : `<${tag}/>`;
     const top = o.top ? `<top style="medium"><color rgb="FF404040"/></top>` : line("top");
     const border = `<border>${line("left")}${line("right")}${top}${line("bottom")}<diagonal/></border>`;
     const fontId = this.idx(this.fonts, font), borderId = this.idx(this.borders, border);
@@ -109,53 +109,84 @@ class BookSheet {
 }
 
 // ── 조회결과 → 엑셀 (화면·파이썬 변환본과 같은 모양) ──────
-const C = { head: "F2F2F2", tot: "E6F1FA", total: "DDEBF7", coll: "FFF2CC", blue: "0B5394" };
+const C = { head: "F2F2F2", blue: "0B5394", hd: "F3F3F3", total: "E8F4FC", navy: "00487F", ink: "333333", body: "555555" };
 const box = (o) => ({ box: true, ...o });
+
+// 회사 시트 공통 글꼴·색
+const cellHead = { dot: true, noto: true, size: 11, fill: C.hd, color: C.ink, align: "left" };
+const cellBody = { dot: true, noto: true, size: 11, fill: "FFFFFF", color: C.body, align: "left" };
+const cellRow = { "": cellBody, sub: { ...cellBody, fill: C.hd, color: C.ink }, total: { ...cellBody, fill: C.total, color: C.navy } };
 
 // 표 한 개를 (r, c0) 위치부터 그리고 다음 행 번호를 돌려준다.
 function drawTable(ws, r, c0, x) {
-  ws.set(r++, c0, x.name, { bold: true, size: 13, align: "left" });
-  ws.set(r, c0, "구분", { dot: true, fill: C.head, align: "left" });
-  x.cols.forEach((c, j) => ws.set(r, c0 + 1 + j, c, { dot: true, fill: C.head, align: "left", shrink: true }));
+  ws.heights[r] = 24.75;
+  ws.set(r++, c0, x.name, { noto: true, size: 15, color: C.ink, align: "left" });
+  ws.heights[r] = 18;
+  ws.set(r, c0, "구분", cellHead);
+  x.cols.forEach((c, j) => ws.set(r, c0 + 1 + j, c, { ...cellHead, shrink: true }));
   r++;
   x.rows.forEach(([g, v], i) => {
-    const kind = rowKind(g, i === x.rows.length - 1);
-    const fill = { sub: C.head, total: C.total, coll: C.coll }[kind] || null;
-    const color = kind === "total" ? C.blue : null;
-    ws.set(r, c0, g, { dot: true, fill, color, align: "left" });
-    v.forEach((n, j) => {
-      const hi = j === v.length - 1 && v.length > 1;   // 총계 열
-      ws.set(r, c0 + 1 + j, n, { dot: true, align: "right", fmt: true, fill: fill || (hi ? C.tot : null), color: color || (hi ? C.blue : null) });
-    });
+    const st = cellRow[rowKind(g, x.rows.length > 1 && i === x.rows.length - 1)];
+    ws.heights[r] = 18;
+    ws.set(r, c0, g, st);
+    v.forEach((n, j) => ws.set(r, c0 + 1 + j, n, { ...st, align: "right", fmt: true }));
     r++;
   });
   return r;
 }
 
+// 글자 폭(엑셀 열 너비 단위) 어림
+const textWidth = (s) => [...String(s)].reduce((a, ch) => a + (ch.charCodeAt(0) > 255 ? 2 : 1.1), 1.5);
+const W = { first: 23.7, label: 13, value: 13, gap: 9, page: 175 };
+
+// 표들을 세로 칸(lane)에 나눠 담는다. 키가 가장 낮은 칸부터 채우고, 화면 폭을 넘으면 칸 수를 줄인다.
+function arrange(tabs) {
+  const by = (f) => tabs.filter(f);
+  const order = [...by((t) => t.rep === "31" && t.job === "31"), ...by((t) => t.rep === "32"), ...by((t) => t.rep === "33"), ...by((t) => t.rep === "34"),
+    ...by((t) => t.rep === "31" && t.job !== "31"), ...by((t) => !["31", "32", "33", "34"].includes(t.rep))];
+  for (const n of [3, 2, 1]) {
+    const lanes = Array.from({ length: n }, () => ({ tabs: [], h: 0 }));
+    for (const t of order) {
+      const lane = lanes.reduce((a, b) => (b.h < a.h ? b : a));
+      lane.tabs.push(t);
+      lane.h += t.rows.length + 3;
+    }
+    const used = lanes.filter((l) => l.tabs.length);
+    used.forEach((l, i) => {
+      l.label = Math.min(30, Math.max(i ? W.label : W.first, ...l.tabs.flatMap((t) => t.rows.map(([g]) => textWidth(g)))));
+      l.cols = Math.max(...l.tabs.map((t) => t.cols.length));
+    });
+    const width = used.reduce((a, l) => a + l.label + l.cols * W.value, 0) + W.gap * (used.length - 1);
+    if (n === 1 || width <= W.page) return used;
+  }
+  return [];
+}
+
 function buildCompanySheet(ws, co, secs, s) {
   const tabs = secs.map(compact);
-  ws.set(1, 1, co.회사명, { bold: true, size: 13, align: "left" });
-  ws.set(2, 1, [fmtBiz(co.사업자번호), fmtCorp(co.법인번호), co.대표자, co.산업명, `기준일 ${fmtDate(co.기준일)}`].filter(Boolean).join("  |  "), { size: 9, color: "595959", align: "left" });
-  ws.set(3, 1, "(단위 : 백만원)", { size: 9, color: "595959", align: "left" });
+  const note = { noto: true, size: 10, color: "777777", align: "left" };
+  ws.heights[1] = 24.75;
+  ws.set(1, 1, co.회사명, { noto: true, size: 15, color: C.ink, align: "left" });
+  ws.set(2, 1, [fmtBiz(co.사업자번호), fmtCorp(co.법인번호), co.대표자, co.산업명, `기준일 ${fmtDate(co.기준일)}`].filter(Boolean).join("  |  "), note);
+  ws.set(3, 1, "(단위 : 백만원, 기타는 보험을 포함한 비은행 합계)", note);
+  ws.heights[4] = ws.heights[5] = 18;
   headline(s).forEach(([k, v], j) => {
-    ws.set(4, 1 + j, k, { fill: C.head, align: "left" });
-    ws.set(5, 1 + j, v, { align: "right", fmt: true });
+    ws.set(4, 1 + j, k, { ...cellHead, shrink: true });
+    ws.set(5, 1 + j, v, { ...cellBody, align: "right", fmt: true });
   });
-  // 기관이 적으면 나란히, 많으면 세로로 쌓는다.
-  const narrow = Math.max(...tabs.map((t) => t.cols.length)) <= 3;
-  const blocks = narrow
-    ? [tabs.filter((t) => t.rep === "31" && t.job === "31"), [...tabs.filter((t) => t.rep === "32"), ...tabs.filter((t) => t.rep === "31" && t.job !== "31")],
-       tabs.filter((t) => t.rep !== "31" && t.rep !== "32")].filter((b) => b.length)
-    : [tabs];
+  ws.widths[1] = W.first;
+  for (let c = 2; c <= 6; c++) ws.widths[c] = W.value;
+  if (!tabs.length) { ws.set(7, 1, "조회된 신용정보가 없습니다.", { ...note, size: 11 }); return; }
+  const lanes = arrange(tabs);
+  ws.landscape = lanes.length > 1;
   let c0 = 1;
-  for (const b of blocks) {
-    const wide = Math.max(...b.map((t) => t.cols.length));
-    ws.widths[c0] = 23;
-    for (let c = c0 + 1; c <= c0 + wide; c++) ws.widths[c] = 12;
+  for (const l of lanes) {
+    ws.widths[c0] = l.label;
+    for (let c = c0 + 1; c <= c0 + l.cols; c++) ws.widths[c] = W.value;
     let r = 7;
-    for (const t of b) r = drawTable(ws, r, c0, t) + 1;
-    c0 += wide + 2;
-    ws.widths[c0 - 1] = 9;
+    for (const t of l.tabs) r = drawTable(ws, r, c0, t) + 1;
+    c0 += l.cols + 2;
+    ws.widths[c0 - 1] = W.gap;
   }
 }
 

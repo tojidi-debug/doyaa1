@@ -19,7 +19,31 @@ function setConn(conn) {
   $("install").hidden = conn !== "noext";
   state.conn = conn;
 }
-const refreshConn = async () => { if (!state.running) setConn(await connection()); };
+const refreshConn = async () => {
+  if (state.running) return;
+  setConn(await connection());
+  if (state.conn === "ok" && state.pending) {   // 개별선정에서 넘어온 회사는 연결되는 대로 조회한다
+    const list = state.pending;
+    state.pending = null;
+    run(list, true);
+  }
+};
+
+// 개별선정에서 보낸 회사를 받는다. 받자마자 지운다.
+const QUEUE = "qcCreport:queue";
+function takeQueue() {
+  let q = null;
+  try {
+    q = JSON.parse(localStorage.getItem(QUEUE) || "null");
+    localStorage.removeItem(QUEUE);
+  } catch (e) { return; }
+  if (!q || !Array.isArray(q.list) || !q.list.length || Date.now() - q.at > 600000) return;
+  state.list = q.list;
+  state.pending = q.list;
+  $("drop-text").textContent = `개별선정 ${q.list.length}개사`;
+  $("run-many").disabled = false;
+  refreshConn();
+}
 
 function save(blob, name) {
   const a = el("a", { href: URL.createObjectURL(blob), download: name });
@@ -62,8 +86,8 @@ function renderTable(x) {
   t.append(row(["구분", ...x.cols], "th"));
   x.rows.forEach(([g, v], i) => {
     const tr = row([el("td", { className: "g", textContent: g }),
-      ...v.map((n, j) => el("td", { className: "n" + (j === v.length - 1 && v.length > 1 ? " hi" : ""), textContent: fmtNum(n) }))]);
-    tr.className = rowKind(g, i === x.rows.length - 1);
+      ...v.map((n, j) => el("td", { className: "n", textContent: fmtNum(n) }))]);
+    tr.className = rowKind(g, x.rows.length > 1 && i === x.rows.length - 1);
     t.append(tr);
   });
   return el("div", { className: "scroll" }, [t]);
@@ -80,6 +104,7 @@ function selectCompany(i) {
   const co = state.results[i], d = $("detail");
   if (!co || !isOk(co)) { d.replaceChildren(); return; }
   const secs = sections(co.원자료), s = summary(secs);
+  if (!secs.length) { d.replaceChildren(el("p", { className: "hint", textContent: "조회된 신용정보가 없습니다." })); return; }
   const info = el("table", { className: "info" });
   const pair = (a, b, c, e) => info.append(el("tr", {}, [el("th", { textContent: a }), el("td", { textContent: b ?? "" }), el("th", { textContent: c }), el("td", { textContent: e ?? "" })]));
   pair("기업명", co.회사명, "대표자명", co.대표자);
@@ -112,23 +137,24 @@ async function run(list, auto) {
   document.querySelectorAll("#run-one,#run-many").forEach((b) => { b.disabled = true; });
   const p = $("progress");
   p.hidden = false;
-  state.results = []; state.inq = inq;
+  state.results = []; state.inq = (list[0] && list[0].inq) || inq;
   renderResult();
   try {
     for (let i = 0; i < list.length; i++) {
+      const when = list[i].inq || inq;
       p.textContent = `${i + 1} / ${list.length} 조회 중 — ${list[i].name || fmtBiz(list[i].biz)}`;
       if (list[i].biz.length !== 10) {
-        state.results.push({ 회사명: list[i].name, 사업자번호: list[i].biz, 기준일: inq, 매칭: false, 비고: "사업자번호 오류" });
+        state.results.push({ 회사명: list[i].name, 사업자번호: list[i].biz, 기준일: when, 매칭: false, 비고: list[i].biz ? "사업자번호 오류" : "사업자번호 미확인" });
         continue;
       }
       let co;
       try {
-        co = await lookupCompany(list[i], inq);
+        co = await lookupCompany(list[i], when);
       } catch (e) {
-        if (e.message === "noext") { setConn("noext"); state.results = []; renderResult(); return; }
-        co = { 회사명: list[i].name, 사업자번호: list[i].biz, 기준일: inq, 매칭: false, 비고: "조회 오류: " + e.message };
+        if (e.message === "noext") { setConn("noext"); state.pending = list; state.results = []; renderResult(); return; }
+        co = { 회사명: list[i].name, 사업자번호: list[i].biz, 기준일: when, 매칭: false, 비고: "조회 오류: " + e.message };
       }
-      if (co.login) { setConn("login"); state.results = []; renderResult(); return; }
+      if (co.login) { setConn("login"); if (auto) state.pending = list; state.results = []; renderResult(); return; }
       setConn("ok");
       state.results.push(co);
       renderResult();
@@ -179,5 +205,7 @@ drop.addEventListener("dragleave", () => drop.classList.remove("over"));
 drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); pick(e.dataTransfer.files[0]); });
 // 처음 열 때와, 로그인하고 이 화면으로 돌아올 때 연결 상태를 다시 본다.
 refreshConn();
+takeQueue();
+window.addEventListener("storage", (e) => { if (e.key === QUEUE && e.newValue) takeQueue(); });
 window.addEventListener("focus", refreshConn);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshConn(); });   // QC 틀 안에서는 focus가 오지 않는다

@@ -40,10 +40,8 @@ tr:first-child th { border-top: 2px solid #404040; }
 td.n { text-align: right; font-variant-numeric: tabular-nums; }
 td.g { text-align: center; }
 table.tbl td.g { text-align: left; }
-td.hi { background: var(--tot); color: var(--blue-ink); }
 tr.sub td { background: var(--head); }
-tr.total td { background: #ddebf7; color: var(--blue-ink); }
-tr.coll td { background: #fff2cc; }
+tr.total td { background: #e8f4fc; color: #00487f; }
 #summary td.link { color: var(--blue-ink); text-decoration: underline; cursor: pointer; }
 #summary td.bad { color: #a01828; }
 .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }

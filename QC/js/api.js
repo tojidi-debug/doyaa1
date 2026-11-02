@@ -23,6 +23,7 @@ async function firms(q) {
 /* ── 전자공시 중계 ── */
 const relayUrl = () => { let v = ''; try { v = localStorage.getItem('qc.relay') || ''; } catch { /* */ } return v || window.QC_RELAY || ''; };
 export const hasRelay = () => !!relayUrl();
+export const dartCompany = async (corp) => (await relay({ op: 'company', corp_code: corp })).data || {};   // 전자공시 기업개황
 async function relay(params) {
   const url = relayUrl(); if (!url) throw only('전자공시 조회(중계 주소 없음)');
   let r; try { r = await fetch(`${url}?${new URLSearchParams(params)}`, { redirect: 'follow' }); } catch (e) { throw new ApiError(502, `전자공시 중계(구글 Apps Script)에 연결하지 못했습니다: ${e.message || e}`); }

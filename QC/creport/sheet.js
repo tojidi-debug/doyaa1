@@ -37,7 +37,10 @@ function 변환(dto) {
       const g = (r.gbNm || "").trim();
       if (!g || !r.colInfo) continue;
       const cols = r.colInfo.split("|"), val = (j) => num0(r["val" + pad2(j + 1)]);
-      if (g === "신용공여합계" && rep === "31") 공여합계 += Math.max(...cols.map((c, j) => val(j)));
+      if (g === "신용공여합계" && rep === "31") {
+        const 개별합 = cols.reduce((a, c, j) => a + (소계열(c) ? 0 : val(j)), 0);
+        공여합계 += Math.max(개별합, ...cols.map((c, j) => val(j)));
+      }
       if (소계행(g)) continue;
       const 개별 = [];
       let 최대소계 = 0;
@@ -80,20 +83,23 @@ function sections(dto) {
   return out;
 }
 
-function secTotal(rows, name) {
-  const row = (rows.find(([g]) => g === name) || rows[rows.length - 1])[1];
-  return Math.max(0, ...row.filter((x) => x !== null));
+// 표 합계: 총계 열이 없으면 개별 기관 합을 쓴다.
+function secTotal(sec, name) {
+  const row = (sec.rows.find(([g]) => g === name) || sec.rows[sec.rows.length - 1])[1];
+  const 개별합 = row.reduce((a, x, j) => a + (/계$/.test(sec.cols[j]) ? 0 : x ?? 0), 0);
+  return Math.max(개별합, ...row.filter((x) => x !== null));
 }
 
 function summary(secs) {
   const s = { 은행계: 0, 보험: 0, 기타: 0, 비은행계: 0, 총계: 0, 한도: 0, 담보: 0, 법인채무보증: 0 };
   for (const x of secs) {
-    if (x.rep === "31") s[x.job === "31" ? "은행계" : x.name.includes("보험") ? "보험" : "기타"] += secTotal(x.rows, "신용공여합계");
-    else if (x.rep === "32") s.한도 += secTotal(x.rows, "한도계");
-    else if (x.rep === "33") s.담보 += secTotal(x.rows, "담보총계");
-    else if (x.rep === "34") s.법인채무보증 += secTotal(x.rows);
+    if (x.rep === "31") s[x.job === "31" ? "은행계" : x.name.includes("보험") ? "보험" : "기타"] += secTotal(x, "신용공여합계");
+    else if (x.rep === "32") s.한도 += secTotal(x, "한도계");
+    else if (x.rep === "33") s.담보 += secTotal(x, "담보총계");
+    else if (x.rep === "34") s.법인채무보증 += secTotal(x);
   }
   s.비은행계 = s.보험 + s.기타;
+  s.기타 = s.비은행계;   // 조회 화면과 같이 보험을 포함한 비은행 합계
   s.총계 = s.은행계 + s.비은행계;
   return s;
 }
@@ -110,11 +116,16 @@ function compact(sec) {
     Math.abs((v[last] ?? 0) - indiv.reduce((a, j) => a + (v[j] ?? 0), 0)) <= indiv.length);
   const keep = !covers ? sec.cols.map((_, j) => j) : indiv.length > 1 ? [...indiv, last] : indiv;
 
+  const isTotal = (g) => /계$/.test(g) && g !== "신용장개설관계";
+  const leaves = sec.rows.filter(([g]) => !isTotal(g));
+  const pick = (v) => keep.map((j) => v[j]);
+  // 계정이 한 줄뿐이면 소계·합계 행은 모두 같은 값이므로 그 줄만 남긴다.
+  if (leaves.length === 1) return { ...sec, cols: keep.map((j) => sec.cols[j]), rows: [[leaves[0][0], pick(leaves[0][1])]] };
+
   const hasLoan = sec.rows.some(([g]) => g === "대출채권계");
-  const rows = [];
+  let rows = [];
   let group = [];
   for (const [g, v] of sec.rows) {
-    const row = [g, keep.map((j) => v[j])];
     if (g === "신용공여대출채권계" || g === "신용공여주석계" || (g === "주석계" && !hasLoan)) continue;
     if (/지급보증계$/.test(g) && group.length === 1) {  // 한 줄뿐인 지급보증 소계는 계정명 표시로 대신한다
       const name = rows[group[0]][0];
@@ -122,17 +133,21 @@ function compact(sec) {
       group = [];
       continue;
     }
-    rows.push(row);
-    if (/계$/.test(g) && g !== "신용장개설관계") group = [];
+    rows.push([g, pick(v)]);
+    if (isTotal(g)) group = [];
     else group.push(rows.length - 1);
   }
+  // 값이 같은 소계는 한 번만 보인다: 원화대출금소계=대출채권계, 대출채권계=신용공여합계
+  const same = (x, y) => x && y && JSON.stringify(x[1]) === JSON.stringify(y[1]);
+  const loan = rows.find(([g]) => g === "대출채권계");
+  const tail = rows[rows.length - 1];
+  rows = rows.filter((r) => !((/소계$/.test(r[0]) || r[0] === "신용공여합계") && r !== loan && same(r, loan)) && !(/소계$/.test(r[0]) && r !== tail && same(r, tail)));
   return { ...sec, cols: keep.map((j) => sec.cols[j]), rows };
 }
 
-// 행 강조: sub 소계 / total 합계 / coll 담보총계
+// 행 강조: sub 소계 / total 합계
 function rowKind(g, final) {
-  if (g === "담보총계") return "coll";
-  if (final || /^(주석계|대출채권계|한도계)$|합계$/.test(g)) return "total";
+  if (final || /^(주석계|대출채권계|한도계|담보총계)$|합계$/.test(g)) return "total";
   return /소계$|지급보증계$/.test(g) ? "sub" : "";
 }
 

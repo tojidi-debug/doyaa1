@@ -11,6 +11,7 @@ import './ui/guard.js';
 import { api, auth } from './api.js';
 import { showAlert, showAsk, showChoice, showConfirm, showDetail, showPrompt } from './ui/dialog.js';
 import { $, esc, toast } from './lookup_kit.js';
+import { collectCreport, sendToCreport } from './qc_creport_send.js';
 import {
   slicerChoices, defaultSlicers, valueOf, slicerValues, filterRows,
   searchTerm, pickCompany, pickPeriod, LEVELS, issuesTsv,
@@ -2256,6 +2257,19 @@ function keepDialogsInView() {
   try { window.parent.addEventListener('scroll', all, { passive: true, capture: true }); } catch { /* 다른 출처 */ }
 }
 
+/* 선정 회사의 사업자등록번호를 찾아 [신용정보 조회] 화면으로 보낸다 — 그 화면이 조회하고 엑셀까지 내려받는다 */
+async function sendCreport() {
+  const cards = [...state.chosen.values()];
+  if (!cards.length) { await showAlert('개별 선정에서 회사를 먼저 체크해 주세요.', { title: '신용정보 조회' }); return; }
+  await busy($('sendCreport'), '사업자번호 확인 중…', async () => {
+    const register = ((state.reg && state.reg.nextCur) || []).concat((state.reg && state.reg.nextNext) || []);
+    const list = await collectCreport(cards, { company: (c) => displayName(cell(c.row, 'company')), bizOf: (c) => cell(c.row, 'biz_no'), register, nameKey });
+    const miss = list.filter((i) => !i.biz).map((i) => i.name);
+    if (miss.length) await showAlert(`사업자등록번호를 찾지 못한 회사가 있습니다 — ${miss.join(', ')}.\n이 회사는 조회되지 않고 결과에 「사업자번호 미확인」으로 표시됩니다.`, { title: '신용정보 조회' });
+    sendToCreport(list);
+  });
+}
+
 /* ── 시작 ── */
 
 async function start() {
@@ -2268,7 +2282,8 @@ async function start() {
     b.addEventListener('click', async () => { await api.askPass(); location.reload(); });
     document.querySelector('.qs-tabs').append(b);
   }
-  document.querySelectorAll('.qs-tab').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+  document.querySelectorAll('.qs-tab[data-tab]').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+  $('sendCreport').addEventListener('click', sendCreport);
   $('pickFile').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) loadPresubmit(f); e.target.value = ''; });
   $('recentSel').addEventListener('change', onRecentChange);
   $('pickSave').addEventListener('click', savePicks);

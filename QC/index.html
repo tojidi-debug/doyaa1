@@ -40,8 +40,9 @@
     if (location.hash !== '#' + t) history.replaceState(null, '', '#' + t);
   };
   document.querySelectorAll('.bar button').forEach((b) => b.addEventListener('click', () => pick(b.dataset.tab)));
-  const t = (location.hash || '').slice(1);
-  pick(['review', 'sample', 'creport'].includes(t) ? t : 'creport');   // 주소에 탭이 없으면 신용정보 조회부터
+  const fromHash = () => { const t = (location.hash || '').slice(1); return ['review', 'sample', 'creport'].includes(t) ? t : 'creport'; };   // 주소에 탭이 없으면 신용정보 조회부터
+  pick(fromHash());
+  window.addEventListener('hashchange', () => pick(fromHash()));   // 개별선정의 [신용정보 조회로 보내기]
 })();
 </script>
 </body>
