@@ -23,7 +23,7 @@ async function firms(q) {
 /* ── 전자공시 중계 ── */
 const relayUrl = () => { let v = ''; try { v = localStorage.getItem('qc.relay') || ''; } catch { /* */ } return v || window.QC_RELAY || ''; };
 export const hasRelay = () => !!relayUrl();
-export const dartCompany = async (corp) => (await relay({ op: 'company', corp_code: corp })).data || {};   // 전자공시 기업개황
+export const dartCompany = async (corp) => (await relay({ op: 'company', corp_code: corp })).data || {};   // 전자공시 기업개황(신용정보 조회로 보낼 때 사업자번호 찾기 — qc_creport_send.js)
 async function relay(params) {
   const url = relayUrl(); if (!url) throw only('전자공시 조회(중계 주소 없음)');
   let r; try { r = await fetch(`${url}?${new URLSearchParams(params)}`, { redirect: 'follow' }); } catch (e) { throw new ApiError(502, `전자공시 중계(구글 Apps Script)에 연결하지 못했습니다: ${e.message || e}`); }
@@ -319,6 +319,7 @@ async function sampleUpload(path, fd) {
   const [p, qs] = path.split('?'); const q = new URLSearchParams(qs || ''); const fy = fd.get('fy') ? Number(fd.get('fy')) : null;
   if (p === '/qc-sample/parse') return py('parse', [fd.get('file').name, await b64of(fd.get('file')), fy]);
   if (p === '/qc-sample/reconcile') return py('reconcile', [await Promise.all(fd.getAll('files').map(fileB64)), fy]);
+  if (p === '/qc-sample/review') return py('review', [await Promise.all(fd.getAll('files').map(fileB64)), await Promise.all(fd.getAll('firm_files').map(fileB64)), fy]);   // [품감] 통합 — 제출자료 대사 한 번에
   if (p === '/qc-sample/other') return py('other', [await fileB64(fd.get('presubmit')), await Promise.all(fd.getAll('files').map(fileB64)), fy]);
   let m = /^\/qc-sample\/templates\/(full|part)$/.exec(p);
   if (m) {
@@ -392,7 +393,13 @@ export const api = {
     if (path.startsWith('/qc-sample/schedule/firm')) return scheduleEdit('schedule_firm', [{ firm: new URLSearchParams(path.split('?')[1] || '').get('firm') || '' }, true]);
     return qcApi.del(path);
   },
-  post: (...a) => qcApi.post(...a), patch: (...a) => qcApi.patch(...a), postBlob: (...a) => qcApi.postBlob(...a), downloadPost: (...a) => qcApi.downloadPost(...a),
+  post: (...a) => qcApi.post(...a), patch: (...a) => qcApi.patch(...a), postBlob: (...a) => qcApi.postBlob(...a),
+  async downloadPost(path, body, fallbackName) {
+    if (path !== '/qc-sample/review.xlsx') return qcApi.downloadPost(path, body, fallbackName);
+    const o = await py('review_xlsx', [body]); const res = binResponse(o); const url = URL.createObjectURL(await res.blob());   // 대사 결과 엑셀 — 브라우저 파이썬이 만든다
+    const a = document.createElement('a'); a.href = url; a.download = o.name || fallbackName || '제출자료대사.xlsx'; document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000); return o.name;
+  },
 };
 /* 관리자 여부 = 관리자 암호를 넣었는가(중계가 확인). 이름은 없음(강조할 이름은 각자 [강조할 이름]으로) */
 export const auth = { async me() { const r = await role(); return { id: 'github', name: 'GitHub', display_name: '', roles: r.admin ? ['admin'] : [] }; }, async logout() { setPass(''); setEmail(''); setView(''); ROLE = null; } };

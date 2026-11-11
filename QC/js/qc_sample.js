@@ -9,9 +9,8 @@
  */
 import './ui/guard.js';
 import { api, auth } from './api.js';
-import { showAlert, showAsk, showChoice, showConfirm, showDetail, showForm, showPrompt } from './ui/dialog.js';
+import { showAlert, showAsk, showChoice, showConfirm, showDetail, showPrompt } from './ui/dialog.js';
 import { $, esc, toast } from './lookup_kit.js';
-import { collectCreport, sendToCreport } from './qc_creport_send.js';
 import {
   slicerChoices, defaultSlicers, valueOf, slicerValues, filterRows,
   searchTerm, pickCompany, pickPeriod, LEVELS, issuesTsv,
@@ -21,6 +20,7 @@ import {
   topCompanyList, shortName, nameKey, firmBrief, searchTerms, lastReview, unifyMarks, periodMonths, calendarWeeks, historyLine,
   assignCompanyIds, countCompanies, slicerMenu, sheetText, SHEET_NAMES, shortAddr, makeZip, industryGroup, companyKey,
 } from './qc_sample_data.js';
+import * as Project from './qc_project.js';
 
 const state = {
   me: null, admin: false,
@@ -106,17 +106,23 @@ function showTab(name) {
     b.classList.toggle('is-on', on);
     b.setAttribute('aria-selected', on ? 'true' : 'false');
   });
-  for (const t of ['sched', 'pick', 'recon', 'sales', 'other']) $(`tab-${t}`).hidden = t !== name;
-  if (name === 'other') renderOtherList();
-  if (name === 'sales') {
+  // 화면마다 있는 칸만 — [품감] 통합(qc_total.html)은 「회계법인 조회」·「심의안 초안 작성」이 한 작업 공간(data-tabs)을 같이 쓴다(2026-11-11)
+  document.querySelectorAll('.qs-pane, [data-tabs]').forEach((p) => {
+    const tabs = p.dataset.tabs ? p.dataset.tabs.split(/\s+/) : [p.id.replace(/^tab-/, '')];
+    p.hidden = !tabs.includes(name);
+  });
+  if (name === 'other' && $('otherList')) renderOtherList();
+  if (name === 'sales' && $('salesFrame')) {
     const f = $('salesFrame');
     if (!f.src) f.src = f.dataset.src;     // 3.5MB 화면이라 탭을 처음 열 때만 불러온다
   }
-  if (name === 'recon') {
+  if (name === 'recon' && $('reconList')) {
     renderReconList();
     $('firmCheck').hidden = !(state.data || state.recon.last);
     if (!$('firmQ').value) $('firmQ').value = guessFirm();
   }
+  if (name === 'recon' && $('revRun')) reviewShown();
+  document.dispatchEvent(new CustomEvent('qc:tab', { detail: name }));
 }
 
 /* ── 서식(상근용·비상근용) ── */
@@ -810,12 +816,25 @@ function renderStatus() {
     [t.total.name, t.total.pop, t.total.pick, t.total.rate]].map((r) => r.join('\t')).join('\n');
 }
 
-/* [신용정보 조회로 보내기]는 체크한 회사가 있을 때만 켠다 */
+/* [신용정보 조회로 보내기] — GitHub(정적) 사이트에서만(QC/creport 가 있다). 체크한 회사가 있을 때만 켠다(사용자 지정 2026-11-12: 통합 화면에도) */
 function syncSendButton() {
   const b = $('sendCreport'), n = state.chosen.size;
   if (!b) return;
   b.disabled = !n;
-  b.title = n ? `체크한 ${n}개사의 신용정보를 조회해 엑셀로 내려받습니다` : '개별 선정에서 회사를 체크하면 켜집니다';
+  b.title = n ? `체크한 ${n}개사의 신용정보를 조회해 엑셀로 내려받습니다` : '개별선정에서 회사를 체크하면 켜집니다';
+}
+
+/* 선정 회사의 사업자등록번호를 찾아 [신용정보 조회] 화면으로 보낸다 — 그 화면이 조회하고 엑셀까지 내려받는다(번호 찾기는 qc_creport_send.js) */
+async function sendCreport() {
+  const { collectCreport, sendToCreport } = await import('./qc_creport_send.js');
+  const cards = [...state.chosen.values()];
+  await busy($('sendCreport'), '사업자번호 확인 중…', async () => {
+    const register = ((state.reg && state.reg.nextCur) || []).concat((state.reg && state.reg.nextNext) || []);
+    const list = await collectCreport(cards, { company: (c) => displayName(cell(c.row, 'company')), bizOf: (c) => cell(c.row, 'biz_no'), register, nameKey });
+    const miss = list.filter((i) => !i.biz).map((i) => i.name);
+    if (miss.length) await showAlert(`사업자등록번호를 찾지 못한 회사가 있습니다 — ${miss.join(', ')}.\n이 회사는 조회되지 않고 결과에 「사업자번호 미확인」으로 표시됩니다.`, { title: '신용정보 조회' });
+    sendToCreport(list);
+  });
 }
 
 function renderPicked() {
@@ -1551,8 +1570,9 @@ async function firmReports() {
   try {
     const res = await api.get(`/qc/firms/${$('firmSel').value}/reports`);
     $('firmRep').innerHTML = res.items.map((it) => `<option value="${it.rcept_no}">${esc(it.report_nm)} · ${esc(it.rcept_dt)}</option>`).join('');
-    $('firmRep').hidden = $('firmRun').hidden = false;
-  } catch (e) { $('firmRep').hidden = $('firmRun').hidden = true; showAlert(e.message, { title: '회계법인사업보고서' }); }
+    $('firmRep').hidden = false;
+    if ($('firmRun')) $('firmRun').hidden = false;
+  } catch (e) { $('firmRep').hidden = true; if ($('firmRun')) $('firmRun').hidden = true; showAlert(e.message, { title: '회계법인사업보고서' }); }
 }
 
 async function firmRun() {
@@ -1716,6 +1736,331 @@ function renderOther(out) {
   });
 }
 
+/* ── [품감] 통합(개발, qc_total.html) — 제출자료 대사 한 번에(사용자 지정 2026-11-11) ──
+ *   왼쪽: 회계법인 관련 자료 — 회계법인 찾기·사업보고서(DART, [품감] 법인 조회와 같은 자료) + 그 밖의 회계법인 자료
+ *   오른쪽: 대사할 자료 — 사전제출자료·매출장·감사보고서·감사시간집계표 등 여러 개를 한꺼번에
+ *   결과: ① 회계법인(외감실적 대사·주요 체크포인트) → ② 매출장 대사(독립성) → ③ 그 밖의 자료 오류(상·중·하)·중요 체크포인트
+ * 서버(POST /qc-sample/review)가 자료를 종류별로 갈라 예전 세 대사(제출자료 대사·기타 대사·[품감] 독립성 대사)를 같은 규칙으로 돌린다.
+ * 자료는 서버에 남기지 않는다. 마지막 결과는 이 컴퓨터의 프로젝트(qc_project.js)에 남는다. */
+state.rev = { firm: [], check: [], last: null, hidden: new Set(), view: 'item', autoAdded: false };
+const GRADE = { 위반의심: '상', 중점확인: '중', 불일치: '중', 참고: '하' };
+const GRADES = [['상', '위반의심'], ['중', '중점확인·불일치'], ['하', '참고']];
+const won = (v) => `${Math.round(Number(v) || 0).toLocaleString('ko-KR')}원`;
+
+function revLists() {
+  for (const [side, id] of [['firm', 'revFirmList'], ['check', 'revList']]) {
+    $(id).innerHTML = state.rev[side].map((f, i) => `<li title="${esc(f.name)}${f.size ? ` · ${Math.max(1, Math.round(f.size / 1024)).toLocaleString('ko-KR')}KB` : ''}"><span class="nm">${esc(f.name)}</span>${f === state.file ? ' <em class="qs-muted">개별선정</em>' : ''}<button type="button" data-rm="${side}:${i}" title="빼기">⨯</button></li>`).join('');
+  }
+  $('revRun').disabled = !(state.rev.firm.length || state.rev.check.length || ($('firmRep').value && !$('firmRep').hidden));
+}
+
+function revAdd(side, files) {
+  const list = state.rev[side];
+  for (const f of files) {
+    if (list.length >= 20) break;
+    if (!list.some((x) => x.name === f.name && x.size === f.size)) list.push(f);
+  }
+  revLists();
+}
+
+/* 탭을 열 때 — 프로젝트의 회계법인·사업보고서를 왼쪽에, 개별선정에서 올린 사전제출자료를 오른쪽에(한 번), 저장된 마지막 결과를 아래에 */
+async function reviewShown() {
+  await Project.load();
+  const p = Project.get();
+  if (p && p.firm && p.firm.corp_code && !$('firmSel').value) {
+    $('firmQ').value = String(p.name || p.firm.corp_name || '').replace(/회계\s*법인|\s/g, '');
+    $('firmSel').innerHTML = `<option value="${esc(p.firm.corp_code)}">${esc(p.firm.corp_name || p.name)}</option>`;
+    $('firmSel').hidden = false;
+    const reps = p.reports || [];
+    $('firmRep').innerHTML = reps.map((it) => `<option value="${esc(it.rcept_no)}"${p.report && p.report.rcept_no === it.rcept_no ? ' selected' : ''}>${esc(it.report_nm)} · ${esc(it.rcept_dt)}</option>`).join('');
+    $('firmRep').hidden = !reps.length;
+  } else if (!$('firmQ').value) $('firmQ').value = guessFirmFrom((state.rev.check[0] || state.file || {}).name || '');
+  if (state.file && !state.rev.autoAdded) { state.rev.autoAdded = true; revAdd('check', [state.file]); }
+  revLists();
+  if (!state.rev.last && p && p.review && p.review.out !== undefined) {
+    state.rev.last = p.review;
+    if (p.review.out && p.review.out.result) state.recon.last = { result: p.review.out.result };
+    renderReview(state.rev.last, true);
+  }
+}
+
+function reviewWire() {
+  for (const [side, dropId, inputId] of [['firm', 'revFirmDrop', 'revFirmFiles'], ['check', 'revDrop', 'revFiles']]) {
+    const d = $(dropId), inp = $(inputId);
+    d.addEventListener('click', () => inp.click());
+    d.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inp.click(); } });
+    d.addEventListener('dragover', (e) => { e.preventDefault(); d.classList.add('is-over'); });
+    d.addEventListener('dragleave', () => d.classList.remove('is-over'));
+    d.addEventListener('drop', (e) => { e.preventDefault(); d.classList.remove('is-over'); revAdd(side, [...e.dataTransfer.files]); });
+    inp.addEventListener('change', (e) => { revAdd(side, [...e.target.files]); e.target.value = ''; });
+  }
+  for (const id of ['revFirmList', 'revList']) {
+    $(id).addEventListener('click', (e) => {
+      const b = e.target.closest('[data-rm]'); if (!b) return;
+      const [side, i] = b.dataset.rm.split(':'); state.rev[side].splice(Number(i), 1); revLists();
+    });
+  }
+  $('firmRep').addEventListener('change', revLists);
+  $('firmSel').addEventListener('change', revLists);
+  $('revRun').addEventListener('click', runReview);
+  $('revXlsx').addEventListener('click', downloadReview);
+  $('revOut').addEventListener('click', onReviewClick);
+}
+
+/* 대사 결과를 엑셀로(사용자 지정 2026-11-12) — 화면이 가진 결과를 그대로 보내 표로 정리해 받는다(서버에 남기지 않음) */
+async function downloadReview() {
+  const rv = state.rev.last; if (!rv) return;
+  const out = rv.out || {};
+  const firm = rv.firm ? { corp_name: rv.firm.corp_name, report: rv.firm.report, profile: rv.firm.profile } : null;
+  const payload = { fy: out.fy, firm, counts: presubmitCounts(), files: out.files || [], items: reviewItems(out),
+    ok: [...(((out.result || {}).checks || {}).ok || []), ...((out.other || {}).ok || [])], sales: out.sales || null, notes: out.notes || [] };
+  await busy($('revXlsx'), '만드는 중…', async () => {
+    try { await api.downloadPost('/qc-sample/review.xlsx', payload, '제출자료대사.xlsx'); }
+    catch (e) { showAlert(e.message, { title: '엑셀 다운로드' }); }
+  });
+}
+
+async function runReview() {
+  const files = state.rev.check.length + state.rev.firm.length;
+  const rep = !$('firmRep').hidden && $('firmRep').value, corp = !$('firmSel').hidden && $('firmSel').value;
+  $('revState').textContent = '맞춰 보는 중…';
+  await busy($('revRun'), '대사 중…', async () => {
+    try {
+      let out = null;
+      if (files) {
+        const fd = new FormData();
+        state.rev.check.forEach((f) => fd.append('files', f));
+        state.rev.firm.forEach((f) => fd.append('firm_files', f));
+        const fy = $('revFy').value.trim();
+        if (fy) fd.append('fy', fy);
+        out = await api.upload('/qc-sample/review', fd);
+      }
+      let firm = null;
+      if (rep && corp) {
+        const pj = Project.get();
+        const profile = pj && pj.profile && pj.report && pj.report.rcept_no === rep ? pj.profile
+          : await api.get(`/qc/reports/${rep}/profile?corp_code=${corp}`);
+        firm = { corp_code: corp, corp_name: $('firmSel').selectedOptions[0]?.textContent || '', rcept_no: rep,
+          report: $('firmRep').selectedOptions[0]?.textContent || '', profile };
+      }
+      state.rev.last = { out, firm, saved: new Date().toISOString() };
+      if (out && out.result) {
+        state.recon.last = { result: out.result };
+        adoptPresubmit(out);
+      }
+      renderReview(state.rev.last);
+      $('revState').textContent = '';
+      const hint = firm ? { corp_code: firm.corp_code, corp_name: firm.corp_name } : { corp_name: $('firmQ').value.trim() || guessFirmFrom((state.rev.check[0] || {}).name || '') };
+      Project.saveReview(state.rev.last, hint).catch(() => {});
+    } catch (e) { $('revState').textContent = ''; showAlert(e.message, { title: '제출자료 대사' }); }
+  });
+}
+
+/* 대사에 올린 사전제출자료를 「개별선정」에도 — 거기서 아직 아무것도 안 올렸을 때만(올린 것을 덮지 않는다) */
+function adoptPresubmit(out) {
+  if (state.data) return;
+  const names = new Set((out.files || []).filter((r) => r.role === '사전제출자료').map((r) => r.name));
+  const f = [...state.rev.check, ...state.rev.firm].find((x) => names.has(x.name));
+  if (!f) return;
+  state.data = out.result;
+  unifyMarks(state.data);
+  assignCompanyIds(state.data);
+  state.file = f;
+  $('firmName').value = guessFirmFrom(f.name) || $('firmName').value;
+  state.shownFile = f.name;
+  showPresubmit(f.name, { fresh: false, file: f }).catch(() => {});
+}
+
+function onReviewClick(e) {
+  const t = e.target;
+  const lv = t.closest('[data-gr]');
+  if (lv) { const g = lv.dataset.gr; if (state.rev.hidden.has(g)) state.rev.hidden.delete(g); else state.rev.hidden.add(g); renderReview(state.rev.last); return; }
+  const v = t.closest('[data-rview]');
+  if (v) { state.rev.view = v.dataset.rview; renderReview(state.rev.last); return; }
+  const tg = t.closest('[data-cotoggle]');
+  if (tg) { e.preventDefault(); const tr = tg.closest('tr').nextElementSibling; tr.hidden = !tr.hidden; tg.closest('tr').classList.toggle('is-open', !tr.hidden); return; }
+  const go = t.closest('[data-gotab]');
+  if (go) { e.preventDefault(); document.querySelector(`.qs-tab[data-tab="${go.dataset.gotab}"]`)?.click(); return; }
+  const cp = t.closest('[data-copy]');
+  if (cp) {
+    const out = (state.rev.last || {}).out || {};
+    const text = cp.dataset.copy === 'sales' ? salesTsv(out.sales) : issuesTsv(reviewItems(out));
+    navigator.clipboard.writeText(text).then(() => toast('복사했습니다 — 엑셀에 붙여 넣으세요.')).catch(() => showAlert('복사하지 못했습니다.', { title: '엑셀 복사' }));
+  }
+}
+
+/* ① 회계법인 — 사업보고서 감사실적 ↔ 사전제출자료 회사 수, 사업보고서에서 확인할 것, 왼쪽에 올린 자료 */
+function firmSection(rv) {
+  const out = rv.out || {}, firm = rv.firm;
+  const leftFiles = (out.files || []).filter((f) => f.side === 'firm');
+  const fileLine = (f) => `<li><b>${esc(f.name)}</b> — ${esc(f.role || f.kind)}${f.error ? ` <span class="bad">${esc(f.error)}</span>` : ''}${f.found ? ` · 읽은 시트: ${esc(f.found.join(', '))}` : ''}${f.rows ? ` · ${f.rows.toLocaleString('ko-KR')}줄` : ''}${f.chars ? ` · ${f.chars.toLocaleString('ko-KR')}자` : ''}</li>`;
+  const files = leftFiles.length ? `<h3 class="qs-sub">올린 회계법인 자료</h3><ul class="qs-sumlist">${leftFiles.map(fileLine).join('')}</ul>` : '';
+  if (!firm) {
+    return `<section class="qs-card rv-sec"><div class="qs-card-head"><h2><span class="rv-no">①</span> 회계법인</h2>
+      <span class="qs-muted">왼쪽에서 회계법인을 찾고 사업보고서를 고르면 외감실적(감사실적)을 사전제출자료 회사 수와 맞추고, 사업보고서에서 확인할 것을 함께 보여 드립니다.</span></div>${files}</section>`;
+  }
+  const p = firm.profile || {}; const ac = p.audit_counts || {};
+  const counts = presubmitCounts();
+  const points = [];
+  const row = (label, rep, mine) => {
+    const diff = rep != null && mine != null ? mine - rep : null;
+    if (diff) points.push({ g: '중', t: `${label}: 사업보고서 ${rep}사 ↔ 사전제출자료 ${mine}사(${diff > 0 ? '+' : ''}${diff}) — 누락·중복 회사 확인` });
+    const cls = diff ? 'bad' : diff === 0 ? 'good' : '';
+    return `<tr><td>${label}</td><td class="num">${rep ?? '-'}</td><td class="num">${mine ?? '-'}</td><td class="num ${cls}">${diff == null ? '-' : diff === 0 ? '일치' : (diff > 0 ? '+' : '') + diff}</td></tr>`;
+  };
+  const table = `<div class="qs-table-wrap"><table class="qs-table"><thead><tr><th>구분</th><th>사업보고서 감사실적</th><th>사전제출자료(회사 수)</th><th>차이</th></tr></thead><tbody>
+    ${row('개별(별도) 외감 — 당기', (ac.indi || {}).total?.[0], counts?.당기)}
+    ${row('개별(별도) 외감 — 전기', (ac.indi || {}).total?.[1], counts?.전기)}
+    ${row('연결 — 당기', (ac.con || {}).total?.[0], counts?.당기연결)}
+    ${row('연결 — 전기', (ac.con || {}).total?.[1], counts?.전기연결)}</tbody></table></div>`;
+  for (const c of p.checks || []) points.push({ g: '중', t: c });
+  for (const w of p.warnings || []) points.push({ g: '하', t: `사업보고서에서 읽지 못한 값 — ${w}` });
+  if (!counts) points.push({ g: '하', t: '사전제출자료(2-3)를 올리지 않아 외감실적 회사 수는 맞춰 보지 못했습니다.' });
+  const pts = points.length ? `<ul class="rv-points">${points.map((x) => `<li><span class="gr gr-${x.g}">${x.g}</span> ${esc(x.t)}</li>`).join('')}</ul>` : '<p class="qs-muted">사업보고서에서 따로 확인할 것은 찾지 못했습니다.</p>';
+  return `<section class="qs-card rv-sec"><div class="qs-card-head"><h2><span class="rv-no">①</span> 회계법인 — ${esc(p.corp_name || firm.corp_name)}</h2>
+      <span class="qs-muted">${esc(firm.report)}${p.period ? ` · 당기 ${esc(p.period)} / 전기 ${esc(p.prev_period || '')}` : ''}</span><span class="qs-grow"></span>
+      <a href="#" class="qs-link" data-gotab="firm" title="(붙임1) 감사인 개요 전체">회계법인 조회에서 전체 보기 ›</a></div>
+    <h3 class="qs-sub">외감실적 대사 — 사업보고서 Ⅱ.2.가 감사실적 ↔ 사전제출자료 2-3 회사 수</h3>${table}
+    <p class="qs-muted qs-small">회계법인의 사업연도(예: 4월~3월)와 회사들의 결산기가 달라 차이가 날 수 있습니다.</p>
+    <h3 class="qs-sub">주요 체크포인트</h3>${pts}${files}</section>`;
+}
+
+/* ② 매출장 대사(독립성) — 회사별 한 줄, 누르면 거래 */
+function salesSection(out) {
+  const s = out.sales;
+  const ledgerFiles = (out.files || []).filter((f) => f.role === '매출장');
+  if (!s) {
+    return `<section class="qs-card rv-sec"><div class="qs-card-head"><h2><span class="rv-no">②</span> 매출장 대사(독립성)</h2>
+      <span class="qs-muted">매출장(엑셀)을 오른쪽에 함께 올리면 감사대상회사에 대한 비감사용역(기장·재무제표 작성·가치평가·자문·구축 등)을 찾습니다.</span></div></section>`;
+  }
+  const m = s.summary;
+  const rows = s.companies.map((g) => {
+    const list = s.candidates.filter((c) => (c.company === g.company));
+    const detail = list.map((c) => `<tr><td>${esc(c.date)}</td><td>${esc(c.client)}</td><td class="wrap">${esc(c.memo)}</td><td class="num">${won(c.total)}</td>
+      <td><span class="gr gr-${c.risk}">${c.risk}</span> ${esc(c.service)}</td><td class="wrap">${esc(c.issue)}<div class="qs-muted qs-small">${esc(c.note)}</div></td>
+      <td class="wrap qs-small">${esc(c.basis)}${c.evidence ? `<div class="qs-muted">${esc(c.evidence)}</div>` : ''}</td><td class="iss-ref">${esc(c.source)}</td></tr>`).join('');
+    return `<tr class="co-row"><td><span class="gr gr-${g.risk}">${g.risk}</span></td><td class="iss-co"><a href="#" class="co-toggle" data-cotoggle>${esc(displayName(g.company))}</a>${rowByName(g.company) ? ` <a href="#" class="qs-link" data-co="${esc(g.company)}" title="${esc(reportTip(g.company))}">감사보고서↗</a>` : ''}</td>
+      <td>${esc(g.kinds.join('·'))}</td><td class="wrap">${esc(g.services.join(', '))}</td><td class="al-c">${esc(g.years.join(', '))}</td><td class="num">${g.rows}</td><td class="num">${won(g.total)}</td><td class="wrap">${esc(g.issues.join(' / '))}</td></tr>
+      <tr class="co-detail" hidden><td colspan="8"><div class="qs-table-wrap"><table class="qs-table rv-tx"><thead><tr><th>거래일</th><th>거래처</th><th>적요</th><th>합계</th><th>분류</th><th>확인할 것</th><th>맞춘 근거</th><th>원본 위치</th></tr></thead><tbody>${detail}</tbody></table></div></td></tr>`;
+  }).join('');
+  return `<section class="qs-card rv-sec"><div class="qs-card-head"><h2><span class="rv-no">②</span> 매출장 대사(독립성)</h2>
+      <span class="qs-muted">${ledgerFiles.map((f) => esc(f.name)).join(', ')}</span><span class="qs-grow"></span>
+      ${s.candidates.length ? '<button class="qs-btn" type="button" data-copy="sales">엑셀 복사</button>' : ''}</div>
+    <div class="qs-sum"><span class="lv lv-참고">거래 ${m.transactions.toLocaleString('ko-KR')}건</span><span class="lv lv-참고">감사대상 ${m.audit_clients}곳</span>
+      <span class="lv lv-참고">기업진단 ${m.diag_clients}곳</span><span class="lv lv-참고">맞춘 거래 ${m.matched}건</span>
+      <span class="gr gr-상">상 ${m.high}</span><span class="gr gr-중">중 ${m.candidates - m.high}</span><span class="lv lv-참고">회사 ${m.companies}곳</span></div>
+    ${s.companies.length ? `<div class="qs-table-wrap"><table class="qs-table iss-table"><colgroup><col style="width:5%"><col style="width:20%"><col style="width:9%"><col style="width:18%"><col style="width:7%"><col style="width:5%"><col style="width:10%"><col></colgroup>
+      <thead><tr><th>등급</th><th>회사 <span class="qs-muted qs-small">(누르면 거래)</span></th><th>대상</th><th>용역</th><th class="al-c">연도</th><th class="num">건</th><th class="num">합계</th><th>확인할 것</th></tr></thead><tbody>${rows}</tbody></table></div>`
+      : '<p class="qs-muted">감사대상회사에 대한 비감사용역 후보가 없습니다(허용되는 세무조정·세금신고, 감사보수, 별도 인증은 후보에서 뺍니다).</p>'}
+    <p class="qs-muted qs-small">거래처는 사업자번호 → 법인등록번호 → 회사명(법인격 뗀 이름) → 이름 포함 순으로 사전제출자료 2-3 회사와 맞춥니다. 「짧은 회사명」·「이름 포함」 일치는 다른 회사일 수 있으니 확인하세요.
+      내부통제·회계시스템 구축은 그 뒤 3년 안의 외부감사 회사와도 맞춥니다.</p></section>`;
+}
+
+function salesTsv(s) {
+  const head = ['등급', '대상 회사', '대상 구분', '거래일', '거래처', '적요', '공급가액', '부가세', '합계', '용역 분류', '확인할 것', '맞춘 근거', '원본 위치'];
+  const lines = [head, ...((s && s.candidates) || []).map((c) => [c.risk, c.company, c.target_kind, c.date, c.client, c.memo, c.amount, c.vat, c.total, c.service, c.issue, c.basis, c.source])];
+  return lines.map((r) => r.map((c) => String(c ?? '').replace(/[\t\n]+/g, ' ')).join('\t')).join('\n');
+}
+
+/* 점검 항목을 항목마다 한 표로(사용자 지정 2026-11-12) — 서버가 만든 out.tables(services/qc_review_tables)를 그린다.
+   pivot = 사전제출자료 2-3 ↔ 각 대사 자료(열) · 차이 / pair = 「A ↔ B」 / 그 밖은 예전 점검 표. 긴 파일 이름은 ①②… 번호(목록은 위에 한 번). */
+const midCut = (t, n = 26) => (t.length > n ? `${t.slice(0, n - 9)}…${t.slice(-8)}` : t);
+const lab = (t) => sheetText(t).replace(/(\d+-\d+\.\s)([^\s]+)\s+\2/g, '$1$2');   // 「2-8 자체조서점검」에 시트 이름을 또 붙이지 않게
+const isNum = (v) => /^[-+]?[\d,.]+(%|일)?$/.test(String(v ?? '').trim());
+function cmpGroup(g, all) {
+  if (g.kind === 'list') return issueTable(g.idx.map((k) => all[k]).filter(Boolean), true);
+  const head = `<div class="cmp-head"><span class="lv lv-${esc(g.level)}">${esc(g.level)}</span> <b>${esc(sheetText(g.title))}</b> <span class="qs-muted">${g.count}건</span></div>${g.basis ? `<div class="qs-basis">${esc(g.basis)}</div>` : ''}`;
+  const co = (r) => coCell({ company: r.company });
+  let table;
+  if (g.kind === 'pivot') {
+    const k = g.cols.length, rest = Math.max(40, 100 - 20 - 7 - 11 - 8 - 17);
+    const w = Math.floor(rest / Math.max(k, 1));
+    const th = g.cols.map((c) => `<th class="num" title="${esc(c.file)}"><span class="src-id">${esc(c.id)}</span>${esc(midCut(c.file.replace(/\.[A-Za-z0-9]+$/, '')))}${c.sheet ? `<small>${esc(c.sheet)}</small>` : ''}</th>`).join('');
+    const rows = g.rows.map((r) => `<tr><td class="cmp-co">${co(r)}</td><td class="al-c">${esc(r.year)}</td><td class="num">${esc(r.mine ?? '')}</td>${
+      r.cells.map((cs) => (cs.length ? `<td class="num ${cs.some((c) => c.bad) ? 'v-bad' : 'v-ok'}">${esc(cs.map((c) => c.v).join(' / '))}</td>` : '<td class="num qs-muted">-</td>')).join('')
+    }<td class="cmp-diff">${esc(r.diff)}</td><td class="cmp-ref">${esc(r.ref)}</td></tr>`).join('');
+    table = `<colgroup><col style="width:20%"><col style="width:7%"><col style="width:11%">${g.cols.map(() => `<col style="width:${w}%">`).join('')}<col style="width:8%"><col></colgroup>
+      <thead><tr><th>회사</th><th class="al-c">사업연도</th><th class="num">${esc(g.mine_label)}<small>2-3. 외감회사</small></th>${th}<th class="num">차이</th><th>위치</th></tr></thead><tbody>${rows}</tbody>`;
+  } else {
+    const rows = g.rows.map((r) => `<tr><td class="cmp-co">${co(r)}</td><td class="al-c">${esc(r.year)}</td><td class="${isNum(r.left) ? 'num' : ''}">${esc(lab(r.left))}</td><td class="${isNum(r.right) ? 'num' : ''}">${esc(lab(r.right))}</td><td class="cmp-diff">${esc(r.diff)}</td><td class="cmp-ref">${esc(r.ref)}</td></tr>`).join('');
+    table = `<colgroup><col style="width:24%"><col style="width:8%"><col style="width:22%"><col style="width:22%"><col style="width:9%"><col></colgroup>
+      <thead><tr><th>회사</th><th class="al-c">사업연도</th><th>${esc(lab(g.left_label))}</th><th>${esc(lab(g.right_label))}</th><th class="num">차이</th><th>위치</th></tr></thead><tbody>${rows}</tbody>`;
+  }
+  return `<div class="cmp-grp">${head}<div class="qs-table-wrap"><table class="qs-table cmp-table">${table}</table></div></div>`;
+}
+
+function reviewItems(out) {
+  return [...(((out.result || {}).checks || {}).items || []), ...((out.other || {}).items || [])];
+}
+
+/* ③ 그 밖의 자료 — 오류(상·중·하)·중요 체크포인트. 사전제출자료 시트 간 대사 + 첨부 자료(감사시간집계표·감사보고서 …) 대사 */
+function issuesSection(out) {
+  const all = reviewItems(out);
+  const notes = (out.notes || []).map((n) => `<p class="qs-warn">${esc(n)}</p>`).join('');
+  if (!out.result && !out.other) {
+    return `<section class="qs-card rv-sec"><div class="qs-card-head"><h2><span class="rv-no">③</span> 그 밖의 자료 — 오류·중요 체크포인트</h2></div>${notes || '<p class="qs-muted">대사할 자료(사전제출자료 등)를 오른쪽에 올려 주세요.</p>'}</section>`;
+  }
+  const count = (g) => all.filter((i) => GRADE[i.level] === g).length;
+  const items = all.filter((i) => !state.rev.hidden.has(GRADE[i.level]));
+  const ok = [...(((out.result || {}).checks || {}).ok || []), ...((out.other || {}).ok || [])];
+  const tb = out.tables && out.tables.groups;                    // 예전에 저장된 결과에는 없다 → 예전 표
+  const body = state.rev.view === 'co' ? companyTable(items)
+    : GRADES.map(([g, label]) => {
+      const sub = items.filter((i) => GRADE[i.level] === g);
+      if (!sub.length) return '';
+      const inner = tb ? tb.filter((x) => x.grade === g).map((x) => cmpGroup(x, all)).join('') : issueTable(sub, true);
+      return `<h3 class="qs-sub"><span class="gr gr-${g}">${g}</span> ${esc(label)} ${sub.length}건</h3>${inner}`;
+    }).join('') || '<p class="qs-muted">골라 둔 등급의 항목이 없습니다.</p>';
+  const legend = out.tables && out.tables.sources && out.tables.sources.length
+    ? `<div class="rv-legend" title="아래 표의 ①②… 번호가 가리키는 자료(같은 자료는 이 목록에 한 번)">${out.tables.sources.map((x) => `<span><b>${esc(x.id)}</b>${esc(x.name)}${x.role && x.role !== '첨부(대사)' ? ` <i class="qs-muted">(${esc(x.role)})</i>` : ''}</span>`).join('')}</div>` : '';
+  const ch = (out.result || {}).checks;
+  const sheets = ch ? Object.entries(ch.sheets).map(([k, v]) => { const c = { s23: '2-3', s28: '2-8', s210: '2-10', s410: '4-10', s83: '8-3' }[k]; return `${c}. ${SHEET_NAMES[c]} ${v ? '○' : '없음'}`; }).join(' · ') : '';
+  const osum = ((out.other || {}).summary || []).map((r) => `<li><b>${esc(r.label)}</b> — 일치 ${r.ok}${r.diff ? ` · <span class="bad">다름 ${r.diff}</span>` : ''}</li>`).join('');
+  return `<section class="qs-card rv-sec"><div class="qs-card-head"><h2><span class="rv-no">③</span> 그 밖의 자료 — 오류·중요 체크포인트</h2>
+      <span class="qs-muted">당기 = FY${esc(out.fy)}${sheets ? ` · 시트 ${esc(sheets)}` : ''}</span><span class="qs-grow"></span>
+      <button class="qs-btn" type="button" data-copy="issues">엑셀 복사</button></div>
+    ${notes}${legend}
+    <div class="qs-sum">${GRADES.map(([g, label]) => `<button type="button" class="gr gr-${g} gr-btn ${state.rev.hidden.has(g) ? 'off' : ''}" data-gr="${g}" title="${esc(label)} — 눌러서 숨기기/보이기">${g} ${count(g)}</button>`).join('')}
+      <span class="lv lv-일치">일치 ${ok.length}</span><span class="qs-grow"></span>
+      <span class="iss-view">${[['item', '등급·항목별'], ['co', '회사별']].map(([v, t]) => `<button type="button" class="${state.rev.view === v ? 'on' : ''}" data-rview="${v}">${t}</button>`).join('')}</span></div>
+    ${body}
+    <details class="qs-fold"><summary>일치·특이사항 없음 ${ok.length}건 (펼치기)</summary><div>${osum ? `<ul class="qs-sumlist">${osum}</ul>` : ''}${issueTable(ok.slice(0, 400), false)}${ok.length > 400 ? `<p class="qs-muted qs-small">처음 400건만 보여 드립니다 — 전체 ${ok.length.toLocaleString('ko-KR')}건은 [엑셀 다운로드]의 「일치」 시트에 있습니다.</p>` : ''}</div></details>
+    ${out.result ? wpTable(out.result) : ''}
+    ${ch && ch.aliases.length ? `<details class="qs-fold"><summary>같은 회사로 본 표기 ${ch.aliases.length}건</summary><div><ul>${ch.aliases.map((a) => `<li>${a.names.map(esc).join(' = ')}</li>`).join('')}</ul></div></details>` : ''}
+    <p class="qs-muted qs-small">등급: <b>상</b> 위반의심(법규·기준 위반으로 보이는 것) · <b>중</b> 중점확인·불일치(들여다볼 것, 자료끼리 값이 다름) · <b>하</b> 참고.</p></section>`;
+}
+
+function filesFold(out) {
+  const rows = (out.files || []).map((f) => {
+    let what = '';
+    if (f.error) what = `<span class="bad">${esc(f.error)}</span>`;
+    else if (f.role === '사전제출자료') what = `읽은 시트: ${esc((f.found || []).join(', '))}`;
+    else if (f.role === '매출장') what = `거래 ${Number(f.rows || 0).toLocaleString('ko-KR')}줄 · 시트 ${esc((f.sheets || []).join(', '))}`;
+    else if (f.role === '회사 목록') what = `회사 ${f.rows}곳`;
+    else if (f.kind === '문서') {
+      const x = f.facts || {};
+      what = x.type === '감사보고서' ? `감사보고서 · ${esc(f.company || '회사 못 찾음')} · 보고서일 ${esc(x.report_date || '-')} · 의견 ${esc(x.opinion || '-')} · 업무수행이사 ${esc(x.partner || '-')}`
+        : `${esc(x.type || '문서')}${f.chars ? ` · ${f.chars.toLocaleString('ko-KR')}자` : ''}`;
+    } else what = `시트 ${esc((f.sheets || []).join(', '))}`;
+    return `<tr><td>${esc(f.name)}</td><td>${f.side === 'firm' ? '회계법인 자료' : '대사할 자료'}</td><td>${esc(f.role || f.kind)}</td><td class="wrap">${what}</td></tr>`;
+  }).join('');
+  const att = ((out.other || {}).files || []).map((f) => `<tr><td>${esc(f.name)}</td><td class="num">${f.tables}</td><td class="num">${f.rows}</td><td>${f.report ? '감사보고서 읽음' : ''}</td><td class="wrap">${esc(f.note || '')}</td></tr>`).join('');
+  return rows ? `<section class="qs-card rv-sec"><details class="qs-fold"><summary>읽은 자료 ${(out.files || []).length}개 — 어떤 자료로 보았는지</summary><div>
+    <div class="qs-table-wrap"><table class="qs-table"><thead><tr><th>파일</th><th>올린 곳</th><th>종류</th><th>읽은 내용</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${att ? `<h3 class="qs-sub">첨부 자료 대사에서 읽은 표</h3><div class="qs-table-wrap"><table class="qs-table"><thead><tr><th>파일</th><th>읽은 표</th><th>맞춘 줄</th><th>문서</th><th>비고</th></tr></thead><tbody>${att}</tbody></table></div>` : ''}
+    </div></details></section>` : '';
+}
+
+function renderReview(rv, restored = false) {
+  if (!rv) return;
+  const out = rv.out || {};
+  const box = $('revOut');
+  box.hidden = false;
+  box.innerHTML = `${restored ? `<p class="qs-muted qs-small rv-restored">이 컴퓨터에 저장된 마지막 대사 결과입니다(${esc(Project.when(rv.saved))}). 자료는 저장하지 않으므로, 다시 맞춰 보려면 자료를 올리고 [대사 실행]을 누르세요.</p>` : ''}
+    ${firmSection(rv)}${salesSection(out)}${issuesSection(out)}${filesFold(out)}`;
+  if ($('revXlsx')) $('revXlsx').disabled = false;
+}
+
 /* ── 관리자설정(관리자만) ── 캘린더에서 회계법인을 눌러 일정·인원을 고친다(사용자 지정 2026-10-15).
    관리자설정을 연 동안만 「개별 선정」 탭의 대상 회계법인·명부 단추가 보인다. */
 
@@ -1854,6 +2199,71 @@ async function onAdminClick(e) {
   }
 }
 
+/* ── 일정 막대에서 바로 고치기(관리자, 사용자 지정 2026-11-09) ──
+   관리자설정의 ① 과 같은 일을 한다 — 같은 서버 창구(`/qc-sample/schedule/firm`)를 쓰므로 고친 값·이력이 똑같이 남는다.
+   막대 바로 옆에 작은 창으로 띄운다(일정·팀장·팀원). 바깥을 누르거나 Esc 로 닫는다. */
+function closeFirmEdit() {
+  const old = document.getElementById('schedEdit');
+  if (old) old.remove();
+  document.removeEventListener('keydown', onEditKey, true);
+  document.removeEventListener('mousedown', onEditOutside, true);
+}
+function onEditKey(e) { if (e.key === 'Escape') closeFirmEdit(); }
+function onEditOutside(e) { if (!e.target.closest('#schedEdit') && !e.target.closest('td.ev[data-edit]')) closeFirmEdit(); }
+
+function openFirmEdit(firmName, anchor) {
+  const sc = state.sched || {};
+  const f = (sc.firms || []).find((x) => x.firm === firmName);
+  if (!f) return;
+  const adjusted = !!(sc.adjust && sc.adjust.firm_overrides && sc.adjust.firm_overrides[f.firm]);
+  closeFirmEdit();
+  const pop = document.createElement('div');
+  pop.id = 'schedEdit';
+  pop.className = 'qs-pop';
+  pop.innerHTML = `<datalist id="schedStaff">${(sc.staff || []).map((n) => `<option value="${esc(n)}">`).join('')}</datalist>
+    <div class="qs-pop-title"><b>${esc(f.firm)}</b>${adjusted ? ' <span class="adm-key is-adj">조정됨</span>' : ''}</div>
+    <div class="qs-pop-grid">
+      <label>시작일 <input class="qs-input" type="date" value="${esc(f.start || '')}" data-f="start"></label>
+      <label>종료일 <input class="qs-input" type="date" value="${esc(f.end || '')}" data-f="end"></label>
+      <label>팀장 <input class="qs-input" list="schedStaff" value="${esc(f.lead || '')}" data-f="lead"></label>
+      <label>팀원 <input class="qs-input" list="schedStaff" value="${esc(f.member || '')}" data-f="member" title="품감 정규 인원이 아니면 비상근으로 봅니다"></label>
+    </div>
+    <div class="qs-pop-btns"><button class="qs-btn qs-primary" type="button" data-pop="save">반영</button>${
+      adjusted ? '<button class="qs-btn" type="button" data-pop="reset" title="일정 엑셀에 적힌 그대로">원래대로</button>' : ''}<button class="qs-btn" type="button" data-pop="close">닫기</button></div>
+    <p class="qs-muted qs-small">바꾼 칸만 변경 이력에 남고, 일정 엑셀을 다시 올려도 유지됩니다.</p>`;
+  document.body.appendChild(pop);
+  // 막대 아래(모자라면 위)에, 화면 안에 들어오게
+  const r = anchor.getBoundingClientRect();
+  const w = pop.offsetWidth || 320, h = pop.offsetHeight || 220;
+  const left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8));
+  const below = r.bottom + 6 + h <= window.innerHeight - 8;
+  pop.style.left = `${left}px`;
+  pop.style.top = `${below ? r.bottom + 6 : Math.max(8, r.top - h - 6)}px`;
+  pop.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-pop]');
+    if (!b) return;
+    if (b.dataset.pop === 'close') { closeFirmEdit(); return; }
+    try {
+      let res;
+      if (b.dataset.pop === 'save') {
+        const v = (k) => pop.querySelector(`[data-f="${k}"]`).value.trim();
+        res = await api.put('/qc-sample/schedule/firm', { firm: f.firm, start: v('start'), end: v('end'), lead: v('lead'), member: v('member') });
+      } else {
+        res = await api.del(`/qc-sample/schedule/firm?firm=${encodeURIComponent(f.firm)}`);
+      }
+      const kinds = ((res && res.changes) || []).map((c) => (c.kind === 'schedule' ? '일정' : '참여인원'));
+      toast(kinds.length ? `${f.firm} ${kinds.join('·')}을(를) 바꿨습니다.` : '바뀐 것이 없습니다.');
+      closeFirmEdit();
+      await loadSchedule();
+      if (state.adminMode) renderAdmin();
+    } catch (err) { showAlert(err.message, { title: '일정 고치기' }); }
+  });
+  document.addEventListener('keydown', onEditKey, true);
+  document.addEventListener('mousedown', onEditOutside, true);
+  const first = pop.querySelector('[data-f="lead"]');
+  if (first) first.focus();
+}
+
 /* 관리자 조정 이력(올해분) — 모든 사용자의 품감 일정 아래(사용자 지정 2026-10-15) */
 function renderHistory() {
   const box = $('schedHistory');
@@ -1899,7 +2309,8 @@ function renderSchedule() {
   $('schedRange').innerHTML = `<button class="qs-mbtn" type="button" data-month="${months[mi - 1] || ''}" ${mi > 0 ? '' : 'disabled'}>◀</button>
     ${months.map((m) => `<button class="qs-mbtn ${m === state.schedMonth ? 'on' : ''}" type="button" data-month="${m}">${+m.slice(5)}월</button>`).join('')}
     <button class="qs-mbtn" type="button" data-month="${months[mi + 1] || ''}" ${mi >= 0 && mi < months.length - 1 ? '' : 'disabled'}>▶</button>`;
-  $('schedMeta').textContent = sc && sc.meta && sc.meta.name ? `${sc.meta.name} · ${String(sc.meta.date || '').slice(0, 10)}` : '';
+  $('schedMeta').textContent = (sc && sc.meta && sc.meta.name ? `${sc.meta.name} · ${String(sc.meta.date || '').slice(0, 10)}` : '')
+    + (state.admin && sc && sc.ready ? ' · 관리자: 팀장·팀원 막대를 누르면 그 자리에서 고칠 수 있습니다' : '');
   if (!sc || !sc.ready) {
     $('schedGrid').innerHTML = `<p class="qs-muted" style="padding:12px">아직 일정 엑셀을 올리지 않았습니다${state.admin ? ' — 위의 「일정 엑셀 올리기」' : ' — 관리자에게 요청해 주세요'}.</p>`;
     return;
@@ -1952,8 +2363,10 @@ function renderSchedule() {
         // 1일짜리(회의 등)는 평소 마우스 오버 없음 — 글자가 잘렸을 때만 이름을 띄운다(사용자 지정 2026-10-15, 아래 markClipped)
         const oneDay = c.ev.kind === 'meeting' || (c.ev.days && c.ev.days.length === 1);
         const hover = oneDay ? `data-tip="${esc(c.ev.label)}"` : `title="${esc(tip)} · ${c.ev.days && c.ev.days.length ? c.ev.days.length : c.span}일"`;
-        const editable = state.admin && (c.ev.kind === 'lead' || c.ev.kind === 'member') && firmOf(c.ev.firm);   // 관리자는 막대를 눌러 바로 고친다
-        return `<td colspan="${c.span}" class="ev ${c.ev.kind} ${five} ${c.ev.region ? 'is-region' : ''} ${now} ${c.ev.firm && focus.has(c.ev.firm) ? 'is-firm' : ''} ${editable ? 'is-edit' : ''}" ${editable ? `data-firm="${esc(c.ev.firm)}"` : ''} ${hover}><span>${esc(c.ev.label)}</span></td>`;
+        // 관리자는 회계법인 일정 막대를 눌러 그 자리에서 일정·팀장·팀원을 고친다(사용자 지정 2026-11-09)
+        const editFirm = state.admin && (c.ev.kind === 'lead' || c.ev.kind === 'member') ? firmOf(c.ev.firm) : null;
+        const edit = editFirm ? `data-edit="${esc(editFirm.firm)}"` : '';
+        return `<td colspan="${c.span}" class="ev ${c.ev.kind} ${five} ${c.ev.region ? 'is-region' : ''} ${now} ${c.ev.firm && focus.has(c.ev.firm) ? 'is-firm' : ''}${edit ? ' is-editable' : ''}" ${edit} ${hover}><span>${esc(c.ev.label)}</span></td>`;
       }).join('')}`;
     }).join('');
     return `<tr class="${hl.has(String(name).replace(/\s/g, '')) ? 'is-hl' : ''}"><td class="name" title="${esc(name)}">${esc(name)}</td>${cells}</tr>`;
@@ -1984,38 +2397,6 @@ function renderSchedule() {
   // 처음엔 이번 달 첫날부터(사용자 지정 2026-10-15), 다시 그릴 때는 보던 자리 그대로
   if (state.schedScrolled) $('schedGrid').scrollLeft = keepLeft;
   else { scrollSchedTo(null, state.schedMonth); state.schedScrolled = true; }
-}
-
-/* 품감 일정 막대 → 그 회계법인 일정·인원 고치기. 저장은 관리자설정과 같은 경로라 이력에 남고 엑셀을 다시 올려도 유지된다 */
-async function editFirm(name) {
-  const f = firmOf(name);
-  if (!f || !state.admin) return;
-  let list = $('schedStaffList');
-  if (!list) { list = document.createElement('datalist'); list.id = 'schedStaffList'; document.body.append(list); }
-  list.innerHTML = (state.sched.staff || []).map((n) => `<option value="${esc(n)}">`).join('');
-  setTimeout(() => {
-    for (const i of [0, 1]) { const e = document.querySelector(`#kd-f${i}`); if (e) e.type = 'date'; }
-    for (const i of [2, 3]) { const e = document.querySelector(`#kd-f${i}`); if (e) e.setAttribute('list', 'schedStaffList'); }
-  }, 0);
-  const v = await showForm({
-    title: `${f.firm} 일정·인원`, okText: '반영',
-    description: '바꾼 값은 일정 엑셀을 다시 올려도 유지되고, 아래 변경 이력에 남습니다. 엑셀 값으로 되돌리기는 관리자설정에서 합니다.',
-    fields: [
-      { name: 'start', label: '시작일', value: f.start || '', required: true },
-      { name: 'end', label: '종료일', value: f.end || '', required: true },
-      { name: 'lead', label: '팀장', value: f.lead || '' },
-      { name: 'member', label: '팀원', value: f.member || '', hint: '품감 정규 인원이 아니면 비상근으로 봅니다' },
-    ],
-    validate: (x) => (x.start > x.end ? '종료일이 시작일보다 빠릅니다.' : ''),
-  });
-  if (!v) return;
-  try {
-    const res = await api.put('/qc-sample/schedule/firm', { firm: f.firm, start: v.start.trim(), end: v.end.trim(), lead: v.lead.trim(), member: v.member.trim() });
-    const kinds = ((res && res.changes) || []).map((c) => (c.kind === 'schedule' ? '일정' : '참여인원'));
-    toast(kinds.length ? `${f.firm} ${kinds.join('·')}을(를) 바꿨습니다.` : '바뀐 것이 없습니다.');
-    await loadSchedule();
-    if (state.adminMode) renderAdmin();
-  } catch (err) { showAlert(err.message, { title: '품감 일정' }); }
 }
 
 /* 강조할 이름(이 브라우저에만) */
@@ -2299,22 +2680,14 @@ function keepDialogsInView() {
   try { window.parent.addEventListener('scroll', all, { passive: true, capture: true }); } catch { /* 다른 출처 */ }
 }
 
-/* 선정 회사의 사업자등록번호를 찾아 [신용정보 조회] 화면으로 보낸다 — 그 화면이 조회하고 엑셀까지 내려받는다 */
-async function sendCreport() {
-  const cards = [...state.chosen.values()];
-  await busy($('sendCreport'), '사업자번호 확인 중…', async () => {
-    const register = ((state.reg && state.reg.nextCur) || []).concat((state.reg && state.reg.nextNext) || []);
-    const list = await collectCreport(cards, { company: (c) => displayName(cell(c.row, 'company')), bizOf: (c) => cell(c.row, 'biz_no'), register, nameKey });
-    const miss = list.filter((i) => !i.biz).map((i) => i.name);
-    if (miss.length) await showAlert(`사업자등록번호를 찾지 못한 회사가 있습니다 — ${miss.join(', ')}.\n이 회사는 조회되지 않고 결과에 「사업자번호 미확인」으로 표시됩니다.`, { title: '신용정보 조회' });
-    sendToCreport(list);
-  });
-}
-
 /* ── 시작 ── */
 
 async function start() {
   keepDialogsInView();
+  if (!window.QC_STATIC) {   /* 개발서버(.env SERVER_BADGE 있음)에서만 연다 — 운영에 파일이 들어가도 열리지 않게(qc_dev.html 과 같은 규칙, 2026-10-16) */
+    let badge = ''; try { badge = ((await (await fetch('/api/health', { cache: 'no-store' })).json()) || {}).badge || ''; } catch { /* */ }
+    if (!badge) { document.body.insertAdjacentHTML('afterbegin', '<div class="qs-warn">개발서버 전용 화면입니다.</div>'); return; }
+  }
   try { state.me = await auth.me(); } catch { document.body.insertAdjacentHTML('afterbegin', '<div class="qs-warn">로그인이 필요합니다. 포털에서 다시 열어 주세요.</div>'); return; }
   state.admin = (state.me.roles || []).includes('admin');
   if (api.askPass) {   // GitHub(정적) 사이트 — 보기는 암호 없이, 서식·일정·명부 올리기만 관리자 확인(구글 이메일 + 관리자 암호, 2026-10-16)
@@ -2324,14 +2697,7 @@ async function start() {
     document.querySelector('.qs-tabs').append(b);
   }
   document.querySelectorAll('.qs-tab[data-tab]').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
-  let send = $('sendCreport');
-  if (!send) {   // 브라우저에 남은 옛 sample.html 로 열려도 멈추지 않고 버튼이 보이게
-    send = document.createElement('button');
-    Object.assign(send, { type: 'button', id: 'sendCreport', className: 'qs-tab', textContent: '신용정보 조회로 보내기' });
-    document.querySelector('.qs-tab[data-tab="other"]').before(send);
-  }
-  send.addEventListener('click', sendCreport);
-  syncSendButton();
+  if (window.QC_STATIC && $('sendCreport')) { $('sendCreport').hidden = false; $('sendCreport').addEventListener('click', sendCreport); syncSendButton(); }
   $('pickFile').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) loadPresubmit(f); e.target.value = ''; });
   $('recentSel').addEventListener('change', onRecentChange);
   $('pickSave').addEventListener('click', savePicks);
@@ -2370,6 +2736,7 @@ async function start() {
     $(id).addEventListener('change', () => { store.set(id, $(id).value); autoSavePicks(); });
   }
   const drop = $('drop');
+  if (drop) {          // ② 제출자료 대사(개별선정 화면) — 통합 화면은 아래 reviewWire()
   drop.addEventListener('click', () => $('reconFiles').click());
   drop.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('reconFiles').click(); } });
   drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('is-over'); });
@@ -2381,19 +2748,26 @@ async function start() {
     if (b) { state.recon.files.splice(Number(b.dataset.rm), 1); renderReconList(); }
   });
   $('reconRun').addEventListener('click', runRecon);
-  for (const id of ['reconOut', 'otherOut']) {
-    $(id).addEventListener('click', (e) => { const a = e.target.closest('[data-co]'); if (a) { e.preventDefault(); openReportByName(a.dataset.co); } });
+  }
+  for (const id of ['reconOut', 'otherOut', 'revOut']) {
+    $(id)?.addEventListener('click', (e) => { const a = e.target.closest('[data-co]'); if (a) { e.preventDefault(); openReportByName(a.dataset.co); } });
   }
   $('firmFind').addEventListener('click', firmFind);
   $('firmQ').addEventListener('keydown', (e) => { if (e.key === 'Enter') firmFind(); });
   $('firmSel').addEventListener('change', firmReports);
-  $('firmRun').addEventListener('click', firmRun);
+  $('firmRun')?.addEventListener('click', firmRun);
+  if ($('revRun')) reviewWire();
   loadTemplates();
   // ⓪ 품감 일정
   $('schedAdmin').hidden = !state.admin;      // 일정 엑셀 올리기만 관리자 — 강조할 이름은 누구나(이 브라우저에만)
   $('schedFind').addEventListener('click', findFirm);
   $('adminOpen').addEventListener('click', () => setAdminMode(!state.adminMode));
   $('adminPanel').addEventListener('click', onAdminClick);
+  // 관리자: 일정 막대를 누르면 그 자리에서 고친다
+  $('schedGrid').addEventListener('click', (e) => {
+    const td = e.target.closest('td.ev[data-edit]');
+    if (td && state.admin) openFirmEdit(td.dataset.edit, td);
+  });
   $('adminPanel').addEventListener('change', (e) => { const inp = e.target.closest('[data-tpl-put]'); if (inp) putTemplate(inp); });
   $('tplBox').addEventListener('click', (e) => { if (e.target.closest('[data-tpl-get]')) getBlankTemplate(); });
   $('schedAll').addEventListener('click', () => { $('schedQ').value = ''; findFirm(); });
@@ -2431,7 +2805,6 @@ async function start() {
     scrollSchedTo(null, state.schedMonth);
   });
   // 스크롤하면 보이는 달로 단추 불을 옮긴다
-  $('schedGrid').addEventListener('click', (e) => { const td = e.target.closest('td[data-firm]'); if (td) editFirm(td.dataset.firm); });
   $('schedGrid').addEventListener('scroll', () => {
     const wrap = $('schedGrid');
     const edge = (wrap.querySelector('th.name') || wrap).getBoundingClientRect().right;
@@ -2460,6 +2833,7 @@ async function start() {
   });
   // ④ 기타 대사
   const od = $('otherDrop');
+  if (od) {
   od.addEventListener('click', () => $('otherFiles').click());
   od.addEventListener('dragover', (e) => { e.preventDefault(); od.classList.add('is-over'); });
   od.addEventListener('dragleave', () => od.classList.remove('is-over'));
@@ -2469,6 +2843,7 @@ async function start() {
   $('otherList').addEventListener('click', (e) => { const b = e.target.closest('[data-rm]'); if (b) { state.other.files.splice(Number(b.dataset.rm), 1); renderOtherList(); } });
   $('otherPreFile').addEventListener('change', (e) => { const f = e.target.files[0]; e.target.value = ''; if (f) { state.other.pre = f; renderOtherList(); } });
   $('otherRun').addEventListener('click', runOther);
+  }
   // 명부
   $('regPrev').addEventListener('click', () => showRegister('prev'));
   $('regNext').addEventListener('click', () => showRegister('next'));

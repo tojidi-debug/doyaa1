@@ -1,0 +1,501 @@
+/* [심사·감리업무] > [과징금 산정].
+ *
+ * 담당부서가 준 도구(`docs/SmartAI/frontend/gwajingeum.html`)의 배치를 우리 규격으로 다시 그렸고,
+ * 2026-11-06 에 **엑셀처럼 칸이 보이는 표**로 바꿨다 — 입력은 표 칸에서 하고, 설명은 ⓘ 에 마우스를 올리면 뜬다.
+ *
+ * ⚠️ `:root` 를 두지 않는다. 색·모서리·글꼴은 전부 `base.css` 토큰이고, 단추·탭·배지는 `ui.css` 것을
+ *    그대로 쓴다(DESIGN.md 1·2·5·6).
+ * ⚠️ **새 색을 만들지 않았다.** 한도에 걸린 칸은 `--bad`, 켜진 사유 줄은 `--primary-soft` 다.
+ * ⚠️ `.card` 를 만들지 않는다. 흔한 이름이라 공용에서 일부러 뺐다 — 화면 이름을 앞에 붙여 `.pf-card`.
+ */
+
+/* ⚠️ 왼쪽 차림표는 고정이고 오른쪽 본문만 구른다. 그래서 **쪽 전체는 안 구른다** — `body` 를 세로
+   flex 로 두고 머리띠가 쓰고 남은 높이를 감싸개가 그대로 받는다. 높이를 `100vh - 58px` 로 박지 않는
+   것은 머리띠가 두 줄이 되어도 안 어긋나게 하려는 것이다. */
+html, body { height: 100%; }
+
+body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* 이 화면만의 보조색 — 연한 보라. 공용 토큰에 보라가 없어 화면 안에서만 둔다(담당부서 요청 2026-11-06: 제목행 색을
+   연한 회색·연한 보라·연한 하늘로 갈라 쓰되 통일성 있게). 층마다 색이 다르다:
+     구분 제목줄(1. 사건 입력)  연한 보라   ·  카드 제목줄  연한 하늘  ·  표 머리줄  연한 회색  ·  표 안 묶음줄  연한 보라 */
+body {
+  --pf-violet: #4E3F8C;
+  --pf-violet-soft: #F3F0FB;
+  --pf-violet-border: #DDD5F1;
+  --pf-yellow: #FFF6C9;     /* 회사 동기와 다른 동기 칸 */
+  --pf-yellow-border: #E8D788;
+}
+
+.pf-shell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-block: 10px;
+}
+
+/* ── 머리띠: 제목 + 단계 메뉴 + 합계 ────────────────────────────── */
+
+.pf-head .masthead-inner { gap: 14px; }
+.pf-head .brand h1 { color: var(--primary); font-size: 17px; }
+.pf-steps { display: flex; gap: 4px; flex-shrink: 0; }
+.pf-steps button {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 36px; padding: 0 14px;
+  border: 1px solid transparent; border-radius: var(--radius-pill);
+  background: none; font: 700 12.8px var(--font); color: var(--text-body);
+  cursor: pointer; transition: all .18s ease; white-space: nowrap;
+}
+.pf-steps button:hover { background: var(--primary-light); }
+.pf-steps button.active { background: var(--primary-light); border-color: var(--primary-border); color: var(--primary-active); }
+.pf-n { display: inline-block; color: var(--text-muted); font-weight: 800; }
+.pf-steps button.active .pf-n { color: var(--primary); }
+
+/* 지금 합계 — 한 줄. 넘치면 가로로 민다. */
+.pf-sum {
+  flex: 1; min-width: 0; display: flex; align-items: center; justify-content: flex-start; gap: 8px;
+  overflow-x: auto; white-space: nowrap; scrollbar-width: thin; padding-block: 4px;
+}
+.pf-sum-total, .pf-sum-cards { display: flex; gap: 6px; flex-shrink: 0; }
+.pf-tot {
+  font: 600 11.5px var(--font); color: var(--primary-active);
+  background: var(--primary-light); border: 1px solid var(--primary-border); border-radius: var(--radius-pill); padding: 3px 10px;
+}
+.pf-tot b { font: 800 12.5px var(--font-num); }
+.pf-amt {
+  flex-shrink: 0; font: 500 11.5px var(--font); color: var(--text-body);
+  background: var(--pf-violet-soft); border: 1px solid var(--pf-violet-border); border-radius: var(--radius-pill); padding: 3px 10px;
+}
+.pf-amt b { font: 800 12px var(--font-num); color: var(--pf-violet); }
+
+.pf-center {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 12px 16px 24px;
+  position: relative;
+}
+
+/* 「맨 위로」. 공용 `.btn-float` 가 모양을 주고 자리만 여기서 정한다. */
+.btn-float { position: fixed; right: 26px; bottom: 26px; z-index: 41; }
+
+.pf-sec { display: none; }
+.pf-sec.active { display: block; }
+.pf-sec-title {
+  font: 800 14.5px var(--font); color: var(--pf-violet);
+  margin-bottom: 8px; padding: 7px 12px;
+  background: var(--pf-violet-soft); border: 1px solid var(--pf-violet-border); border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.pf-actions { display: inline-flex; gap: 6px; }
+.pf-sec-sub { font-size: 11.8px; color: var(--text-soft); margin-bottom: 12px; }
+
+.pf-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+.pf-card h3 {
+  font: 800 13px var(--font); margin: 0 0 10px; padding: 6px 10px;
+  background: var(--primary-light); border: 1px solid var(--primary-border); border-radius: var(--radius-sm);
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.pf-hint { font-size: 11px; color: var(--text-soft); margin-top: 3px; }
+.pf-step {
+  display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px;
+  border-radius: var(--radius-pill); background: var(--primary); color: var(--paper); font: 800 11px var(--font);
+}
+.pf-guide { font: 500 11.5px var(--font); color: var(--text-soft); font-weight: 500; margin-left: 4px; }
+.pf-legend { display: inline-flex; gap: 10px; margin-left: auto; font: 500 11px var(--font); color: var(--text-soft); }
+.pf-legend i { display: inline-block; width: 14px; height: 10px; border: 1px solid var(--line-strong); border-radius: 3px; vertical-align: -1px; margin-right: 3px; background: var(--paper); }
+.pf-legend i.auto { background: var(--n100); }
+
+.pf-basic { display: flex; gap: 12px; align-items: flex-end; }
+.pf-basic .pf-field { min-width: 0; }
+.pf-f-type { width: 190px; flex-shrink: 0; }
+.pf-f-mat { width: 190px; flex-shrink: 0; }
+.pf-f-prior { width: 150px; flex-shrink: 0; }
+.pf-f-fy { flex: 1; overflow-x: auto; }
+.pf-f-fy #fiscalYearsBox { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.pf-f-fy .pf-fy-chip { margin: 0; }
+.pf-field label {
+  display: block; font: 700 11.5px var(--font);
+  color: var(--text-body); margin-bottom: 3px;
+}
+
+/* ── 설명 말풍선 ─────────────────────────────────────────────────
+   ⓘ 에 마우스를 올리면 한두 줄 안내가 뜬다. 표가 가로로 구르는 자리라 말풍선이 잘리지 않게
+   아래로 연다. 오른쪽 끝 칸은 `.r` 로 왼쪽으로 펼친다. */
+.pf-tip { position: relative; display: inline-block; color: var(--text-muted); font: 700 11px var(--font); cursor: help; }
+.pf-tip:hover { color: var(--primary); }
+.pf-tip::after {
+  content: attr(data-tip);
+  display: none;
+  position: absolute;
+  z-index: 60;
+  left: -8px;
+  top: calc(100% + 6px);
+  width: 250px;
+  padding: 8px 10px;
+  background: var(--text);
+  color: var(--paper);
+  border-radius: var(--radius-sm);
+  font: 500 11.3px/1.55 var(--font);
+  text-align: left;
+  white-space: normal;
+  box-shadow: var(--shadow);
+}
+.pf-tip[data-tip=""]::after { display: none !important; }
+.pf-tip:hover::after, .pf-tip:focus::after { display: block; }
+.pf-tip.r::after { left: auto; right: -8px; }
+td.pf-tip { display: table-cell; color: inherit; font: inherit; cursor: help; }
+
+/* ── 입력칸 ──────────────────────────────────────────────────────
+   ⚠️ 공용 `.search`(42px)·`.filter`(36px)는 **찾는 칸·고르는 칸** 규격이다. 이 화면은 표 안에
+      숫자를 빽빽이 받는 자리라 그 높이를 쓰면 표가 늘어진다. 그래서 화면 고유 이름으로 따로 둔다 —
+      초점 테두리만은 공용 `--ring` 이다. */
+.pf-input,
+.pf-center select,
+.pf-center textarea {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font: 500 12.5px var(--font);
+  background: var(--paper);
+  color: var(--text);
+  outline: none;
+  transition: border-color .13s, box-shadow .13s;
+}
+.pf-input:focus,
+.pf-center select:focus,
+.pf-center textarea:focus { border-color: var(--primary); box-shadow: var(--ring); }
+.pf-input.pf-num { text-align: right; font-family: var(--font-num); }
+.pf-center textarea { min-height: 46px; resize: vertical; }
+.pf-center select:disabled, .pf-input:disabled { background: var(--bg); color: var(--text-muted); }
+
+.pf-u { font-size: 11px; color: var(--text-soft); }
+.pf-flag { font: 700 11px var(--font); color: var(--bad); white-space: nowrap; }
+
+/* 연도 칩 */
+.pf-fy-chip {
+  display: inline-flex; align-items: center; gap: 4px; margin: 0 6px 6px 0;
+  background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 4px 7px;
+}
+.pf-fy-chip .pf-input { width: 62px; text-align: center; padding: 4px; }
+.pf-fy-chip .pf-input:first-of-type { width: 44px; }
+
+/* ── 엑셀 같은 표 ────────────────────────────────────────────────
+   칸마다 선이 보이고, 머리줄은 옅게 칠한다. **흰 칸이 입력 칸, 회색 칸이 자동 계산 칸**이다.
+   행은 낮게(28px 안팎) 두어 한 화면에 위반사항이 여럿 보이게 한다. */
+.pf-tablewrap { overflow-x: auto; padding-bottom: 36px; margin-bottom: -28px; }
+
+.pf-grid { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12.3px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); }
+.pf-grid th, .pf-grid td {
+  border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  padding: 2px 4px; vertical-align: middle; height: 30px;
+}
+.pf-grid th:last-child, .pf-grid td:last-child { border-right: 0; }
+.pf-grid tbody tr:last-child td, .pf-grid tfoot tr:last-child td { border-bottom: 0; }
+.pf-grid thead th {
+  background: var(--n100); color: var(--text-body); font: 700 11.3px var(--font);
+  white-space: nowrap; text-align: left; padding: 4px 6px; height: 28px;
+}
+.pf-grid thead th.pf-c, .pf-grid td.pf-c { text-align: center; }
+.pf-grid thead th.pf-auto-h { background: var(--n200); color: var(--text-soft); }
+.pf-grid .pf-sub-head th { padding: 2px 4px; height: 22px; font-size: 10.5px; color: var(--text-soft); text-align: center; border-top: 0; }
+.pf-grid tbody th { background: var(--n100); font: 700 11.3px var(--font); text-align: left; white-space: nowrap; }
+/* 입력 칸 — 항상 테두리가 보인다 */
+.pf-grid td .pf-input, .pf-grid td select {
+  height: 24px; padding: 2px 6px; font-size: 12px;
+  border: 1px solid var(--line-strong); background: var(--paper); border-radius: 6px;
+}
+.pf-grid td .pf-input:hover, .pf-grid td select:hover { border-color: var(--primary-border); }
+.pf-grid td .pf-input:focus, .pf-grid td select:focus { border-color: var(--primary); }
+.pf-grid td.pf-c select { width: 5.6em; padding: 0 2px; }
+.pf-grid td select.pf-diff { background: var(--pf-yellow); border-color: var(--pf-yellow-border); }
+.pf-grid td.pf-c input[type="checkbox"] { accent-color: var(--primary); margin: 0; width: 15px; height: 15px; }
+.pf-grid .btn-icon { width: 24px; height: 24px; min-height: 0; padding: 0; font-size: 11px; }
+.pf-num, td.pf-num { text-align: right; font-family: var(--font-num); }
+.pf-r { text-align: right; }
+
+/* 보수 표: 다섯 열을 같은 폭으로 */
+#personTable { table-layout: fixed; }
+#personTable th:first-child { width: 120px; }
+
+/* 위반사항 표 */
+.pf-vio { min-width: 1100px; }
+.pf-vio td select[data-f] { min-width: 5.4em; }
+.pf-vio .pf-grp { width: 56px; text-align: center; }
+.pf-vio td.pf-auto { background: var(--n50); color: var(--text-body); font-size: 12px; white-space: nowrap; padding: 2px 8px; }
+.pf-vio tr.pf-off td { opacity: .55; }
+.pf-vio .pf-foot td { background: var(--bg); font-weight: 700; height: 28px; }
+.pf-btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+/* ── 가중·감경 표 ────────────────────────────────────────────────── */
+.pf-adjust { min-width: 640px; }
+.pf-adjust td:first-child { min-width: 260px; line-height: 1.35; }
+.pf-adjust td { height: 30px; }
+.pf-adjust .pf-lim { white-space: nowrap; color: var(--text-soft); font-size: 11.3px; }
+.pf-adjust .pf-pctcell { white-space: nowrap; }
+.pf-adjust tr.pf-on > td { background: var(--primary-soft); }
+.pf-adjust td.pf-na { background: var(--n50); }
+.pf-adjust thead th.pf-na-h { color: var(--text-muted); font-weight: 600; }
+.pf-adjust .pf-cellbox { display: inline-flex; align-items: center; gap: 3px; }
+.pf-adjust .pf-mini { width: 42px; height: 22px; padding: 0 4px; font: 500 11.5px var(--font-num); text-align: right;
+  border: 1px solid var(--line-strong); border-radius: 6px; background: var(--paper); color: var(--text); }
+.pf-adjust .pf-mini:disabled { background: var(--n50); color: var(--text-muted); border-color: var(--line); }
+.pf-adjust tfoot td { background: var(--pf-violet-soft); font: 700 12px var(--font); border-top: 1px solid var(--pf-violet-border); height: 30px; }
+.pf-adjust tfoot td b { font-family: var(--font-num); color: var(--pf-violet); }
+.pf-adjust tfoot td b.pf-hit { color: var(--bad); }
+.pf-adjust tr.pf-grp-head td {
+  background: var(--pf-violet-soft); font: 800 11.5px var(--font); padding: 3px 6px; height: 28px;
+  border-bottom: 1px solid var(--line-strong);
+}
+.pf-adjust tr.pf-grp-head td:first-child { color: var(--pf-violet); }
+.pf-note-row td { background: var(--primary-soft); }
+.pf-note { display: grid; grid-template-columns: 260px 1fr; gap: 8px; padding: 2px 0; }
+.pf-note select, .pf-note textarea { border-color: var(--line-strong); background: var(--paper); }
+.pf-note textarea { grid-column: 2; }
+.pf-note select { align-self: start; }
+
+/* 그룹 한도 칩과 합계 배지. 한도에 걸리면 붉게. */
+.pf-chip { display: inline-block; font: 700 11px var(--font-num); color: var(--pf-violet); min-height: 1em; white-space: nowrap; }
+.pf-chip.pf-hit, .pf-badge.pf-hit { color: var(--bad); }
+.pf-badge { font: 600 11.3px var(--font); color: var(--text-soft); margin-left: auto; }
+
+/* ── 결과 ───────────────────────────────────────────────────────── */
+
+.pf-table { width: 100%; border-collapse: collapse; font-size: 12.3px; }
+.pf-table:not(.pf-grid) th {
+  text-align: left; color: var(--text-body); font: 700 11px var(--font);
+  border-bottom: 1px solid var(--line-strong); padding: 6px; white-space: nowrap; background: var(--n100);
+}
+.pf-table:not(.pf-grid) td { padding: 5px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.pf-table .pf-c { text-align: center; }
+.pf-pivot th { text-align: right; }
+.pf-pivot th:first-child { text-align: left; }
+.pf-pivot td { text-align: right; font-family: var(--font-num); }
+.pf-pivot td:first-child { text-align: left; font-family: var(--font); }
+.pf-pivot tr.pf-sub td:first-child { padding-left: 20px; color: var(--text-soft); font-size: 11.3px; }
+.pf-pivot tr.pf-total td { border-top: 1px solid var(--text-body); background: var(--bg); font-weight: 800; }
+.pf-result-tabs { margin-bottom: 12px; }
+
+.pf-empty { padding: 16px; text-align: center; color: var(--text-soft); font-size: 12px; }
+
+.pf-toast {
+  position: fixed; bottom: 20px; right: 20px; z-index: 50;
+  background: var(--text); color: #FFFFFF;
+  padding: 10px 16px; border-radius: var(--radius-sm); font-size: 12.5px;
+}
+.pf-toast-bad { background: var(--bad); }
+
+/* 머리띠의 글자 크기 조절. 셋이 한 덩이로 보이게만 한다. */
+.pf-font { display: inline-flex; gap: 4px; }
+.pf-font .btn { min-width: 34px; padding: 0 8px; }
+
+/* ⚠️ 본문의 곁말을 본문색으로 되돌린다(담당부서 요청 — 원본이 그렇게 두었다). 머리띠와 왼쪽 차림표는
+   그대로 옅게 남긴다. 위에서 옅게 정한 바로 **뒤**에 두어야 이긴다. 공용 부품(`.btn`·`.tab`·`.pill`)은
+   건드리지 않는다 — 켜진 단추의 흰 글자나 상태 배지 색까지 덮으면 안 된다. */
+.pf-center .pf-sec-sub,
+.pf-center .pf-hint,
+.pf-center .pf-field label,
+.pf-center .pf-u,
+.pf-center .pf-pivot tr.pf-sub td:first-child,
+.pf-center .pf-empty { color: var(--text); }
+
+@media (max-width: 900px) {
+  .pf-sum { display: none; }
+  .pf-basic { flex-wrap: wrap; }
+  .pf-f-fy { flex-basis: 100%; }
+  .pf-note { grid-template-columns: 1fr; }
+  .pf-note textarea { grid-column: 1; }
+}
+
+/* ── 구·신 비교 (2026-11-09) ───────────────────────────────────────── */
+.pf-tot-other { background: var(--pf-violet-soft); border-color: var(--pf-violet-border); color: var(--pf-violet); }
+.pf-tot-decide { background: #fff7e0; border-color: #f0d58a; color: #8a5a00; }
+.pf-b-new { color: var(--pf-violet); }
+.pf-cmp .pf-table td.pf-diff { background: var(--pf-yellow, #fff6bf); }
+.pf-cmp-table th.pf-c { white-space: nowrap; }
+.pf-cmp-table td.pf-r { text-align: right; font-variant-numeric: tabular-nums; }
+.pf-decide-row td { background: var(--pf-violet-soft); }
+.pf-decide-cell b { font: 800 13px var(--font-num); }
+.pf-changes { margin-top: 8px; font-size: 12px; color: var(--text-soft); }
+.pf-changes summary { cursor: pointer; font-weight: 600; }
+.pf-changes ul { margin: 6px 0 0 16px; padding: 0; }
+.pf-changes li { margin: 2px 0; }
+.pf-own-title { margin: 16px 2px 6px; font: 700 13px var(--font); color: var(--text-body); }
+.pf-pauto { font-weight: 700; color: var(--pf-violet); }
+.pf-vio .pf-mult { width: 58px; text-align: right; }
+button.pf-tot-link { cursor: pointer; font-family: inherit; }
+button.pf-tot-link:hover { filter: brightness(0.96); text-decoration: underline; }
+
+/* 위반 회계연도가 많을 때(사례 5 = 7개): 기본정보 줄 아래로 내려 모두 보인다 */
+.pf-basic.pf-many { flex-wrap: wrap; }
+.pf-basic.pf-many .pf-f-fy { flex: 1 1 100%; overflow: visible; }
+.pf-basic.pf-many .pf-f-fy #fiscalYearsBox { flex-wrap: wrap; white-space: normal; row-gap: 6px; }
+.pf-unit { flex-shrink: 0; font: 600 11px var(--font); color: var(--text-soft); }
+
+/* ── 연도 탭 — 네모난 색인 탭(통합조회 탭과 같은 모양), 청록색(사용자 지정 2026-11-09) ── */
+body { --pf-teal: #0F8F8F; --pf-teal-deep: #0A6E6E; --pf-teal-soft: #E5F5F5; --pf-teal-line: #9ED5D5; }
+.pf-yeartabs { display: flex; align-items: flex-end; gap: 2px; margin: 0 0 12px; padding: 6px 4px 0; border-bottom: 1px solid var(--pf-teal-line); overflow-x: auto; scrollbar-width: none; }
+.pf-yeartabs::-webkit-scrollbar { display: none; }
+.pf-yeartabs[hidden] { display: none; }
+.pf-ytab {
+  position: relative; flex: none; height: 31px; padding: 0 15px; margin-bottom: 0;
+  border: 1px solid transparent; border-bottom: 0; border-radius: 9px 9px 0 0;
+  background: transparent; color: var(--text-soft); cursor: pointer; white-space: nowrap;
+  font: 700 12.5px/1 var(--font); display: inline-flex; align-items: center; gap: 7px;
+  transition: background .13s, color .13s;
+}
+.pf-ytab::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: #B7D3D3; flex: none; }
+.pf-ytab:hover { background: #F2F9F9; color: var(--text-body); }
+.pf-ytab.active {
+  height: 34px; margin-bottom: -1px; padding-bottom: 1px;
+  background: var(--pf-teal-soft); border-color: var(--pf-teal-line); color: var(--pf-teal-deep);
+  box-shadow: 0 3px 0 var(--pf-teal) inset;
+}
+.pf-ytab.active::before { background: var(--pf-teal); }
+
+/* 머리띠 요약 — (구) · (신) · 유리 결정 세 칸. 이 화면의 기준 칸은 청록 진하게, 다른 기준은 연한 보라, 결정은 노랑 */
+.pf-tot-own { background: var(--primary-light); border-color: var(--primary-border); color: var(--primary-active); }
+.pf-tot-other { background: var(--pf-violet-soft); border-color: var(--pf-violet-border); color: var(--pf-violet); }
+.pf-sum .pf-tot { font-size: 12.5px; padding: 4px 12px; }
+.pf-sum .pf-tot b { font-size: 13.5px; }
+.pf-vs { flex-shrink: 0; font: 700 12px var(--font-num); color: var(--text-soft); }
+
+/* 머리띠 구)·신) 칸 — 구) 는 연한 노랑, 신) 은 연한 회색(참고) */
+.pf-tot-old { background: #FFF8D6; border-color: #EBDD94; color: #8A6A00; }
+.pf-tot-new { background: #F1F3F5; border-color: #DADFE4; color: #7A8794; }
+.pf-tot-new b { color: #7A8794; }
+
+/* 머리띠: ⇔ 와 단위(백만원)를 칩의 세로 가운데 아래로 맞춘다 */
+.pf-sum-total { align-items: center; }
+.pf-sum-total .pf-vs, .pf-sum-total .pf-unit { align-self: center; line-height: 1; position: relative; top: 2px; }
+
+/* 플로팅 메모 — 칸 바로 위에 뜨는 짧은 설명 */
+.pf-memo-box {
+  position: fixed; z-index: 90; max-width: 300px; padding: 9px 11px; pointer-events: none;
+  background: var(--text); color: var(--paper); border-radius: var(--radius-sm); box-shadow: var(--shadow);
+  font: 500 11.5px/1.6 var(--font); white-space: pre-line; text-align: left;
+}
+.pf-memo-box[hidden] { display: none; }
+
+/* 위반사항 표 — 좌우 스크롤 없이 한 화면에 들어가게(2026-11-09): 폭을 칸마다 정하고(유형·동기는 좁게), 위반사항 이름 칸이 남는 폭을 가진다. 머리는 두 줄까지 */
+.pf-vio { table-layout: fixed; min-width: 1160px; }
+.pf-vio col.c-amt { width: 126px; } .pf-vio col.c-typ { width: 52px; } .pf-vio col.c-mot { width: 64px; } .pf-vio col.c-sev { width: 66px; }
+.pf-vio col.c-mul { width: 54px; } .pf-vio col.c-mkt { width: 46px; } .pf-vio col.c-base { width: 82px; } .pf-vio col.c-score { width: 78px; }
+.pf-vio col.c-who { width: 72px; } .pf-vio col.c-del { width: 30px; }
+.pf-vio thead th { white-space: normal; line-height: 1.25; height: 34px; vertical-align: middle; }
+.pf-vio td .pf-desc { width: 100%; text-overflow: ellipsis; }
+.pf-vio td.pf-c select, .pf-vio td select { width: 100%; min-width: 0; }
+.pf-vio td .pf-mult { width: 100%; }
+.pf-vio td.pf-num, .pf-vio td.pf-auto { white-space: nowrap; }
+
+/* 보수 표 — 모든 연도를 한 표에(열 = 연도). 한 칸에 성명(위)·보수(아래) */
+.pf-persons { table-layout: fixed; }
+.pf-persons thead th:first-child, .pf-persons tbody th { width: 96px; }
+.pf-persons td { padding: 3px 4px; height: auto; }
+.pf-persons td .pf-input { display: block; width: 100%; margin: 0; }
+.pf-persons td .pf-input + .pf-input { margin-top: 3px; }
+.pf-persons thead th.pf-cur { background: var(--pf-teal-soft); color: var(--pf-teal-deep); box-shadow: 0 -2px 0 var(--pf-teal) inset; }
+.pf-persons td.pf-cur-col { background: #F4FBFB; }
+.pf-persons thead th { white-space: nowrap; }
+
+/* MAX 탭 — 맨 앞, 진하게 */
+.pf-ytab-max { font-weight: 800; letter-spacing: .02em; }
+.pf-ytab-max .pf-u { font-weight: 600; color: inherit; opacity: .75; }
+
+/* 지적금액·기준금액은 잘리지 않게(14자리까지) */
+.pf-vio td .pf-num { padding-left: 4px; padding-right: 6px; letter-spacing: -0.2px; }
+.pf-vio td.pf-num { overflow: visible; }
+
+/* 점수(위) · (적용률)(아래) 두 줄 */
+.pf-vio td .pf-sc, .pf-vio td .pf-rt { display: block; line-height: 1.25; text-align: center; }
+.pf-vio td .pf-sc { font-weight: 700; }
+.pf-vio td .pf-rt { font-size: 11px; color: var(--text-soft); }
+
+/* 상 칸은 「-」「상」뿐이라 좁게, 대표 관여자 칸은 「고의·상」이 안 잘리게 조금 넓게 */
+.pf-vio col.c-sev { width: 52px; }
+.pf-vio col.c-who1 { width: 88px; }
+.pf-vio td select[data-f="severe"] { padding-left: 2px; padding-right: 2px; }
+
+/* MAX 탭의 전체 연도 표(기본정보·보수) — MAX 해는 노란색 */
+.pf-basicall { table-layout: auto; }
+.pf-basicall td { padding: 3px 6px; }
+.pf-w44 { width: 44px !important; display: inline-block; } .pf-w70 { width: 76px !important; display: inline-block; }
+.pf-basicall td .pf-input { margin: 0 2px; }
+.pf-grid .pf-maxcell, .pf-grid thead th.pf-maxcell { background: var(--pf-yellow) !important; box-shadow: none; }
+.pf-grid td.pf-maxcell .pf-input { background: #FFFDF0; border-color: var(--pf-yellow-border); }
+.pf-persons-all td .pf-input { display: block; width: 100%; margin: 0; }
+#personTable td[data-ycol] .pf-input { display: block; width: 100%; margin: 0; }
+#personTable td[data-ycol] .pf-input + .pf-input { margin-top: 3px; }
+#personTable thead th[data-ycol] { white-space: nowrap; }
+
+/* 자동으로 산출되는 칸 — 연한 회색 바탕, 글자는 보통보다 1pt 작게(백만원 단위) */
+.pf-vio td.pf-auto { background: #F3F4F6; font-size: 11px; color: var(--text-body); }
+.pf-vio td.pf-auto .pf-rt { font-size: 10px; }
+.pf-vio td select[data-f="market"] { padding-left: 2px; padding-right: 2px; }
+.pf-vio td select[data-f="type"] { padding-left: 6px; padding-right: 0; }
+
+/* 관여자 동기 칸 — 대상자가 없어 못 고르는 칸은 회색, 고를 수 있는 칸은 흰색, 회사 동기와 다르면 연한 노랑(그대로) */
+.pf-vio td select:disabled { background: #E6E9ED; color: #A0A8B2; border-color: #D6DBE1; cursor: not-allowed; opacity: 1; }
+.pf-vio td select:not(:disabled):not(.pf-diff) { background: #FFFFFF; }
+
+/* 위반사항 표 머리 — 모두 가운데 맞춤 */
+.pf-vio thead th, .pf-vio thead th.pf-c, .pf-vio .pf-sub-head th { text-align: center; }
+
+/* 열 폭 조정(2026-11-09): 위반사항·지적금액을 줄이고 그만큼 위반규모·시장영향·기준금액·점수·관여자 칸을 넓힌다. 자동 산출 칸은 조금 더 진한 회색 */
+.pf-vio col.c-amt { width: 113px; } .pf-vio col.c-mul { width: 58px; } .pf-vio col.c-mkt { width: 50px; }
+.pf-vio col.c-base { width: 86px; } .pf-vio col.c-score { width: 82px; }
+.pf-vio col.c-who { width: 76px; } .pf-vio col.c-who1 { width: 92px; }
+.pf-grid thead th.pf-auto-h { background: #D3D8DE; color: var(--text-body); }
+.pf-vio td.pf-auto { background: #E7EAEE; }
+
+/* 칸 안의 입력·선택이 옆 칸을 침범하지 않게 */
+.pf-vio td select, .pf-vio td .pf-input { box-sizing: border-box; max-width: 100%; }
+.pf-vio td { overflow: hidden; }
+
+/* 예전 규칙(select[data-f] 최소 5.4em)이 좁은 칸에서 옆 칸을 침범하던 것을 푼다 */
+.pf-vio td select[data-f] { min-width: 0; }
+
+/* 구·신 비교 — 구 전체 → 신 전체 → 최종 세 표를 위아래로 */
+.pf-cmp-title { margin: 14px 2px 6px; font: 700 13px var(--font); color: var(--text-body); }
+.pf-cmp-title .pf-u { font-weight: 500; }
+.pf-cmp .pf-cmp-table td.pf-diff { background: var(--pf-yellow); }
+.pf-cmp-table { table-layout: fixed; }
+.pf-cmp-table th:first-child, .pf-cmp-table td:first-child { width: 150px; }
+.pf-cmp-table td.pf-decide-cell .pf-u { margin-top: 2px; }
+
+/* 신 화면의 머리띠 칩 — 이 화면의 기준이라 연한 보라 바탕 */
+.pf-tot-new-own { background: var(--pf-violet-soft); border-color: var(--pf-violet-border); color: var(--pf-violet); }
+
+/* 동기 선택칸: 「중과실」이 잘리지 않게 조금 넓게 */
+.pf-vio col.c-mot { width: 78px; }
+
+/* 결과 단계의 접는 블록 · 비교양정 */
+.pf-acc { margin: 10px 0; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: #fff; }
+.pf-acc > summary { cursor: pointer; padding: 10px 14px; font: 700 13px var(--font); color: var(--text-body); background: var(--pf-violet-soft); border-radius: var(--radius-sm); list-style: none; }
+.pf-acc > summary::before { content: '▸ '; }
+.pf-acc[open] > summary::before { content: '▾ '; }
+.pf-acc[open] > summary { border-bottom: 1px solid var(--line); border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+.pf-acc > :not(summary) { margin: 10px 12px 12px; }
+.pf-cmpbar { display: flex; justify-content: center; margin: 14px 0 8px; }
+.pf-cmp-party th { background: var(--n100); text-align: left; font: 700 12.5px var(--font); padding: 6px 10px; }
+.pf-cmp .pf-cmp-table td.pf-diff { background: var(--pf-yellow); }
+
+/* 플로팅 메모: 연한 녹색 바탕 · 검은 글씨 · 강조(파랑) */
+.pf-memo-box { background: #E3F3E6; color: #111; border: 1px solid #A9D4B1; }
+.pf-memo-box .pf-memo-em { color: #0B5ED7; font-weight: 700; }

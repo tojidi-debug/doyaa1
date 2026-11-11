@@ -1,0 +1,116 @@
+/* [품감] 통합(개발) — qc_total.html 만의 것(2026-11-11). 조회·심의안은 qc.css, 일정·대사·개별선정은 qc_sample.css 를 그대로 쓴다. */
+
+/* 「심의안 초안 작성」 탭 — 청록색 바탕(사용자 지정 2026-11-11) */
+.qs-tab.qs-tab-draft { background: #0f766e; border-color: #0f766e; color: #fff; }
+.qs-tab.qs-tab-draft:hover { background: #115e59; border-color: #115e59; color: #fff; }
+.qs-tab.qs-tab-draft.is-on { background: #115e59; border-color: #0b4f4a; color: #fff; box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.22); }
+
+/* 회계법인 조회 ↔ 심의안 초안 작성: 같은 작업 공간, 보이는 단추만 다르다 */
+body[data-view="firm"] #tab-ws .for-draft { display: none !important; }
+body[data-view="draft"] #tab-ws .for-firm { display: none !important; }
+body:not([data-view="draft"]) #projCard { display: none; }
+body[data-view="draft"] #tab-ws .catalog > :not(#projCard):not(#draftPanel) { display: none; }
+#tab-ws .catalog[data-mode="draft"] > #projCard { display: none; }
+
+/* [심의안에 반영 →] — 이 회계법인을 심의안 초안 작성으로 넘긴다 */
+.qc-actions button.hand-teal { background: #0f766e; border-color: #0f766e; color: #fff; font-weight: 700; }
+.qc-actions button.hand-teal:hover { background: #115e59; border-color: #115e59; }
+
+/* 작업 중인 프로젝트(심의안 탭 왼쪽) */
+.proj-card { padding: 14px 4px; font-size: 13px; }
+.proj-card .pj-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.proj-card .pj-head b { font-size: 14px; color: #0f172a; }
+.proj-card .pj-head span { font-size: 11.5px; color: #64748b; }
+.proj-card .pj-cur { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid #99d5cf; border-left: 4px solid #0f766e;
+  border-radius: 10px; background: #f0fbf9; }
+.proj-card .pj-cur b { font-size: 15px; color: #0b4f4a; }
+.proj-card .pj-cur span { font-size: 12px; color: #334155; }
+.proj-card .pj-cur .pj-when { color: #64748b; font-size: 11.5px; }
+.proj-card .pj-cur.empty { color: #64748b; border-left-color: #cbd5e1; background: #f8fafc; border-color: #e2e8f0; }
+.proj-card .pj-list { margin-top: 14px; }
+.proj-card .pj-sub { font-size: 11.5px; font-weight: 800; color: #94a3b8; letter-spacing: .04em; margin-bottom: 4px; }
+.proj-card .pj-row { display: flex; align-items: stretch; gap: 4px; margin: 3px 0; }
+.proj-card .pj-open { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; text-align: left; padding: 6px 10px;
+  border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; color: #0f172a; font: inherit; font-weight: 700; cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.proj-card .pj-open small { font-weight: 400; font-size: 11.5px; color: #64748b; }
+.proj-card .pj-open:hover { border-color: #0f766e; background: #f0fbf9; }
+.proj-card .pj-row.on .pj-open { border-color: #0f766e; background: #e6f6f3; }
+.proj-card .pj-del { width: 28px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; color: #94a3b8; cursor: pointer; }
+.proj-card .pj-del:hover { color: #b42318; border-color: #f3c2bd; }
+.proj-card .pj-note { margin-top: 12px; font-size: 11.5px; color: #64748b; line-height: 1.55; }
+
+/* 제출자료 대사(통합) — 위 한 줄(찾기·사업보고서·사업연도·대사 실행·엑셀) 아래 둘로: 왼쪽 회계법인 관련 자료 · 오른쪽 대사할 자료 */
+.rv-in .qs-card-head { margin-bottom: 6px; }
+.rv-in .qs-card-head .qs-muted { font-size: 12px; }
+.rv-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 2px 0 6px; font-size: 12.5px; }
+.rv-bar label { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.rv-bar .qs-input, .rv-bar .qs-select { height: 30px; padding: 3px 8px; font-size: 12.5px; }
+.rv-bar #firmQ { width: 116px; }
+.rv-bar #revFy { width: 74px; }
+.rv-bar .rv-rep { max-width: 250px; }
+.rv-bar .qs-btn { height: 30px; padding: 3px 12px; font-size: 12.5px; }
+#firmOut:empty { display: none; }
+.rv-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; margin-top: 4px; }
+@media (max-width: 1000px) { .rv-grid { grid-template-columns: 1fr; } }
+.rv-col { min-width: 0; }
+.rv-drop { display: flex; align-items: center; justify-content: flex-start; gap: 12px; min-height: 0; padding: 9px 14px; border-radius: 10px; text-align: left; }
+.rv-drop:hover { border-color: var(--qs-primary); }
+.rv-folder { flex: 0 0 38px; width: 38px; height: 32px; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .18)); }
+.rv-drop-t { display: flex; flex-direction: column; gap: 1px; min-width: 0; font-size: 12.5px; color: #334155; }
+.rv-drop-t b { color: var(--qs-navy); font-size: 13px; margin-right: 4px; }
+.rv-drop-t small { font-size: 11px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 올린 자료 목록 — 작게, 한 줄에 여러 개 */
+.rv-files { margin: 6px 0 0; gap: 4px; }
+.rv-files li { max-width: 100%; padding: 1px 6px; border-radius: 6px; font-size: 11px; line-height: 1.6; background: #f8fafc; gap: 4px; }
+.rv-files li span.nm { min-width: 0; max-width: 230px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rv-files li button { padding: 0 2px; font-size: 12px; line-height: 1; }
+.rv-run { margin-top: 10px; }
+.rv-no { display: inline-flex; align-items: center; justify-content: center; margin-right: 4px; color: var(--qs-navy); font-weight: 800; }
+.rv-sec { margin-top: 14px; }
+.rv-sec > .qs-card-head h2 { white-space: nowrap; }
+.rv-points { margin: 4px 0 8px; padding-left: 0; list-style: none; }
+.rv-points li { margin: 4px 0; font-size: 13px; line-height: 1.55; }
+.rv-tx td { font-size: 12px; }
+.rv-restored { margin: 10px 2px 0; }
+
+/* 등급(상·중·하) — 위반의심 빨강 · 중점확인/불일치 주황 · 참고 회색(qc_sample.css 의 단계 색을 따른다) */
+.gr { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 8px; border-radius: 999px;
+  font-size: 12px; font-weight: 800; border: 1px solid transparent; white-space: nowrap; }
+.gr-상 { background: var(--lv-violation-bg); color: var(--lv-violation); border-color: #f5c2c2; }
+.gr-중 { background: var(--lv-focus-bg); color: var(--lv-focus); border-color: #f7d4a8; }
+.gr-하 { background: var(--lv-note-bg); color: var(--lv-note); border-color: #d5dee5; }
+button.gr-btn { cursor: pointer; height: 26px; padding: 0 12px; }
+button.gr-btn.off { opacity: .4; text-decoration: line-through; }
+h3.qs-sub .gr { margin-right: 4px; }
+
+/* 조회·심의안 탭은 한 장(작업 공간 안에서 스크롤) — 몸통이 따라 올라가 머리줄이 잘리지 않게. 다른 탭은 몸통이 스크롤 */
+body:has(#tab-ws:not([hidden])) { height: 100vh; overflow: hidden; }
+
+/* js/qc.js 의 알림(#qcToast) — qc_sample 의 알림과 같은 모양 */
+#qcToast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #263238; color: #fff; padding: 8px 16px; border-radius: 8px;
+  font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 60; max-width: min(90vw, 760px); }
+#qcToast.show { opacity: .95; }
+
+/* 대사 결과 — 표 안에 또 스크롤이 생기지 않게(페이지 하나만 스크롤) */
+#revOut .qs-table-wrap { max-height: none; overflow-x: auto; overflow-y: visible; }
+#revOut .qs-table th { position: static; }
+/* 자료 비교 표(항목마다 한 표) — 열 = 사전제출자료 2-3 · 각 대사 자료 · 차이 */
+.cmp-grp { margin: 10px 0 4px; }
+.cmp-grp .cmp-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 2px; font-size: 13.5px; }
+.cmp-grp .cmp-head b { font-size: 13.5px; }
+.cmp-grp .qs-basis { font-size: 11.5px; color: #6B7684; margin: 0 2px 4px; }
+.cmp-table { table-layout: fixed; width: 100%; font-size: 12.5px; }
+.cmp-table th, .cmp-table td { white-space: normal; vertical-align: middle; padding: 5px 8px; word-break: break-word; }
+.cmp-table th { line-height: 1.35; }
+.cmp-table th small { display: block; font-weight: 400; font-size: 10.5px; color: #64748b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmp-table th .src-id { color: var(--qs-navy); font-weight: 800; margin-right: 2px; }
+.cmp-table td.num, .cmp-table th.num { text-align: right; }
+.cmp-table td.v-bad { color: var(--lv-violation); background: #fff4f4; font-weight: 700; }
+.cmp-table td.v-ok { color: var(--lv-ok); }
+.cmp-table td.cmp-diff { color: var(--lv-violation); font-weight: 800; text-align: right; }
+.cmp-table td.cmp-ref { font-size: 11px; color: #6B7684; }
+.cmp-table td.cmp-co { font-weight: 600; }
+.rv-legend { margin: 2px 0 8px; font-size: 11.5px; color: #475569; line-height: 1.7; }
+.rv-legend b { color: var(--qs-navy); margin-right: 2px; }
+.rv-legend span { display: inline-block; margin-right: 12px; }

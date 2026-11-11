@@ -1,8 +1,4 @@
 <!DOCTYPE html>
-<!-- 개발서버 전용(메뉴 「[품감] 개별선정(개발)」, 개발 DB 에만 있음 · IT 전달 대상 아님, 2026-10-14).
-     ① 개별 선정: 사전제출자료 2-3 → 슬라이서로 거르고 샘플 회사 골라 인뎁스 조서·감사보고서 PDF 받기
-     ② 제출자료 대사: 사전제출자료(2-3·2-8·2-10)·감사보고서 등 여러 자료를 맞춰 중요 체크포인트 고르기
-     ③ 매출장 대사(독립성): 기존 [품감] 독립성 대사 화면을 그대로 띄운다 -->
 <html lang="ko">
 <head>
 <meta charset="utf-8">
@@ -11,31 +7,33 @@
 <meta name="ClaudeBot" content="noindex, nofollow">
 <meta name="color-scheme" content="light">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>[품감] 개별선정</title>
+<title>[품감] 통합</title>
 <link rel="stylesheet" href="./css/font.css">
 <link rel="stylesheet" href="./css/base.css">
 <link rel="stylesheet" href="./css/ui.css">
-<!-- 머리줄·색·글꼴은 [재무데이터 조회]·[품감] 심의안과 같은 파일(review_case.css). 이 화면만의 것은 qc_sample.css -->
+<!-- 머리줄·색은 [재무데이터 조회]와 같은 파일(review_case.css). 조회·심의안은 qc.css, 일정·대사·개별선정은 qc_sample.css, 통합 화면만의 것은 qc_total.css -->
 <link rel="stylesheet" href="./css/review_case.css">
+<link rel="stylesheet" href="./css/qc.css">
 <link rel="stylesheet" href="./css/qc_sample.css">
+<link rel="stylesheet" href="./css/qc_total.css">
 </head>
-<body>
+<body data-mode="total">
   <header class="masthead">
     <div class="masthead-inner">
       <div class="brand">
         <span class="brand-mark" aria-hidden="true">QC</span>
         <div>
-          <h1>개별선정</h1>
-          <p>AUDIT FIRM REVIEW · 사전제출자료 샘플 선정 · 제출자료 대사</p>
+          <h1>[품감] 통합</h1>
+          <p>AUDIT FIRM QUALITY-CONTROL REVIEW · 일정 · 조회 · 대사 · 선정 · 심의안</p>
         </div>
       </div>
       <nav class="qs-tabs" role="tablist">
         <button class="qs-tab is-on" role="tab" data-tab="sched" aria-selected="true">품감 일정</button>
-        <button class="qs-tab" role="tab" data-tab="pick" aria-selected="false">개별 선정</button>
+        <button class="qs-tab" role="tab" data-tab="firm" aria-selected="false">회계법인 조회</button>
         <button class="qs-tab" role="tab" data-tab="recon" aria-selected="false">제출자료 대사</button>
-        <button class="qs-tab" role="tab" data-tab="sales" aria-selected="false">매출장 대사(독립성)</button>
-        <button class="qs-tab" id="sendCreport" type="button" disabled title="개별 선정에서 회사를 체크하면 켜집니다">신용정보 조회로 보내기</button>
-        <button class="qs-tab" role="tab" data-tab="other" aria-selected="false">기타 대사</button>
+        <button class="qs-tab" role="tab" data-tab="pick" aria-selected="false">개별선정</button>
+        <button class="qs-tab" id="sendCreport" type="button" hidden disabled title="개별선정에서 회사를 체크하면 켜집니다">신용정보 조회로 보내기</button>
+        <button class="qs-tab qs-tab-draft" role="tab" data-tab="draft" aria-selected="false" title="법인 조회에서 [심의안에 반영 →]으로 넘긴 회계법인으로 심의안 초안·서식·조서·한글 서류를 만듭니다">심의안 초안 작성</button>
       </nav>
     </div>
   </header>
@@ -62,6 +60,85 @@
       <div id="schedGrid" class="qs-sched-wrap"><p class="qs-muted">일정을 불러오는 중…</p></div>
     </section>
     <section id="schedHistory" class="qs-card" hidden></section>
+  </main>
+
+  <!-- 회계법인 조회 · 심의안 초안 작성 — 두 탭이 이 작업 공간을 같이 쓴다(js/qc.js, body[data-view]) -->
+  <main id="tab-ws" class="workspace" data-tabs="firm draft" hidden>
+    <section class="catalog" aria-labelledby="catalog-title">
+      <h2 id="catalog-title" class="sr-only">회계법인 찾기</h2>
+      <form id="searchForm" class="search-row">
+        <label class="search-wrap">
+          <span class="sr-only">회계법인명 검색</span>
+          <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+          <input id="query" class="search" type="search" placeholder="회계법인명 일부 (예: 삼일)" autocomplete="off">
+          <span class="key-hint" aria-hidden="true">/</span>
+        </label>
+        <button id="searchButton" class="filter-button" type="submit">찾기</button>
+      </form>
+      <div class="search-options">
+        <p class="search-hint">조회 대상은 회계법인사업보고서입니다(감사반은 공시 대상이 아닙니다).</p>
+      </div>
+      <div class="list-meta"><span id="resultCount">회계법인명을 입력해 주세요</span></div>
+      <div id="firmList" class="case-list" aria-live="polite"><div class="empty">검색어를 넣으면 회계법인 목록이 나옵니다.</div></div>
+
+      <!-- 「심의안 초안 작성」 탭에서만 — 작업 중인 프로젝트(이 컴퓨터에만 저장) -->
+      <div id="projCard" class="proj-card"></div>
+
+      <div id="reportsBox" class="reports" hidden>
+        <div class="list-meta"><span id="reportsTitle"></span><span id="reportsHint">최근 3개 사업연도 · 정정 포함</span></div>
+        <div id="reportList" class="report-list" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <article id="document" class="document" aria-live="polite">
+      <div id="welcome" class="welcome">
+        <p class="eyebrow">AUDIT FIRM OVERVIEW</p>
+        <h2>회계법인의 사업보고서 등의 정보를 조회</h2>
+        <p>왼쪽에서 회계법인을 찾고 사업보고서의 [내역 보기]를 누르면 일반현황·감사실적·인원현황·재무현황·부문별 매출현황이 심의안 (붙임1) 모양으로 나옵니다. [엑셀 복사]로 붙여넣고, [심의안에 반영]으로 한글 초안을 내려받습니다.</p>
+        <div class="welcome-rule"></div>
+      </div>
+      <div id="detail" hidden></div>
+    </article>
+  </main>
+
+  <!-- ② 제출자료 대사(통합) — 위 한 줄(회계법인 찾기 · 사업보고서 · 사업연도 · 대사 실행 · 엑셀) → 왼쪽 회계법인 관련 자료 · 오른쪽 대사할 자료 → ① 회계법인 ② 매출장(독립성) ③ 오류·체크포인트 -->
+  <main id="tab-recon" class="qs-pane" hidden>
+    <section class="qs-card rv-in">
+      <div class="qs-card-head">
+        <h2>제출자료 대사</h2>
+        <span class="qs-muted">(회계법인 자료와 그 외 자료 대사)</span>
+      </div>
+      <div class="rv-bar">
+        <label>회계법인 <input id="firmQ" class="qs-input" maxlength="40" placeholder="예: 나루"></label>
+        <button id="firmFind" class="qs-btn" type="button">찾기</button>
+        <select id="firmSel" class="qs-select" hidden></select>
+        <select id="firmRep" class="qs-select rv-rep" hidden title="이 사업보고서의 감사실적(외감실적)·인원 등을 함께 봅니다"></select>
+        <label>사업연도 <input id="revFy" class="qs-input qs-num" type="number" min="2000" max="2100" placeholder="자동" title="당기 사업연도 — 비우면 자동"></label>
+        <button id="revRun" class="qs-btn qs-primary" type="button" disabled>대사 실행</button>
+        <button id="revXlsx" class="qs-btn" type="button" disabled title="대사 결과를 표로 정리한 엑셀">엑셀 다운로드</button>
+        <span id="revState" class="qs-muted"></span>
+      </div>
+      <div id="firmOut" class="qs-small"></div>
+      <div class="rv-grid">
+        <div class="rv-col">
+          <div id="revFirmDrop" class="qs-drop rv-drop" tabindex="0" role="button" aria-label="회계법인 자료를 끌어다 놓거나 눌러서 고르기">
+            <input id="revFirmFiles" type="file" multiple accept=".xlsx,.xlsm,.xls,.pdf,.docx,.hwpx,.hwp" hidden>
+            <svg class="rv-folder" viewBox="0 0 48 40" aria-hidden="true"><path d="M3 8a4 4 0 0 1 4-4h11l5 5h18a4 4 0 0 1 4 4v21a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z" fill="#f4b400"/><path d="M3 15h42v18a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z" fill="#ffd54f"/></svg>
+            <span class="rv-drop-t"><span><b>① 회계법인 자료</b> 끌어다 놓거나 눌러서 고르기</span><small>사전제출자료 · 회계법인 사업보고서 · 품질관리 자료 · 엑셀·PDF·워드·한글 · 20개까지</small></span>
+          </div>
+          <ul id="revFirmList" class="qs-files rv-files"></ul>
+        </div>
+        <div class="rv-col">
+          <div id="revDrop" class="qs-drop rv-drop" tabindex="0" role="button" aria-label="대사할 자료를 끌어다 놓거나 눌러서 고르기">
+            <input id="revFiles" type="file" multiple accept=".xlsx,.xlsm,.xls,.pdf,.docx,.hwpx,.hwp" hidden>
+            <svg class="rv-folder" viewBox="0 0 48 40" aria-hidden="true"><path d="M3 8a4 4 0 0 1 4-4h11l5 5h18a4 4 0 0 1 4 4v21a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z" fill="#2e9e6b"/><path d="M3 15h42v18a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z" fill="#58c08c"/></svg>
+            <span class="rv-drop-t"><span><b>② 대사할 자료</b> 끌어다 놓거나 눌러서 고르기</span><small>사전제출자료(2-3·2-8·2-10 …) · 매출장 · 감사보고서 · 감사시간집계표 · 감사조서 관리대장 · 20개까지</small></span>
+          </div>
+          <ul id="revList" class="qs-files rv-files"></ul>
+        </div>
+      </div>
+    </section>
+    <section id="revOut" hidden></section>
   </main>
 
   <!-- ① 개별 선정 -->
@@ -140,77 +217,21 @@
     </section>
   </main>
 
-  <!-- ② 제출자료 대사 -->
-  <main id="tab-recon" class="qs-pane" hidden>
-    <section class="qs-card">
-      <div class="qs-card-head">
-        <h2>제출자료</h2>
-        <span class="qs-muted">사전제출자료 1개만 올려도 되고, 시트가 나뉜 엑셀·감사보고서(PDF·워드·한글)를 함께 올려도 됩니다. 자료는 서버에 남기지 않고, 외부로 보내지 않습니다(규칙으로만 읽음).</span>
-      </div>
-      <div id="drop" class="qs-drop" tabindex="0" role="button" aria-label="제출자료를 끌어다 놓거나 눌러서 고르기">
-        <input id="reconFiles" type="file" multiple accept=".xlsx,.xlsm,.xls,.pdf,.docx,.hwpx,.hwp" hidden>
-        <b>여기에 끌어다 놓거나 눌러서 고르기</b>
-        <span class="qs-muted">엑셀(.xlsx·.xls) · PDF · 워드(.docx) · 한글(.hwpx/.hwp) · 20개까지</span>
-      </div>
-      <ul id="reconList" class="qs-files"></ul>
-      <div class="qs-opts">
-        <label>당기 사업연도 <input id="reconFy" class="qs-input qs-num" type="number" min="2000" max="2100" placeholder="자동"></label>
-        <button id="reconRun" class="qs-btn qs-primary" type="button" disabled>대사 실행</button>
-        <span id="reconState" class="qs-muted"></span>
-      </div>
-    </section>
-    <section id="firmCheck" class="qs-card" hidden>
-      <div class="qs-card-head">
-        <h2>완전성 — 회계법인사업보고서 외감실적 대사</h2>
-        <span class="qs-muted">[품감] 법인 조회와 같은 자료(DART 회계법인사업보고서 Ⅱ.2.가 감사실적)를 사전제출자료 회사 수와 맞춥니다.</span>
-      </div>
-      <div class="qs-opts">
-        <label>회계법인 <input id="firmQ" class="qs-input" maxlength="40" placeholder="예: 나루"></label>
-        <button id="firmFind" class="qs-btn" type="button">찾기</button>
-        <select id="firmSel" class="qs-select" hidden></select>
-        <select id="firmRep" class="qs-select" hidden></select>
-        <button id="firmRun" class="qs-btn qs-primary" type="button" hidden>외감실적 대사</button>
-      </div>
-      <div id="firmOut"></div>
-    </section>
-    <section id="reconOut" hidden></section>
-  </main>
-
-  <!-- ③ 매출장 대사(독립성) — 기존 화면을 그대로 띄운다 -->
-  <main id="tab-sales" class="qs-pane qs-pane-frame" hidden>
-    <p class="qs-muted qs-small">[품감] 독립성 대사 화면입니다. 사전제출자료와 매출장을 함께 올려 감사대상회사에 대한 비감사용역(매출)을 찾습니다 — 브라우저 안에서만 처리합니다.</p>
-    <iframe id="salesFrame" title="[품감] 독립성 대사" data-src="./independence_check.html"></iframe>
-  </main>
-
-  <!-- ④ 기타 대사 — 감사시간집계표·감사보고서 등 첨부 자료를 사전제출자료와 맞춘다 -->
-  <main id="tab-other" class="qs-pane" hidden>
-    <section class="qs-card">
-      <div class="qs-card-head">
-        <h2>기타 대사</h2>
-        <span class="qs-muted">감사시간집계표·감사조서 관리대장·감사보고서 등을 사전제출자료와 맞춥니다 — 감사보고서일·담당이사·계속감사년수·감사시간·감사보수·감사의견·심리담당자. 자료는 서버에 남기지 않습니다.</span>
-      </div>
-      <div class="qs-opts">
-        <span id="otherPre" class="qs-muted"></span>
-        <label class="qs-file"><input id="otherPreFile" type="file" accept=".xlsx,.xlsm,.xls" hidden><span class="qs-btn">사전제출자료 바꾸기</span></label>
-      </div>
-      <div id="otherDrop" class="qs-drop" tabindex="0" role="button" aria-label="대사할 자료를 끌어다 놓거나 눌러서 고르기">
-        <input id="otherFiles" type="file" multiple accept=".xlsx,.xlsm,.xls,.pdf,.docx,.hwpx" hidden>
-        <b>대사할 자료를 끌어다 놓거나 눌러서 고르기</b>
-        <span class="qs-muted">엑셀(xlsx·xls) · 한글(hwpx) · 워드(docx) · PDF · 20개까지</span>
-      </div>
-      <ul id="otherList" class="qs-files"></ul>
-      <div class="qs-opts">
-        <button id="otherRun" class="qs-btn qs-primary" type="button" disabled>대사 실행</button>
-        <span id="otherState" class="qs-muted"></span>
-      </div>
-    </section>
-    <section id="otherOut" hidden></section>
-  </main>
-
+  <div id="qcToast" class="fs-toast" role="status" aria-live="polite"></div>
   <div id="toast" class="qs-toast" role="status" aria-live="polite"></div>
-<script>window.QC_STATIC = true;</script>
+
+  <!-- 한글(hwpx) 채우기 엔진은 안건 화면과 같은 파일(classic script) -->
+  <script>window.QC_STATIC = true;</script>
 <script src="./qc/static/relay_config.js"></script>
 <script src="./qc/static/qc_static.js"></script>
-<script type="module" src="./js/qc_sample.js"></script>
+<script src="./agenda2/hwpx.js"></script>
+  <script src="./agenda2/hwpx_fill.js"></script>
+  <script src="./agenda2/tpl_names.js"></script>
+  <script src="./agenda2/tpl_transfer.js"></script>
+  <script src="./qc/qc_draft.js"></script>
+  <script src="./qc/qc_gangpyeong.js"></script>
+  <script src="./qc/qc_pubdocs.js"></script>
+  <script type="module" src="./js/qc.js"></script>
+  <script type="module" src="./js/qc_sample.js"></script>
 </body>
 </html>

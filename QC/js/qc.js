@@ -11,9 +11,13 @@ import { showAlert, showConfirm } from './ui/dialog.js';
 import { $, esc, copyText } from './lookup_kit.js';
 import { grids, tsv, templateCtx, fmtCnt, periodLabel, fiscalSpan, firmName, orgWorkpaper, indiWorkpaper } from './qc_data.js';
 import { openDraft, closeDraft, isOpen as draftOpen, savedDraft, docReady } from './qc_draft_ui.js';
+import * as Project from './qc_project.js';
 
 /* 운영 메뉴(qc.html)는 조회·엑셀 복사·외감회사대사까지. 서식 채우기·기본 정보·심의안 초안 작성은 개발서버 메뉴(qc_dev.html, body[data-mode=dev])에서만(사용자 지정 2026-10-08) */
-const DEV = document.body.dataset.mode === 'dev';
+/* [품감] 통합(개발, qc_total.html, body[data-mode=total], 2026-11-11) — 「회계법인 조회」·「심의안 초안 작성」 두 탭이 이 작업 공간을 같이 쓴다.
+ * 조회 탭은 조회·엑셀 복사·외감회사대사 + [심의안에 반영 →](이 회계법인을 프로젝트로 넘김), 심의안 탭은 넘겨받은 회계법인으로 초안·서식·조서·한글 서류 */
+const TOTAL = document.body.dataset.mode === 'total';
+const DEV = document.body.dataset.mode === 'dev' || TOTAL;
 /* 정적 사이트 모드(GitHub 등, 2026-10-08) — 서버가 없다: 자료는 상대 경로, 평가표 엑셀은 브라우저(Pyodide), 회계법인 정보는 개발서버에서 내보낸 JSON 을 불러온다 */
 const STATIC = !!window.QC_STATIC;
 const ASSET = STATIC ? '' : '/';
@@ -116,9 +120,9 @@ function renderDetail() {
   const prevNote = p.prev ? `전기 인원현황은 ${esc(p.prev.report_nm)}(접수 ${esc(p.prev.rcept_no)})에서 읽었습니다.` : '전년도 사업보고서가 없어 인원현황 전기는 비어 있습니다.';
   d.innerHTML = `
     <div class="qc-head"><div><h2>(붙임1) 감사인 개요 — ${esc(p.corp_name)}</h2><div class="sub">${esc(p.report_nm)} · 접수 ${esc(p.rcept_no)} · 당기 ${esc(periodLabel(p.period))} / 전기 ${esc(periodLabel(p.prev_period))}</div></div>
-      <div class="qc-actions"><button type="button" id="btnCopy" title="두 표와 외부감사대상회사 수를 탭 구분 글로 복사합니다 — 엑셀에 그대로 붙여넣기">엑셀 복사</button>${DEV && !STATIC ? '<button type="button" id="btnJson" title="이 회계법인 정보((붙임1) 값)를 파일(.json)로 받습니다 — GitHub 사이트의 [회계법인 정보 불러오기]에서 씁니다">정보 내보내기(JSON)</button>' : ''}${DEV ? '<button type="button" id="tplDraft" class="draft-red" title="조직 부분·개별 부문의 체크리스트에서 지적사항을 골라 표준문안으로 심의안 초안(hwpx)과 품질관리수준 평가표(엑셀)를 만듭니다">심의안 초안 작성</button><button type="button" class="primary" id="btnFill" title="심의안 서식(hwpx)에 이 값을 채워 내려받습니다">심의안에 반영</button><button type="button" class="wp" data-doc="org" title="심의안 초안 작성에서 체크한 상태로 팀장_조직 체크리스트·확인서·발견사항요약표(엑셀)를 만듭니다">조직 조서(초안)</button><button type="button" class="wp" data-doc="indi" title="심의안 초안 작성의 점검회사별 지적으로 팀원_개별 체크리스트·확인서(엑셀)를 만듭니다 — 회사마다 한 파일, 둘 이상이면 zip">개별 조서(초안)</button>' + (STATIC ? '' : '<details class="qc-docs"><summary title="개선권고사항 외부공개서식·공개 의견조회서(hwpx)">한글 서류 ▾</summary><div class="qc-docs-menu"><button type="button" data-doc="public">외부공개서식</button><button type="button" data-doc="opinion">의견조회서</button></div></details>') : ''}</div></div>
+      <div class="qc-actions"><button type="button" id="btnCopy" title="두 표와 외부감사대상회사 수를 탭 구분 글로 복사합니다 — 엑셀에 그대로 붙여넣기">엑셀 복사</button>${DEV && !STATIC ? '<button type="button" id="btnJson" class="for-firm" title="이 회계법인 정보((붙임1) 값)를 파일(.json)로 받습니다 — GitHub 사이트의 [회계법인 정보 불러오기]에서 씁니다">정보 내보내기(JSON)</button>' : ''}${TOTAL ? '<button type="button" id="btnHand" class="hand-teal for-firm" title="이 회계법인·사업보고서 정보를 [심의안 초안 작성]으로 넘깁니다 — 이 컴퓨터에 프로젝트로 저장되어, 다음에 열어도 이어서 작업합니다">심의안에 반영 →</button>' : ''}${DEV ? '<button type="button" id="tplDraft" class="draft-red for-draft" title="조직 부분·개별 부문의 체크리스트에서 지적사항을 골라 표준문안으로 심의안 초안(hwpx)과 품질관리수준 평가표(엑셀)를 만듭니다">심의안 초안 작성</button><button type="button" class="primary for-draft" id="btnFill" title="심의안 서식(hwpx)에 이 값을 채워 내려받습니다">심의안에 반영</button><button type="button" class="wp for-draft" data-doc="org" title="심의안 초안 작성에서 체크한 상태로 팀장_조직 체크리스트·확인서·발견사항요약표(엑셀)를 만듭니다">조직 조서(초안)</button><button type="button" class="wp for-draft" data-doc="indi" title="심의안 초안 작성의 점검회사별 지적으로 팀원_개별 체크리스트·확인서(엑셀)를 만듭니다 — 회사마다 한 파일, 둘 이상이면 zip">개별 조서(초안)</button>' + (STATIC ? '' : '<details class="qc-docs for-draft"><summary title="개선권고사항 외부공개서식·공개 의견조회서(hwpx)">한글 서류 ▾</summary><div class="qc-docs-menu"><button type="button" data-doc="public">외부공개서식</button><button type="button" data-doc="opinion">의견조회서</button></div></details>') : ''}</div></div>
     ${warn}${checks}
-    ${DEV ? '<div class="qc-tpl" id="tplBar"></div>' : ''}
+    ${DEV ? '<div class="qc-tpl for-draft" id="tplBar"></div>' : ''}
     <div class="qc-count"><span>전자공시 개별 외부감사보고서 기준 — 당기 <b class="cur" id="dcCur">…</b>사<span id="dcSub" class="dc-sub"></span> · 전기 <b id="dcPrev">…</b>사<span id="dcCmp" class="dc-cmp"></span></span><button type="button" id="btnFold" class="fold-btn" hidden title="대사 내역 접기/펴기" aria-label="대사 내역 접기/펴기">−</button><button type="button" id="btnRecon" class="recon-btn" title="전자공시에 이 회계법인이 제출인으로 올린 감사보고서 목록을 보고 엑셀로 받거나, 피외감대상회사 목록과 맞춰 봅니다">외감회사대사</button></div>
     <div id="reconPanel" class="recon" hidden></div>
     <div class="qc-sec"><span>${esc(g.overview.title)}</span><span class="unit">${esc(g.overview.unit)}</span></div>
@@ -155,6 +159,7 @@ function wireDetail() {
   $('btnFold').addEventListener('click', toggle);
   syncFold();
   if ($('reconPanel') && $('reconPanel').dataset.ready) wireRecon();   /* [← BACK] 으로 innerHTML 을 되돌리면 단추의 클릭 연결이 사라진다 — 다시 묶는다(①②③ 이 한 번만 되던 원인) */
+  $('btnHand')?.addEventListener('click', handOff);
   if (DEV) {
     $('btnFill').addEventListener('click', fillDialog); $('tplDraft').addEventListener('click', startDraft); wireBasic(); renderTplBar();
     document.querySelector('#detail .qc-actions').addEventListener('click', (e) => { const b = e.target.closest('[data-doc]'); if (!b) return; b.closest('details')?.removeAttribute('open'); docFromSaved(b.dataset.doc, b); });
@@ -407,7 +412,7 @@ function basicPanelHtml() {
   const fields = BASIC_FIELDS.filter(([, , , , cond]) => !cond || (cond === 'nobiz' && !g.biz_no) || (cond === 'nocorp' && !g.corp_no));
   const field = ([k, label, ph, scope]) => { const v = saved[k] ?? ''; const a = auto[k] || '';
     return `<label class="bf"><span class="bl">${label} <i class="tag ${v ? 'd' : a ? 'a' : ''}" title="${v ? '직접 입력한 값(이 PC에 저장)' : a ? '사업보고서에서 가져온 값 — 고치면 직접 입력이 됩니다' : '직접 입력'}">${v ? '직접' : a ? '자동' : '직접'}</i></span><input name="${k}" data-scope="${scope}" value="${esc(v || a)}" placeholder="${esc(ph)}"></label>`; };
-  return `<div class="qc-basic"><div class="bh"><b>기본 정보(직접 입력)</b><span>서식에서 사업보고서로 알 수 없는 칸 — 한 번 넣으면 이 PC에 남습니다(감리담당·기간은 공통, 등록번호는 회계법인별). 비우면 서식의 보기값이 남습니다.</span></div>
+  return `<div class="qc-basic for-draft"><div class="bh"><b>기본 정보(직접 입력)</b><span>서식에서 사업보고서로 알 수 없는 칸 — 한 번 넣으면 이 PC에 남습니다(감리담당·기간은 공통, 등록번호는 회계법인별). 비우면 서식의 보기값이 남습니다.</span></div>
     <div class="bg">${fields.map(field).join('')}</div>${g.biz_no || g.corp_no ? `<p class="bn">사업자등록번호 <b>${esc(g.biz_no || '-')}</b> · 법인등록번호 <b>${esc(g.corp_no || '-')}</b> — 기업개황(OpenDART)에서 가져와 별지2에 넣습니다.</p>` : ''}</div>`;
 }
 function basicInputs() {
@@ -659,6 +664,76 @@ function wireStaticImport() {
   });
 }
 
+/* ── [품감] 통합(개발) — 탭 둘이 한 작업 공간: 「회계법인 조회」(둘러보기) ↔ 「심의안 초안 작성」(프로젝트) ──
+ * 조회 탭에서 다른 회계법인을 봐도 심의안 탭의 회계법인은 [심의안에 반영 →]을 누를 때만 바뀐다(사용자 지정 2026-11-11). */
+const view = { cur: 'firm', browse: null, reopen: false, welcome: '' };
+const snap = () => ({ firm: state.firm, reports: state.reports, report: state.report, profile: state.profile });
+function applySnap(x) { state.firm = (x && x.firm) || null; state.reports = (x && x.reports) || []; state.report = (x && x.report) || null; state.profile = (x && x.profile) || null; }
+function showProfile() {
+  const d = $('detail'), w = $('welcome');
+  if (state.profile) { w.hidden = true; d.hidden = false; renderDetail(); return; }
+  d.hidden = true; d.innerHTML = ''; w.hidden = false;
+  w.innerHTML = view.cur === 'draft'
+    ? '<p class="eyebrow">QUALITY-CONTROL REVIEW DRAFT</p><h2>심의안 초안 작성</h2><p>아직 넘겨받은 회계법인이 없습니다. [회계법인 조회]에서 회계법인과 사업보고서를 고른 뒤 <b>[심의안에 반영 →]</b>을 누르면 여기서 이어서 작업합니다. 작업은 이 컴퓨터에만 프로젝트로 저장됩니다.</p><div class="welcome-rule"></div>'
+    : view.welcome;
+}
+function renderReportsBox() {
+  if (!state.firm) { $('reportsBox').hidden = true; return; }
+  $('reportsBox').hidden = false; $('reportsTitle').textContent = `${state.firm.corp_name} 사업보고서`; renderReports();
+}
+function renderProjectCard() {
+  const card = $('projCard'); if (!card) return;
+  const cur = Project.get(); const items = Project.list();
+  const one = (p) => `<div class="pj-row${cur && p.key === cur.key ? ' on' : ''}"><button type="button" class="pj-open" data-pj="${esc(p.key)}" title="이 프로젝트로 바꾸기">${esc(p.name || '(이름 없음)')}<small>${p.profile ? esc(periodLabel(p.profile.period)) : '사업보고서 없음'}${p.review ? ' · 대사 결과' : ''} · ${esc(Project.when(p.updated))}</small></button><button type="button" class="pj-del" data-pjdel="${esc(p.key)}" title="이 컴퓨터에서 이 프로젝트를 지웁니다(심의안 체크·기본 정보는 그대로)">⨯</button></div>`;
+  card.innerHTML = `<div class="pj-head"><b>작업 중인 프로젝트</b><span>이 컴퓨터(브라우저)에만 저장</span></div>
+    ${cur ? `<div class="pj-cur"><b>${esc(cur.name)}</b>${cur.profile ? `<span>${esc(cur.profile.report_nm || '')} · 당기 ${esc(periodLabel(cur.profile.period))}</span>` : '<span>사업보고서를 아직 넘기지 않았습니다 — [회계법인 조회]에서 [심의안에 반영 →]</span>'}<span class="pj-when">마지막 저장 ${esc(Project.when(cur.updated))}</span></div>` : '<div class="pj-cur empty">없음 — [회계법인 조회]에서 회계법인을 고르고 [심의안에 반영 →]을 누르세요.</div>'}
+    ${items.length ? `<div class="pj-list"><div class="pj-sub">최근 프로젝트</div>${items.map(one).join('')}</div>` : ''}
+    <p class="pj-note">심의안 초안 체크·기본 정보·개별선정 선택 내역은 회계법인마다 이 컴퓨터에 저장되어, 프로젝트를 다시 열면 그대로 이어집니다.</p>`;
+}
+async function handOff() {
+  if (!state.profile || !state.firm) return;
+  try { await Project.commit(snap()); } catch (e) { await showAlert(describe(e), { title: '심의안에 반영' }); return; }
+  toast(`${state.profile.corp_name} — 심의안 초안 작성으로 넘겼습니다(이 컴퓨터에 프로젝트로 저장).`);
+  document.querySelector('.qs-tab[data-tab="draft"]')?.click();
+}
+function setView(v) {
+  if (v !== 'firm' && v !== 'draft') {   /* 다른 탭(일정·대사·개별선정) — 열린 초안은 접어 두고 돌아오면 다시 */
+    if (view.cur === 'draft' && draftOpen()) { view.reopen = true; closeDraft(); }
+    return;
+  }
+  if (v === view.cur && !(v === 'draft' && view.reopen)) { if (v === 'draft') renderProjectCard(); return; }
+  if (view.cur === 'draft' && draftOpen()) { view.reopen = true; closeDraft(); }
+  if (v === 'draft' && view.cur === 'firm') view.browse = snap();
+  if (v === 'draft') applySnap(Project.get()); else if (view.browse) applySnap(view.browse);
+  view.cur = v; document.body.dataset.view = v;
+  if (v === 'firm') renderReportsBox();
+  showProfile();
+  if (v === 'draft') {
+    renderProjectCard();
+    if (view.reopen && state.profile) { view.reopen = false; startDraft(); }
+  }
+}
+function wireTotal() {
+  view.welcome = $('welcome').innerHTML;
+  document.body.dataset.view = 'firm';
+  document.addEventListener('qc:tab', (e) => setView(e.detail));
+  document.addEventListener('qc:project', () => {
+    if (view.cur !== 'draft') return;
+    const p = Project.get();
+    if ((p && p.profile) !== state.profile) { if (draftOpen()) closeDraft(); applySnap(p); showProfile(); }
+    renderProjectCard();
+  });
+  $('projCard')?.addEventListener('click', async (e) => {
+    const o = e.target.closest('[data-pj]'); const x = e.target.closest('[data-pjdel]');
+    if (o) { if (draftOpen()) closeDraft(); Project.setCurrent(o.dataset.pj); }
+    if (x) {
+      const p = Project.get(x.dataset.pjdel);
+      if (!(await showConfirm(`「${(p && p.name) || '프로젝트'}」를 이 컴퓨터에서 지울까요?\n(심의안 체크·기본 정보·개별선정 선택 내역은 회계법인별로 따로 남습니다.)`, { title: '프로젝트 지우기', okText: '지우기', danger: true }))) return;
+      await Project.remove(x.dataset.pjdel);
+    }
+  });
+}
+
 /* ── 기동 ── */
 async function boot() {
   /* 개발 화면(qc_dev.html)은 개발서버(.env SERVER_BADGE 있음)에서만 연다 — 운영 이미지에 파일이 들어가도 열리지 않게(사용자 지정 2026-10-08: 지시 전 운영 반영 금지) */
@@ -669,10 +744,11 @@ async function boot() {
   try { state.me = await auth.me(); } catch { $('firmList').innerHTML = '<div class="error">로그인이 필요합니다. 포털에서 다시 열어 주세요.</div>'; return; }
   state.admin = (state.me.roles || []).includes('admin');
   await loadTemplates();
+  if (TOTAL) { await Project.load(); wireTotal(); }
   wireSelectCopy();
   if (STATIC && !(API.hasRelay && API.hasRelay())) wireStaticImport();   /* 전자공시 중계가 있으면 JSON 불러오기는 뺀다(사용자 지정 2026-10-08) */
   $('searchForm').addEventListener('submit', (e) => { e.preventDefault(); search($('query').value); });
-  document.addEventListener('keydown', (e) => { if (e.key === '/' && document.activeElement !== $('query')) { e.preventDefault(); $('query').focus(); } });
-  $('query').focus();
+  document.addEventListener('keydown', (e) => { if (e.key === '/' && document.activeElement !== $('query') && (!TOTAL || (!$('query').closest('[hidden]') && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')))) { e.preventDefault(); $('query').focus(); } });
+  if (!TOTAL) $('query').focus();
 }
 boot();

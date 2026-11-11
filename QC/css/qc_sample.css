@@ -173,8 +173,6 @@ details.qs-fold > div { padding: 0 14px 14px; }
 .qs-sched th.is-today { background: #E53935 !important; color: #fff !important; font-weight: 800; }
 .qs-sched td.is-today { background: #FFEFEF; box-shadow: inset 1px 0 0 #f2a5a5, inset -1px 0 0 #f2a5a5; }
 .qs-sched td.ev { padding: 2px 0; }
-.qs-sched td.ev.is-edit { cursor: pointer; }
-.qs-sched td.ev.is-edit:hover span { box-shadow: inset 0 0 0 2px var(--primary); }
 .qs-sched td.ev span { display: block; border-radius: 3px; padding: 0 4px; line-height: calc(var(--rh, 25px) - 6px); overflow: hidden; text-overflow: ellipsis; }
 .bar.lead, .qs-sched td.ev.lead span { background: #ECE3FB; color: #4B2C8C; font-weight: 700; }
 .qs-sched td.ev.lead.is-region span { background: #DCCBF8; color: #3E1F7A; }
@@ -433,3 +431,14 @@ details.qs-fold > div { padding: 0 14px 14px; }
 .dl-prog.is-wait i::after { height: 100%; background: #F3B3B3; animation: dlwait 1s infinite ease-in-out; }
 .dl-prog.is-wait i:nth-child(2)::after { animation-delay: .15s; } .dl-prog.is-wait i:nth-child(3)::after { animation-delay: .3s; }
 @keyframes dlwait { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+
+/* 일정 막대에서 바로 고치기(관리자, 2026-11-09) */
+.qs-sched td.ev.is-editable { cursor: pointer; }
+.qs-sched td.ev.is-editable:hover span { outline: 2px solid var(--qs-primary); outline-offset: -1px; }
+.qs-pop { position: fixed; z-index: 60; width: 320px; padding: 12px; display: flex; flex-direction: column; gap: 8px;
+  background: #fff; border: 1px solid #C9D7EE; border-radius: 10px; box-shadow: 0 12px 30px rgba(15, 23, 42, .22); font-size: 12.5px; }
+.qs-pop-title { font-size: 13.5px; }
+.qs-pop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.qs-pop-grid label { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-weight: 700; color: #475569; }
+.qs-pop .qs-input { width: 100%; min-width: 0; box-sizing: border-box; height: 32px; padding: 0 8px; font-size: 12.5px; }
+.qs-pop-btns { display: flex; gap: 6px; }

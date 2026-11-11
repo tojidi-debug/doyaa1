@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow, noarchive, noimageindex">
+<meta name="googlebot" content="noindex, nofollow">
+<meta name="ClaudeBot" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>과징금 산정</title>
+<link rel="stylesheet" href="./css/font.css">
+<link rel="stylesheet" href="./css/base.css">
+<link rel="stylesheet" href="./css/ui.css">
+<link rel="stylesheet" href="./css/penalty_fine.css">
+</head>
+<body data-pf-rules="old">
+
+<!-- ⚠️ 이 화면은 단독 주소(`/penalty_fine.html`)로도 연다. 그래서 머리띠를 둔다
+     (DESIGN.md 4). 포털 안에서는 2단 메뉴가 이미 이름을 말하지만, 옆 메뉴
+     [양정산출]이 자기 머리띠를 갖고 있어 둘이 나란히 열릴 때 한쪽만 없으면
+     어긋나 보인다. -->
+<header class="masthead pf-head">
+  <div class="masthead-inner">
+    <div class="brand">
+      <div>
+        <h1>과징금 산정</h1>
+      </div>
+    </div>
+    <!-- 단계 메뉴(예전 좌측 메뉴)를 머리띠로 올렸다. 머리띠는 늘 그 자리에 있어 어느 단계에서든 보인다. -->
+    <nav class="pf-steps" id="stepNav" aria-label="산정 단계">
+      <button type="button" class="active" data-sec="input"><span class="pf-n">1</span>사건 입력</button>
+      <button type="button" data-sec="adjust"><span class="pf-n">2</span>가중·감경</button>
+      <button type="button" data-sec="result"><span class="pf-n">3</span>결과 · 한글</button>
+    </nav>
+    <!-- 지금 합계. 단계를 옮겨 다녀도 늘 보인다. -->
+    <div class="pf-sum">
+      <div class="pf-sum-total" id="sumTotal"></div>
+      <div class="pf-sum-cards" id="sumCards"></div>
+    </div>
+    <div class="masthead-tools">
+      <!-- 어느 판을 따르는지 적어 두는 자리. 안 적으면 옛 기준으로 센 금액인지 알 수 없다.
+           ⚠️ **글자를 여기 적지 않는다.** `js/penalty_fine_rules.js` 의 `REVISION` 이 유일한 출처이고
+           화면이 그것을 찍는다 — 두 곳에 적으면 반드시 한쪽만 고쳐져 갈린다. -->
+      <span class="pill pill-mute" id="pf-rev"></span>
+      <button type="button" class="btn btn-sm" id="btnReset" title="입력한 모든 정보를 지우고 빈 상태로 초기화합니다">초기화</button>
+      <button type="button" class="btn btn-primary btn-sm" id="btnOther" data-code="penalty_new" data-href="new.html" title="같은 입력으로 다른 기준 화면을 엽니다 — 어느 화면에서든 구·신 비교표가 함께 나옵니다">과징금(신)으로 산출</button>
+    </div>
+  </div>
+</header>
+
+<div class="gutter pf-shell">
+  <main class="pf-center">
+    <div class="pf-yeartabs" id="yearTabs" role="tablist" aria-label="위반 회계연도" hidden></div>
+
+    <!-- 1. 사건 입력 = 기본정보 + 위반사항 + 위법행위 중요도 -->
+    <section class="pf-sec active" id="sec-input">
+    <div class="pf-sec-title">
+      <span>1. 사건 입력</span>
+      <button type="button" class="btn btn-ghost btn-sm" id="btnAddFyTop">+ 위반 회계연도 추가</button>
+    </div>
+
+    <div class="pf-card">
+      <h3><span class="pf-step">1</span>기본정보 <span class="pf-guide">회사 구분을 고르고 중요성 기준금액을 적습니다</span><span class="pf-legend"><span><i></i>입력 칸</span><span><i class="auto"></i>자동 계산</span></span></h3>
+      <div class="pf-basic">
+        <div class="pf-field pf-f-type"><label>회사 구분 <span class="pf-tip" data-tip="위법행위 중요도의 「회사유형」 점수가 됩니다. 상장 3점 · 코넥스·사업보고서 제출·대형비상장 2점 · 일반비상장 1점.">ⓘ</span></label>
+          <select id="companyType"></select>
+        </div>
+        <div class="pf-field pf-f-mat"><label>중요성 기준금액(원) <span class="pf-tip" data-tip="별표1 Ⅳ.2 로 정한 금액. 위반규모(기준금액이 몇 배인가)와 D유형 상한(6배)에 쓰입니다.">ⓘ</span></label>
+          <input class="pf-input pf-num" id="materiality" type="text" inputmode="numeric" value="0">
+        </div>
+        <div class="pf-field pf-f-prior"><label>기존 벌과금 등 차감액(원) <span class="pf-tip" data-tip="같은 사유로 이미 받은 벌금·과태료, 자본시장법상 과징금 부과액. 회사 과징금에서 뺍니다.">ⓘ</span></label>
+          <input class="pf-input pf-num" id="priorFine" type="text" inputmode="numeric" value="0">
+        </div>
+        <div class="pf-field pf-f-fy">
+          <label>위반 회계연도 <span class="pf-tip r" data-tip="위법행위가 여러 사업연도에 걸치면 연도마다 따로 입력합니다(최대 8개). 대상자별로 해마다 센 금액 가운데 가장 큰 금액을 부과합니다.">ⓘ</span></label>
+          <div id="fiscalYearsBox"></div>
+        </div>
+      </div>
+      <!-- MAX 탭: 모든 연도를 한 표로(MAX 해는 노란색) -->
+      <div class="pf-tablewrap" id="basicAllWrap" hidden><table class="pf-table pf-grid pf-basicall" id="basicAllTable"></table></div>
+    </div>
+
+    <div class="pf-card">
+      <h3><span class="pf-step">2</span>회사관계자 · 감사인 <span class="pf-guide">보수를 적은 사람만 산정 대상입니다 (감사인은 감사보수)</span> <span class="pf-tip" data-tip="보수·배당 등 총액(감사인은 감사보수)이 기준금액입니다. 금액을 적은 사람만 산정 대상이 되고, 아래 위반사항에서 관여 여부를 고릅니다.">ⓘ</span></h3>
+      <div class="pf-tablewrap">
+        <table class="pf-table pf-grid" id="personTable">
+          <thead><tr><th></th><th class="pf-c">대표이사</th><th class="pf-c">재무임원</th><th class="pf-c">담당임원</th><th class="pf-c">감사</th><th class="pf-c">감사인</th></tr></thead>
+          <tbody>
+            <tr id="personNameRow"></tr>
+            <tr id="personCompRow"></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="pf-card">
+      <h3><span class="pf-step">3</span>위반사항 · 위법행위 중요도 <span class="pf-guide">한 줄에 위반사항 하나 — 지적금액·유형·동기를 적고, 관여한 사람을 고릅니다</span>
+        <span class="pf-tip" data-tip="회사는 위반사항마다 점수와 부과기준율을 따로 구해 기본과징금을 합산합니다. 관계자·감사인은 관여한 위반사항의 점수를 회사 기준금액으로 가중평균해 하나로 만듭니다.">ⓘ</span>
+      </h3>
+      <div class="pf-tablewrap">
+        <table class="pf-table pf-grid pf-vio">
+          <colgroup><col><col class="c-amt"><col class="c-typ"><col class="c-mot"><col class="c-sev"><col class="c-mul"><col class="c-mkt"><col class="c-base"><col class="c-score"><col class="c-who c-who1"><col class="c-who"><col class="c-who"><col class="c-who"><col class="c-who"><col class="c-del"></colgroup>
+          <thead><tr>
+            <th>위반사항</th>
+            <th>지적금액(원)</th>
+            <th>유형 <span class="pf-tip" data-tip="A 그대로 · B 4분의 1 · C 5분의 1 · D 15분의 1(합계는 중요성의 6배까지)로 환산해 기준금액을 만듭니다.">ⓘ</span></th>
+            <th>동기 <span class="pf-tip" data-tip="회사의 동기. 과실은 과징금 대상이 아닙니다. 중과실은 위법행위 내용을 하(1점)로 봅니다.">ⓘ</span></th>
+            <th>상 <span class="pf-tip" data-tip="위법행위 내용이 「상」인 경우(고의일 때만 3점). 자금 조성·횡령·배임·자금세탁·불공정거래 연계. 관계자·감사인의 「상」은 오른쪽 관여자 칸에서 「고의·상」으로 고릅니다. 가중 ⑥도 검토하세요.">ⓘ</span></th>
+            <th>위반규모 (배) <span class="pf-tip" data-tip="위반금액이 중요성 기준금액의 몇 배인지. 비워 두면 기준금액÷중요성 기준금액으로 자동 셉니다. 실사례처럼 유형별 중요성으로 따로 구한 배수(예: 4.03)가 있으면 그대로 적으세요 — 8배 이상 중(2점), 16배 이상 상(3점). 같은 위반사항을 유형(A·B·D)별로 나눠 적은 줄에는 같은 배수를 적습니다.">ⓘ</span></th>
+            <th>시장<br>영향 <span class="pf-tip" data-tip="중: 위반 재무제표로 증권을 공모발행해 다수에게 피해. 상: 다수에게 중대한 손해·사회적 물의. 비상장은 대개 하입니다.">ⓘ</span></th>
+            <th class="pf-auto-h">기준금액<br>(백만원)</th>
+            <th class="pf-auto-h">점수<br>(적용률) <span class="pf-tip" data-tip="점수 = 위법행위 내용×0.4 + 위반규모×0.2 + 회사유형×0.2 + 시장영향×0.2. 위반규모는 기준금액이 중요성의 8배·16배 이상인지로 정합니다.">ⓘ</span></th>
+            <th colspan="5" class="pf-c">관여자 · 동기 <span class="pf-tip r" data-tip="위반사항에 관여한 사람만 고릅니다. 보수를 적은 사람만 고를 수 있습니다. 대표·재무·담당은 회사 동기를 따라 채워지고(바꿀 수 있음), 감사·감사인은 기본 「중과실」입니다. 회사 동기와 다르면 노란색으로 보입니다.">ⓘ</span></th>
+            <th></th>
+          </tr>
+          <tr class="pf-sub-head"><th colspan="9"></th>
+            <th>대표</th><th>재무</th><th>담당</th><th>감사</th><th>감사인</th><th></th></tr>
+          </thead>
+          <tbody id="violationRows"></tbody>
+          <tfoot id="violationFoot"></tfoot>
+        </table>
+      </div>
+      <div class="pf-btn-row">
+        <button type="button" class="btn btn-ghost btn-sm" id="btnAddViolation">+ 위반사항 추가</button>
+      </div>
+    </div>
+    </section>
+
+    <!-- 2. 가중·감경 -->
+    <section class="pf-sec" id="sec-adjust">
+    <div class="pf-sec-title"><span>2. 가중 · 감경</span></div>
+    <div class="pf-sec-sub">해당하는 사유를 체크합니다. 칸마다 한도가 걸리고, 한도에 걸린 그룹은 붉게 표시됩니다.</div>
+
+    <div class="pf-card">
+      <h3>가중 사유 <span class="pf-badge" id="weightSumBadge"></span></h3>
+      <div id="weightTable"></div>
+    </div>
+
+    <div class="pf-card">
+      <h3>감경 사유 <span class="pf-badge" id="mitigateSumBadge"></span></h3>
+      <div id="mitigateTable"></div>
+    </div>
+
+    <div class="pf-card">
+      <h3>신고자 감경 <span class="pf-tip" data-tip="회계부정을 신고·고지한 자(별표7 3호 나목4))에 대해 결정금액의 70% 이내로 감경하고, 요건을 모두 갖추면 면제합니다. 결정금액 기준이라 위 사유와 따로 셉니다.">ⓘ</span></h3>
+      <div class="pf-tablewrap"><table class="pf-table pf-grid" id="reporterTable"></table></div>
+    </div>
+    </section>
+
+    <!-- 3. 결과 -->
+    <section class="pf-sec" id="sec-result">
+    <div class="pf-sec-title">
+      <span>3. 결과</span>
+      <span class="pf-actions">
+        <button type="button" class="btn btn-sm" id="btnCopyResult">표 복사</button>
+        <button type="button" class="btn btn-primary btn-sm" id="btnHwpx">한글(hwpx)로 받기</button>
+      </span>
+    </div>
+    <div class="pf-sec-sub">대상자별 산출 과정입니다. 한글 파일에는 위반사항별 점수 · 가중 · 감경 사유까지 함께 담깁니다.</div>
+    <div id="resultDetail"></div>
+    </section>
+
+    <button class="btn-float" id="btnTop" title="맨 위로">▲</button>
+  </main>
+</div>
+
+<script type="module" src="./js/penalty_fine.js"></script>
+</body>
+</html>
