@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -7,59 +8,250 @@
 <meta name="ClaudeBot" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>[품감] 통합</title>
+
 <style>
-  html, body { margin: 0; height: 100%; background: #f4f6f9; font-family: "Noto Sans KR", "Malgun Gothic", sans-serif; }
-  .bar { display: flex; align-items: center; gap: 6px; height: 38px; padding: 0 12px; background: #fff; border-bottom: 1px solid #d9e1ea; white-space: nowrap; }
-  .bar b { color: #1f3a5f; font-size: 13px; margin-right: 8px; }
-  .bar button { font: inherit; font-size: 13px; font-weight: 700; padding: 6px 14px; border: 1px solid #c9d3df; border-radius: 8px; background: #f4f6f9; color: #1f3a5f; cursor: pointer; }
-  .bar button.on { background: #e8f0fb; border-color: #0d5ba8; color: #0d5ba8; }
-  .bar .sp { flex: 1; }
-  .bar a { font-size: 12px; color: #6b7a8c; text-decoration: none; }
-  iframe { display: block; width: 100%; height: calc(100% - 39px); border: 0; background: #fff; }
-  iframe[hidden] { display: none; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #f4f6f9;
+    font-family: "Noto Sans KR", "Malgun Gothic", sans-serif;
+  }
+
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 38px;
+    padding: 0 12px;
+    background: #fff;
+    border-bottom: 1px solid #d9e1ea;
+    white-space: nowrap;
+  }
+
+  .bar b {
+    color: #1f3a5f;
+    font-size: 13px;
+    margin-right: 8px;
+  }
+
+  .bar button {
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border: 1px solid #c9d3df;
+    border-radius: 8px;
+    background: #f4f6f9;
+    color: #1f3a5f;
+    cursor: pointer;
+  }
+
+  .bar button.on {
+    background: #e8f0fb;
+    border-color: #0d5ba8;
+    color: #0d5ba8;
+  }
+
+  .bar .sp {
+    flex: 1;
+  }
+
+  /* 과징금 링크: 아주 연한 회색 */
+  .bar a {
+    font-size: 12px;
+    color: #c5cbd3;
+    text-decoration: none;
+  }
+
+  .bar a:hover {
+    color: #D9D9D9;
+    text-decoration: underline;
+  }
+
+  iframe {
+    display: block;
+    width: 100%;
+    height: calc(100% - 39px);
+    border: 0;
+    background: #fff;
+  }
+
+  iframe[hidden] {
+    display: none;
+  }
 </style>
 </head>
+
 <body>
+
+  <!-- 상단 메뉴 -->
   <div class="bar" role="tablist">
     <b>QC</b>
-    <button type="button" data-tab="total" role="tab">[품감] 통합</button>
-    <button type="button" data-tab="creport" role="tab">신용정보 조회</button>
-    <button type="button" data-tab="penaltyold" role="tab">과징금(구)</button>
-    <button type="button" data-tab="penaltynew" role="tab">과징금(신)</button>
-    <span class="sp"></span><a href="../dart.html">DART 다운로더</a>
+
+    <button
+      type="button"
+      data-tab="total"
+      role="tab">
+      [품감] 통합
+    </button>
+
+    <button
+      type="button"
+      data-tab="creport"
+      role="tab">
+      신용정보 조회
+    </button>
+
+    <span class="sp"></span>
+
+    <!-- 과징금 화면 연결 -->
+    <a href="../penalty/index.html">★과징금</a>
   </div>
-  <iframe id="f-total" data-src="total.html" title="[품감] 통합" hidden></iframe>
-  <iframe id="f-creport" data-src="creport/" title="신용정보 조회" hidden></iframe>
-  <iframe id="f-penaltyold" data-src="../penalty/" title="과징금(구)" hidden></iframe>
-  <iframe id="f-penaltynew" data-src="../penalty/new.html" title="과징금(신)" hidden></iframe>
+
+  <!-- [품감] 통합 화면 -->
+  <iframe
+    id="f-total"
+    data-src="total.html"
+    title="[품감] 통합"
+    hidden>
+  </iframe>
+
+  <!-- 신용정보 조회 화면 -->
+  <iframe
+    id="f-creport"
+    data-src="creport/"
+    title="신용정보 조회"
+    hidden>
+  </iframe>
+
 <script>
-/* 두 화면을 각자 틀에 띄워 둔다 — 탭을 바꿔도 작업 중인 화면이 그대로 남는다(처음 누를 때 불러옴).
-   「신용정보 조회」는 품감이 아니어도 쓰는 별개 화면이다. 통합 화면의 개별선정에서 [신용정보 조회로 보내기]를 누르면 #creport 로 넘어온다.
-   과징금(구)·(신)은 입력을 이 브라우저(localStorage)로 같이 쓰므로, 탭을 열 때마다 다시 불러 방금 넣은 값이 보이게 한다(두 화면의 [과징금(신)으로 산출] 단추는 #menu=… 로 이 틀에 알린다). */
+/*
+  QC 통합 화면 탭 관리
+
+  1. [품감] 통합 및 신용정보 조회 탭 유지
+  2. 최초 선택 시 iframe 로딩
+  3. 탭 변경 시 작업 중인 화면 유지
+  4. 마지막 선택 탭 localStorage 저장
+  5. 과징금은 ../penalty/index.html 연결
+  6. 기존 과징금 호출 해시 호환
+*/
+
 (function () {
-  const PEN = ['penaltyold', 'penaltynew'];
+
+  const VALID_TABS = ['total', 'creport'];
+
+  // 탭 선택 및 화면 표시
   const pick = (t) => {
-    document.querySelectorAll('.bar button').forEach((b) => b.classList.toggle('on', b.dataset.tab === t));
-    document.querySelectorAll('iframe').forEach((f) => {
-      const on = f.id === 'f-' + t;
-      if (on && !f.src) f.src = f.dataset.src;
-      else if (on && f.hidden && PEN.includes(t)) { try { f.contentWindow.location.replace(f.src); } catch (e) { f.src = f.dataset.src; } }
-      f.hidden = !on;
+
+    if (!VALID_TABS.includes(t)) {
+      t = 'total';
+    }
+
+    // 선택된 탭 버튼 스타일
+    document.querySelectorAll('.bar button').forEach((b) => {
+
+      const selected = b.dataset.tab === t;
+
+      b.classList.toggle('on', selected);
+
+      b.setAttribute(
+        'aria-selected',
+        String(selected)
+      );
+
     });
-    try { localStorage.setItem('qc.shell.tab', t); } catch (e) { /* */ }
-    if (location.hash !== '#' + t) history.replaceState(null, '', '#' + t);
+
+    // iframe 화면 전환
+    document.querySelectorAll('iframe').forEach((f) => {
+
+      const on = f.id === 'f-' + t;
+
+      // 최초 선택 시에만 로딩
+      if (on && !f.getAttribute('src')) {
+        f.src = f.dataset.src;
+      }
+
+      // 기존 작업 화면 유지
+      f.hidden = !on;
+
+    });
+
+    // 선택 탭 저장
+    try {
+      localStorage.setItem('qc.shell.tab', t);
+    } catch (e) {
+      /* 저장 불가능한 환경에서는 무시 */
+    }
+
+    // URL 해시 갱신
+    if (location.hash !== '#' + t) {
+      history.replaceState(null, '', '#' + t);
+    }
+
   };
-  document.querySelectorAll('.bar button').forEach((b) => b.addEventListener('click', () => pick(b.dataset.tab)));
+
+  // 상단 탭 클릭
+  document.querySelectorAll('.bar button').forEach((b) => {
+
+    b.addEventListener('click', () => {
+      pick(b.dataset.tab);
+    });
+
+  });
+
+  // URL 해시에 따른 화면 선택
   const fromHash = () => {
+
     const t = (location.hash || '').slice(1);
-    if (t === 'total' || t === 'creport' || PEN.includes(t)) return t;
-    if (t === 'menu=penalty_fine') return 'penaltyold';      // 과징금 화면의 구·신 전환 단추가 알려 오는 이름
-    if (t === 'menu=penalty_new') return 'penaltynew';
-    return 'total';   // 예전 주소(#review · #sample)나 주소에 탭이 없으면 통합부터
+
+    // 기존 과징금(구) 호출 호환
+    if (
+      t === 'menu=penalty_fine' ||
+      t === 'penaltyold'
+    ) {
+      window.location.href = '../penalty/index.html';
+      return null;
+    }
+
+    // 기존 과징금(신) 호출 호환
+    if (
+      t === 'menu=penalty_new' ||
+      t === 'penaltynew'
+    ) {
+      window.location.href = '../penalty/new.html';
+      return null;
+    }
+
+    // 정상 탭
+    if (VALID_TABS.includes(t)) {
+      return t;
+    }
+
+    // 주소에 탭이 없으면 통합 화면
+    return 'total';
+
   };
-  pick(fromHash());
-  window.addEventListener('hashchange', () => pick(fromHash()));
+
+  // 초기 화면 실행
+  const initialTab = fromHash();
+
+  if (initialTab !== null) {
+    pick(initialTab);
+  }
+
+  // 주소 해시 변경 감지
+  window.addEventListener('hashchange', () => {
+
+    const t = fromHash();
+
+    if (t !== null) {
+      pick(t);
+    }
+
+  });
+
 })();
 </script>
+
 </body>
 </html>
