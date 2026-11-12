@@ -93,7 +93,9 @@ const PAGES = new Map();   /* 같은 제출인·기간의 검색은 한 번만 *
 const PAGE_SEED = ['9aa88164b2041ec3', 'c45d2eec2065e4bf', '4c5154a464d44c4d', '015ddd6f24d7be2f'];
 function dsabPages(filer, s, e) {
   const k = `${filer}|${s}|${e}`;
-  if (!PAGES.has(k)) { const p = relay({ op: 'dsab', filer, start: s.replace(/-/g, ''), end: e.replace(/-/g, '') }).then(d => d.pages || []); PAGES.set(k, p); p.catch(() => PAGES.delete(k)); }
+  /* 구글 Apps Script 가 가끔 「사용할 수 없는 주소」로 전자공시 호출을 놓친다 — 두 번까지 다시 부른다(2026-11-13) */
+  const ask = async (left) => { try { return (await relay({ op: 'dsab', filer, start: s.replace(/-/g, ''), end: e.replace(/-/g, '') })).pages || []; } catch (x) { if (left <= 0) throw x; await new Promise((r) => setTimeout(r, 1500)); return ask(left - 1); } };
+  if (!PAGES.has(k)) { const p = ask(2); PAGES.set(k, p); p.catch(() => PAGES.delete(k)); }
   return PAGES.get(k);
 }
 async function auditCtx(get) {
