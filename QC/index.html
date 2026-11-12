@@ -24,24 +24,37 @@
     <b>QC</b>
     <button type="button" data-tab="total" role="tab">[품감] 통합</button>
     <button type="button" data-tab="creport" role="tab">신용정보 조회</button>
+    <button type="button" data-tab="penaltyold" role="tab">과징금(구)</button>
+    <button type="button" data-tab="penaltynew" role="tab">과징금(신)</button>
     <span class="sp"></span><a href="../dart.html">DART 다운로더</a>
   </div>
   <iframe id="f-total" data-src="total.html" title="[품감] 통합" hidden></iframe>
   <iframe id="f-creport" data-src="creport/" title="신용정보 조회" hidden></iframe>
+  <iframe id="f-penaltyold" data-src="../penalty/" title="과징금(구)" hidden></iframe>
+  <iframe id="f-penaltynew" data-src="../penalty/new.html" title="과징금(신)" hidden></iframe>
 <script>
 /* 두 화면을 각자 틀에 띄워 둔다 — 탭을 바꿔도 작업 중인 화면이 그대로 남는다(처음 누를 때 불러옴).
-   「신용정보 조회」는 품감이 아니어도 쓰는 별개 화면이다. 통합 화면의 개별선정에서 [신용정보 조회로 보내기]를 누르면 #creport 로 넘어온다. */
+   「신용정보 조회」는 품감이 아니어도 쓰는 별개 화면이다. 통합 화면의 개별선정에서 [신용정보 조회로 보내기]를 누르면 #creport 로 넘어온다.
+   과징금(구)·(신)은 입력을 이 브라우저(localStorage)로 같이 쓰므로, 탭을 열 때마다 다시 불러 방금 넣은 값이 보이게 한다(두 화면의 [과징금(신)으로 산출] 단추는 #menu=… 로 이 틀에 알린다). */
 (function () {
+  const PEN = ['penaltyold', 'penaltynew'];
   const pick = (t) => {
     document.querySelectorAll('.bar button').forEach((b) => b.classList.toggle('on', b.dataset.tab === t));
-    document.querySelectorAll('iframe').forEach((f) => { const on = f.id === 'f-' + t; if (on && !f.src) f.src = f.dataset.src; f.hidden = !on; });
+    document.querySelectorAll('iframe').forEach((f) => {
+      const on = f.id === 'f-' + t;
+      if (on && !f.src) f.src = f.dataset.src;
+      else if (on && f.hidden && PEN.includes(t)) { try { f.contentWindow.location.replace(f.src); } catch (e) { f.src = f.dataset.src; } }
+      f.hidden = !on;
+    });
     try { localStorage.setItem('qc.shell.tab', t); } catch (e) { /* */ }
     if (location.hash !== '#' + t) history.replaceState(null, '', '#' + t);
   };
   document.querySelectorAll('.bar button').forEach((b) => b.addEventListener('click', () => pick(b.dataset.tab)));
   const fromHash = () => {
     const t = (location.hash || '').slice(1);
-    if (t === 'total' || t === 'creport') return t;
+    if (t === 'total' || t === 'creport' || PEN.includes(t)) return t;
+    if (t === 'menu=penalty_fine') return 'penaltyold';      // 과징금 화면의 구·신 전환 단추가 알려 오는 이름
+    if (t === 'menu=penalty_new') return 'penaltynew';
     return 'total';   // 예전 주소(#review · #sample)나 주소에 탭이 없으면 통합부터
   };
   pick(fromHash());
