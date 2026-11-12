@@ -33,14 +33,14 @@
     <button type="button" data-tab="total" role="tab">[품감] 통합</button>
     <button type="button" data-tab="creport" role="tab">신용정보 조회</button>
     <span class="sp"></span>
-    <button type="button" class="pen-old" data-tab="penaltyold" role="tab" title="과징금 산정 — (구) 기준">과징금(구)</button>
-    <button type="button" class="pen-new" data-tab="penaltynew" role="tab" title="과징금 산정 — (신) 기준">과징금(신)</button>
+    <button type="button" class="pen-old" data-tab="penaltyold" role="tab" title="과징금 산정 — (구) 기준">OLD</button>
+    <button type="button" class="pen-new" data-tab="penaltynew" role="tab" title="과징금 산정 — (신) 기준">NEW</button>
     <a href="../penalty/index.html" title="과징금 산정 화면만 따로 열기">★과징금</a>
   </div>
   <iframe id="f-total" data-src="total.html" title="[품감] 통합" hidden></iframe>
   <iframe id="f-creport" data-src="creport/" title="신용정보 조회" hidden></iframe>
-  <iframe id="f-penaltyold" data-src="../penalty/index.html" title="과징금(구)" hidden></iframe>
-  <iframe id="f-penaltynew" data-src="../penalty/new.html" title="과징금(신)" hidden></iframe>
+  <iframe id="f-penaltyold" data-src="../penalty/index.html" title="OLD" hidden></iframe>
+  <iframe id="f-penaltynew" data-src="../penalty/new.html" title="NEW" hidden></iframe>
 <script>
 /* 화면을 각자 틀에 띄워 둔다 — 탭을 바꿔도 작업 중인 화면이 그대로 남는다(처음 누를 때 불러옴).
    「신용정보 조회」는 품감이 아니어도 쓰는 별개 화면이다. 통합 화면의 개별선정에서 [신용정보 조회로 보내기]를 누르면 #creport 로 넘어온다.
