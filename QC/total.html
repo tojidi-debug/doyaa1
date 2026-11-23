@@ -28,9 +28,9 @@
         </div>
       </div>
       <nav class="qs-tabs" role="tablist">
-        <button class="qs-tab is-on" role="tab" data-tab="sched" aria-selected="true">품감 일정</button>
+        <button class="qs-tab" role="tab" data-tab="sched" aria-selected="false" title="열람 암호가 있어야 보입니다 — 탭을 연 뒤 [일정 불러오기]">품감 일정</button>
         <button class="qs-tab" role="tab" data-tab="firm" aria-selected="false">회계법인 조회</button>
-        <button class="qs-tab" role="tab" data-tab="recon" aria-selected="false">제출자료 대사</button>
+        <button class="qs-tab is-on" role="tab" data-tab="recon" aria-selected="true">제출자료 대사</button>
         <button class="qs-tab" role="tab" data-tab="pick" aria-selected="false">개별선정</button>
         <button class="qs-tab" id="sendCreport" type="button" hidden disabled title="개별선정에서 회사를 체크하면 켜집니다">신용정보 조회로 보내기</button>
         <button class="qs-tab qs-tab-draft" role="tab" data-tab="draft" aria-selected="false" title="법인 조회에서 [심의안에 반영 →]으로 넘긴 회계법인으로 심의안 초안·서식·조서·한글 서류를 만듭니다">심의안 초안 작성</button>
@@ -38,8 +38,8 @@
     </div>
   </header>
 
-  <!-- ⓪ 품감 일정(첫 화면) — 「감사인(회계법인) 감리일정 및 배정」 엑셀(관리자가 올림) -->
-  <main id="tab-sched" class="qs-pane">
+  <!-- ⓪ 품감 일정 — 「감사인(회계법인) 감리일정 및 배정」 엑셀(관리자가 올림). 열람 암호가 필요해 첫 화면이 아니다(2026-11-24) -->
+  <main id="tab-sched" class="qs-pane" hidden>
     <section class="qs-bar">
       <b id="schedRange" class="qs-range"></b>
       <span id="schedMeta" class="qs-muted"></span>
@@ -57,7 +57,7 @@
     <section id="firmInfo" class="qs-card" hidden></section>
     <section class="qs-card qs-sched-card">
       <div class="qs-legend"><span class="bar lead">팀장</span><span class="bar member">팀원</span><span class="bar meeting">회의(위탁위·양정위 등)</span><button id="schedToday" class="today-mark" type="button" title="오늘이 든 이번 주로">오늘</button><button id="schedWeek" data-week="0" class="bar qs-week-btn" type="button" title="이번 주에 팀장·팀원으로 나가는 사람만">이번 주</button><button data-week="1" class="bar qs-week-btn" type="button" title="다음 주에 팀장·팀원으로 나가는 사람만">다음 주</button><button data-week="2" class="bar qs-week-btn" type="button" title="다다음 주에 팀장·팀원으로 나가는 사람만">다다음 주</button><span id="schedFilterNote"></span><span class="qs-grow"></span><button id="schedHl" class="qs-btn qs-small-btn" type="button" title="이 브라우저에만 저장됩니다">강조할 이름</button><button id="schedReset" class="qs-btn qs-small-btn qs-reset" type="button" title="찾기·주 거르기를 풀고 처음 화면으로">초기화</button></div>
-      <div id="schedGrid" class="qs-sched-wrap"><p class="qs-muted">일정을 불러오는 중…</p></div>
+      <div id="schedGrid" class="qs-sched-wrap"><p class="qs-muted" style="padding:12px">준비 중…</p></div>
     </section>
     <section id="schedHistory" class="qs-card" hidden></section>
   </main>
@@ -102,7 +102,7 @@
   </main>
 
   <!-- ② 제출자료 대사(통합) — 위 한 줄(회계법인 찾기 · 사업보고서 · 사업연도 · 대사 실행 · 엑셀) → 왼쪽 회계법인 관련 자료 · 오른쪽 대사할 자료 → ① 회계법인 ② 매출장(독립성) ③ 오류·체크포인트 -->
-  <main id="tab-recon" class="qs-pane" hidden>
+  <main id="tab-recon" class="qs-pane">
     <section class="qs-card rv-in">
       <div class="qs-card-head">
         <h2>제출자료 대사</h2>

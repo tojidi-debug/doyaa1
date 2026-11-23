@@ -181,10 +181,15 @@ const [getView, setView] = store('qc.view');     /* 열람 암호 */
 if (getPass() && !getEmail() && !getView()) { setView(getPass()); setPass(''); }   /* 예전 판은 열람 암호를 qc.pass 에 두었다 */
 const adminCreds = () => ({ pass: getPass(), email: getEmail() });
 const creds = () => (getEmail() && getPass() ? adminCreds() : { pass: getView(), email: '' });
+/* 중계가 응답하지 않으면 화면이 통째로 멈춘다 — 20초면 끊고 오류로 돌려준다(2026-11-24) */
+const RELAY_WAIT = 20000;
 async function relayPost(payload) {
   const url = relayUrl(); if (!url) throw new ApiError(503, '전자공시 중계(구글 Apps Script) 주소가 없습니다(qc/static/relay_config.js).');
-  let r; try { r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload), redirect: 'follow' }); }
-  catch (e) { throw new ApiError(502, `중계(구글 Apps Script)에 연결하지 못했습니다: ${e.message || e}`); }
+  const ac = new AbortController(); const timer = setTimeout(() => ac.abort(), RELAY_WAIT);
+  let r;
+  try { r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload), redirect: 'follow', signal: ac.signal }); }
+  catch (e) { throw new ApiError(502, ac.signal.aborted ? '중계(구글 Apps Script)가 제때 응답하지 않았습니다.' : `중계(구글 Apps Script)에 연결하지 못했습니다: ${e.message || e}`); }
+  finally { clearTimeout(timer); }
   let d; try { d = await r.json(); } catch { throw new ApiError(502, '중계의 응답을 읽지 못했습니다(웹 앱 액세스 권한이 「모든 사용자」인지 확인하세요).'); }
   if (!d.ok) throw new ApiError(/암호/.test(d.error || '') ? 401 : 502, d.error || '중계 오류');
   return d;
@@ -212,7 +217,7 @@ async function localGet(name) {
   if (!it.enc) return r.text();
   let key = await localKey(getView());
   if (!key) { await needView(); key = await localKey(getView()); }
-  if (!key) throw new ApiError(401, '품감 일정·명부는 열람 암호가 필요합니다 — 화면을 다시 열면 열람 확인 창이 뜹니다.');
+  if (!key) throw new ApiError(401, '품감 일정·명부는 열람 암호가 필요합니다.');
   return unseal(key, new Uint8Array(await r.arrayBuffer()));
 }
 /* 열람 암호 확인 — GitHub 자료로 먼저(중계 없이도), 안 되면 중계(스크립트 속성 VIEW_PASS) */
@@ -268,7 +273,7 @@ const OPEN_TO_ALL = (name) => /^tpl_/.test(name);   /* 인뎁스 서식은 암�
 async function storeGet(name) {
   if (STORE.has(name)) return STORE.get(name);
   if (!OPEN_TO_ALL(name) && !(await role()).view) {
-    const r = await needView(); if (!r.view) throw new ApiError(401, '품감 일정·명부는 열람 암호가 필요합니다 — 화면을 다시 열면 열람 확인 창이 뜹니다.');
+    const r = await needView(); if (!r.view) throw new ApiError(401, '품감 일정·명부는 열람 암호가 필요합니다.');
   }
   const p = (async () => {
     let d = null, err = null;
@@ -378,6 +383,8 @@ export async function staticWorkpaper(kind, payload, templateBlob) {
 
 export const api = {
   fetchRaw, askPass, askView,
+  /* 열람 확인 창을 띄우지 않고, 이 브라우저가 품감 일정·명부를 볼 수 있는지만 본다(2026-11-24) */
+  async canView() { try { return !!(await role()).view; } catch { return false; } },
   async get(path) {
     if (path.startsWith('/qc-sample/') || path.startsWith('/finstmt/')) { const r = await sampleGet(path); if (r !== null) return r; throw only(path); }
     return qcApi.get(path);

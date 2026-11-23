@@ -2274,12 +2274,26 @@ function renderHistory() {
     <ul class="qs-history">${[...h].reverse().map((x) => `<li>${esc(historyLine(x))}</li>`).join('')}</ul>`;
 }
 
-/* ── ⓪ 품감 일정(첫 화면) ── */
+/* ── ⓪ 품감 일정 ── */
 
-async function loadSchedule() {
+/* 일정 자리에 안내와 「일정 불러오기」 단추만 둔다(2026-11-24 사용자 지정).
+   화면을 열자마자 열람 확인 창이 뜨거나 중계를 기다리느라 멈추면 다른 탭까지 못 쓰게 되므로,
+   일정은 이 단추를 누를 때만 부른다. */
+function schedIdle(msg) {
+  $('schedGrid').innerHTML = `<div class="qs-muted" style="padding:12px 12px 14px">
+    <p style="margin:0 0 10px">${esc(msg || '품감 일정은 열람 암호가 필요합니다 — 아래 단추를 누르면 부릅니다. 「회계법인 조회」·「제출자료 대사」·「개별선정」·「심의안 초안 작성」은 그냥 쓰시면 됩니다.')}</p>
+    <button id="schedLoad" class="qs-btn qs-primary" type="button">일정 불러오기</button></div>`;
+  $('schedLoad').addEventListener('click', () => {
+    $('schedGrid').innerHTML = '<p class="qs-muted" style="padding:12px">일정을 불러오는 중…</p>';
+    loadSchedule(true);
+  });
+}
+
+async function loadSchedule(ask = false) {
+  if (!ask && !(await api.canView())) { schedIdle(); return; }   // 열람 암호가 이미 있는 브라우저에서만 저절로 부른다
   try {
     state.sched = await api.get('/qc-sample/schedule');
-  } catch (e) { $('schedGrid').innerHTML = `<p class="qs-muted">${esc(e.message)}</p>`; return; }
+  } catch (e) { schedIdle(`일정을 불러오지 못했습니다 — ${e.message}`); return; }
   // 빨간 날(대한민국 공휴일 + 근로자날) — 일정이 있는 기간만큼(사용자 지정 2026-10-15)
   state.holidays = {};
   const months = state.sched.ready ? eventMonths(state.sched.events) : [];
@@ -2688,7 +2702,11 @@ async function start() {
     let badge = ''; try { badge = ((await (await fetch('/api/health', { cache: 'no-store' })).json()) || {}).badge || ''; } catch { /* */ }
     if (!badge) { document.body.insertAdjacentHTML('afterbegin', '<div class="qs-warn">개발서버 전용 화면입니다.</div>'); return; }
   }
-  try { state.me = await auth.me(); } catch { document.body.insertAdjacentHTML('afterbegin', '<div class="qs-warn">로그인이 필요합니다. 포털에서 다시 열어 주세요.</div>'); return; }
+  /* 관리자 여부를 묻다가 중계가 늦으면 화면 전체가 멈춘다 — 8초를 넘기면 그냥 일반 사용자로 열고 단추부터 살린다(2026-11-24) */
+  try {
+    state.me = await Promise.race([auth.me(), new Promise((ok) => setTimeout(() => ok(null), 8000))]);
+  } catch { state.me = null; }
+  if (!state.me) state.me = { id: 'guest', name: '', display_name: '', roles: [] };
   state.admin = (state.me.roles || []).includes('admin');
   if (api.askPass) {   // GitHub(정적) 사이트 — 보기는 암호 없이, 서식·일정·명부 올리기만 관리자 확인(구글 이메일 + 관리자 암호, 2026-10-16)
     const b = document.createElement('button'); b.type = 'button'; b.className = 'qs-tab qs-pass'; b.textContent = state.admin ? '관리자(로그인됨)' : '관리자';
@@ -2851,6 +2869,11 @@ async function start() {
   $('regScreened').addEventListener('click', () => showRegister('screened'));
   $('regFile').addEventListener('change', (e) => { const f = e.target.files[0]; e.target.value = ''; if (f) uploadRegister(f); });
   $('firmName').addEventListener('change', async () => { await loadRegisters(); if (state.data) renderSlicers(); showFirmBrief(); });
+  /* 첫 화면은 「제출자료 대사」 — 일정은 열람 암호가 있어야 하므로 첫 화면으로 두지 않는다(2026-11-24 사용자 지정).
+     주소에 #sched · #firm 처럼 탭 이름이 있으면 그 탭부터 연다. */
+  const TABS = [...document.querySelectorAll('.qs-tab[data-tab]')].map((b) => b.dataset.tab);
+  const wanted = (location.hash || '').replace(/^#/, '');
+  showTab(TABS.includes(wanted) ? wanted : (TABS.includes('recon') ? 'recon' : TABS[0]));
   loadSchedule();
   window.addEventListener('resize', () => { const n = $('schedGrid').querySelectorAll('tbody tr').length; fitRows(n); markClipped(); });
 }
