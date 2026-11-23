@@ -79,11 +79,14 @@ def _before(table: Any, limit: int = 4) -> str:
     return " ".join(parts)
 
 
-PARSER_VERSION = 8   # 8: 품질관리실장 출처 문구 짧게 · … · 6: 품질관리 담당 이사 · 7: 품질관리실장(명시된 이름 → 작성책임자 → 대표이사와 같으면 (확인필)) · … · 4: 분사무소 구·동 · 5: 부문별 합계와 영업수익의 1~3백만원 단수차이는 「컨설팅 등」에서 맞춤
+PARSER_VERSION = 9   # 9: 등록이사 명단(이사의 경력 현황 전원) · 8: 품질관리실장 출처 문구 짧게 · … · 6: 품질관리 담당 이사 · 7: 품질관리실장(명시된 이름 → 작성책임자 → 대표이사와 같으면 (확인필)) · … · 4: 분사무소 구·동 · 5: 부문별 합계와 영업수익의 1~3백만원 단수차이는 「컨설팅 등」에서 맞춤
 FIRM_WORD = re.compile(r"회계법인")
 REPORT_RE = re.compile(r"회계법인사업보고서\s*\((\d{4})\.(\d{2})\)")
 BIZ_WORD = re.compile(r"사\s*업\s*보\s*고\s*서")
 WON = {"원": Decimal(1), "천원": Decimal(1000), "백만원": Decimal(1_000_000)}
+
+
+NOT_A_NAME = frozenset(("계", "소계", "합계", "총계", "평균", "비고", "성명", "이름", "구분", "없음", "해당없음", "기타", "이사"))
 
 
 def _squash(text: str) -> str:
@@ -427,7 +430,8 @@ def parse_firm_report(raw: bytes, rcept_no: str) -> dict[str, Any]:
 
     # 일반현황
     general: dict[str, Any] = {"ceo": None, "capital_mn": finance["capital"][0], "head_office": None, "branches": None,
-                               "founded": None, "alliance": None, "pcaob_date": None, "qc_directors": None, "qc_head": None, "qc_head_source": None}
+                               "founded": None, "alliance": None, "pcaob_date": None, "qc_directors": None, "qc_head": None, "qc_head_source": None,
+                               "directors": None}
     ex = _find(tables, r"이사의경력", min_rows=2)
     if ex:
         head = [_squash(c) for c in ex.rows[0]]
@@ -444,6 +448,21 @@ def parse_firm_report(raw: bytes, rcept_no: str) -> dict[str, Any]:
             if qcs:
                 general["qc_directors"] = ", ".join(dict.fromkeys(qcs))
                 sources["qc_directors"] = "Ⅳ.2.가 이사의 경력 현황(담당업무에 품질관리)"
+        # 등록이사(이 표에 오른 이사) 전원 — 사전제출자료 2-3 의 담당이사와 견주는 데 쓴다(2026-11-24 사용자 지정)
+        roster: list[dict[str, str]] = []
+        for row in ex.rows[1:]:
+            if len(row) <= max(i_name, i_pos):
+                continue
+            nm = _squash(row[i_name])
+            # 이름 칸이 이름으로 읽히는 줄만 — 연번·소계 같은 줄은 건너뛴다(짐작하지 않는다).
+            # 반대로 너무 깐깐하게 거르면 등록이사를 빠뜨려 애먼 사람이 오류로 잡히므로, 집계 말만 뺀다.
+            if not re.fullmatch(r"[가-힣]{2,6}", nm) or nm in NOT_A_NAME:
+                continue
+            roster.append({"name": nm, "position": _squash(row[i_pos]),
+                           "duty": _squash(row[i_duty]) if i_duty is not None and len(row) > i_duty else ""})
+        if roster:
+            general["directors"] = list({d["name"]: d for d in roster}.values())
+            sources["directors"] = "Ⅳ.2.가 이사의 경력 현황"
     if general["ceo"] is None:
         m = re.search(r"대표이사\s*[:：]\s*([가-힣]{2,4}(?:\s*,\s*[가-힣]{2,4})*)", full_text)
         if m:

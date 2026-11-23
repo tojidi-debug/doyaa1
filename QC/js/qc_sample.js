@@ -1838,8 +1838,9 @@ async function runReview() {
       let firm = null;
       if (rep && corp) {
         const pj = Project.get();
-        const profile = pj && pj.profile && pj.report && pj.report.rcept_no === rep ? pj.profile
-          : await api.get(`/qc/reports/${rep}/profile?corp_code=${corp}`);
+        /* 저장해 둔 사업보고서 해석은 등록이사 명단(2026-11-24)이 든 것만 다시 쓴다 — 예전 것이면 새로 읽는다 */
+        const kept = pj && pj.profile && pj.report && pj.report.rcept_no === rep && pj.profile.general && 'directors' in pj.profile.general;
+        const profile = kept ? pj.profile : await api.get(`/qc/reports/${rep}/profile?corp_code=${corp}`);
         firm = { corp_code: corp, corp_name: $('firmSel').selectedOptions[0]?.textContent || '', rcept_no: rep,
           report: $('firmRep').selectedOptions[0]?.textContent || '', profile };
       }
@@ -1890,6 +1891,38 @@ function onReviewClick(e) {
 }
 
 /* ① 회계법인 — 사업보고서 감사실적 ↔ 사전제출자료 회사 수, 사업보고서에서 확인할 것, 왼쪽에 올린 자료 */
+/* 등록이사 ↔ 담당이사 대사(2026-11-24 사용자 지정)
+ *   사업보고서 「Ⅳ.2.가 이사의 경력 현황」에 오른 이사 = 등록이사.
+ *   사전제출자료 「2-3. 외부감사 수행회사 현황」의 담당이사 = 당기 감사를 수임한 책임이사.
+ *   등록이사인데 외부감사를 맡지 않은 것은 오류가 아니다(보이지 않는다).
+ *   당기 외부감사를 맡은 담당이사인데 등록이사 명단에 없으면 오류다 — 그것만 내놓는다. */
+const nameOnly = (s) => String(s || '').replace(/\(.*?\)|\[.*?\]/g, '').replace(/\s/g, '');
+const NOT_A_NAME = new Set(['계', '소계', '합계', '총계', '평균', '비고', '성명', '이름', '구분', '없음', '해당없음', '기타', '이사', '담당이사']);
+function partnerCheck(profile) {
+  const dirs = ((profile || {}).general || {}).directors;
+  const d = (state.recon.last && state.recon.last.result) || state.data;
+  const r = (d && d.roles) || {};
+  if (!Array.isArray(dirs) || !dirs.length || !d || !d.rows || !r.partner) return null;
+  const reg = new Set(dirs.map((x) => nameOnly(x.name)).filter(Boolean));
+  const miss = new Map();
+  let partners = 0;
+  for (const row of d.rows) {
+    if (!String(row.values[r.year] || '당기').startsWith('당기')) continue;      // 당기 수임분만
+    const company = String(row.values[r.company] || '').trim();
+    for (const raw of String(row.values[r.partner] || '').split(/[,/·、]|\s{2,}/)) {
+      const n = nameOnly(raw);
+      if (!/^[가-힣]{2,6}$/.test(n) || NOT_A_NAME.has(n)) continue;      // 이름으로 읽히지 않는 칸은 짐작하지 않는다
+      partners += 1;
+      if (reg.has(n)) continue;
+      const g = miss.get(n) || { name: n, companies: [] };
+      if (company && !g.companies.includes(company)) g.companies.push(company);
+      miss.set(n, g);
+    }
+  }
+  if (!partners) return null;
+  return { registered: dirs, missing: [...miss.values()].sort((a, b) => b.companies.length - a.companies.length) };
+}
+
 function firmSection(rv) {
   const out = rv.out || {}, firm = rv.firm;
   const leftFiles = (out.files || []).filter((f) => f.side === 'firm');
@@ -1913,6 +1946,20 @@ function firmSection(rv) {
     ${row('개별(별도) 외감 — 전기', (ac.indi || {}).total?.[1], counts?.전기)}
     ${row('연결 — 당기', (ac.con || {}).total?.[0], counts?.당기연결)}
     ${row('연결 — 전기', (ac.con || {}).total?.[1], counts?.전기연결)}</tbody></table></div>`;
+  /* 등록이사 ↔ 담당이사 — 오류(등록이사가 아닌데 당기 외부감사를 수임)만 내놓는다. 오류가 없으면 아무것도 그리지 않는다 */
+  const pc = partnerCheck(p);
+  let partnerBox = '';
+  if (pc && pc.missing.length) {
+    const rows = pc.missing.map((m) => `<tr><td><b>${esc(m.name)}</b></td><td class="num">${m.companies.length}</td>
+      <td class="wrap">${m.companies.map((c) => esc(displayName(c))).join(', ')}</td>
+      <td class="wrap">사업보고서 이사 명단에 없는 사람이 당기 외부감사를 수임(책임이사)했습니다 — 등기·정관상 이사 여부와 2-3 담당이사 기재를 확인하세요.</td></tr>`).join('');
+    points.push({ g: '상', t: `등록이사가 아닌 담당이사 ${pc.missing.length}명 — ${pc.missing.map((m) => m.name).join(', ')}` });
+    partnerBox = `<h3 class="qs-sub">등록이사 대사 — 사업보고서 Ⅳ.2.가 이사의 경력 현황 ↔ 사전제출자료 2-3 담당이사(당기)</h3>
+      <div class="qs-table-wrap"><table class="qs-table"><colgroup><col style="width:12%"><col style="width:7%"><col style="width:36%"><col></colgroup>
+        <thead><tr><th>담당이사</th><th class="num">회사 수</th><th>당기 수임 회사</th><th>확인할 것</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="qs-muted qs-small">등록이사 ${pc.registered.length}명과 맞춰 본 결과입니다. 등록이사인데 외부감사를 맡지 않은 것은 오류가 아니므로 내놓지 않습니다.
+        이름이 같은 사람이 있거나 사업보고서 제출 뒤 이사가 바뀌었으면 달라질 수 있습니다.</p>`;
+  }
   for (const c of p.checks || []) points.push({ g: '중', t: c });
   for (const w of p.warnings || []) points.push({ g: '하', t: `사업보고서에서 읽지 못한 값 — ${w}` });
   if (!counts) points.push({ g: '하', t: '사전제출자료(2-3)를 올리지 않아 외감실적 회사 수는 맞춰 보지 못했습니다.' });
@@ -1922,7 +1969,7 @@ function firmSection(rv) {
       <a href="#" class="qs-link" data-gotab="firm" title="(붙임1) 감사인 개요 전체">회계법인 조회에서 전체 보기 ›</a></div>
     <h3 class="qs-sub">외감실적 대사 — 사업보고서 Ⅱ.2.가 감사실적 ↔ 사전제출자료 2-3 회사 수</h3>${table}
     <p class="qs-muted qs-small">회계법인의 사업연도(예: 4월~3월)와 회사들의 결산기가 달라 차이가 날 수 있습니다.</p>
-    <h3 class="qs-sub">주요 체크포인트</h3>${pts}${files}</section>`;
+    ${partnerBox}<h3 class="qs-sub">주요 체크포인트</h3>${pts}${files}</section>`;
 }
 
 /* ② 매출장 대사(독립성) — 회사별 한 줄, 누르면 거래 */
