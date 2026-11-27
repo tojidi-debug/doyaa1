@@ -119,24 +119,22 @@
         <select id="firmRep" class="qs-select rv-rep" hidden title="이 사업보고서의 감사실적(외감실적)·인원 등을 함께 봅니다"></select>
         <label>사업연도 <input id="revFy" class="qs-input qs-num" type="number" min="2000" max="2100" placeholder="자동" title="당기 사업연도 — 비우면 자동"></label>
         <button id="revRun" class="qs-btn qs-primary" type="button" disabled>대사 실행</button>
-        <button id="revXlsx" class="qs-btn" type="button" disabled title="대사 결과를 표로 정리한 엑셀">엑셀 다운로드</button>
+        <button id="revXlsx" class="qs-btn" type="button" disabled title="대사 결과를 표로 정리한 엑셀 — 저장 위치는 매번 같은 폴더">엑셀 다운로드</button>
+        <button id="revReset" class="qs-btn" type="button" title="올린 자료·링크·결과를 모두 지우고 처음으로">초기화</button>
         <span id="revState" class="qs-muted"></span>
       </div>
       <div id="firmOut" class="qs-small"></div>
-      <div class="rv-grid">
+      <div class="rv-links">
+        <textarea id="revLinks" class="qs-input rv-linkbox" rows="1" placeholder="전자공시(DART) 주소·접수번호, 외부 사이트 주소를 붙여넣기 — 여러 개는 줄바꿈 · 쉼표(,) · 세미콜론(;) · 빈 칸으로 구분 (한 번에 10개까지)"></textarea>
+        <button id="revLinkAdd" class="qs-btn" type="button" title="DART 링크는 감사보고서 PDF 로, 외부 사이트는 문서·웹페이지를 받아 아래 목록에 넣습니다">링크 추가</button>
+        <span id="revLinkState" class="qs-muted"></span>
+      </div>
+      <div class="rv-grid rv-grid1">
         <div class="rv-col">
-          <div id="revFirmDrop" class="qs-drop rv-drop" tabindex="0" role="button" aria-label="회계법인 자료를 끌어다 놓거나 눌러서 고르기">
-            <input id="revFirmFiles" type="file" multiple accept=".xlsx,.xlsm,.xls,.pdf,.docx,.hwpx,.hwp" hidden>
-            <svg class="rv-folder" viewBox="0 0 48 40" aria-hidden="true"><path d="M3 8a4 4 0 0 1 4-4h11l5 5h18a4 4 0 0 1 4 4v21a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z" fill="#f4b400"/><path d="M3 15h42v18a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z" fill="#ffd54f"/></svg>
-            <span class="rv-drop-t"><span><b>① 회계법인 자료</b> 끌어다 놓거나 눌러서 고르기</span><small>사전제출자료 · 회계법인 사업보고서 · 품질관리 자료 · 엑셀·PDF·워드·한글 · 20개까지</small></span>
-          </div>
-          <ul id="revFirmList" class="qs-files rv-files"></ul>
-        </div>
-        <div class="rv-col">
-          <div id="revDrop" class="qs-drop rv-drop" tabindex="0" role="button" aria-label="대사할 자료를 끌어다 놓거나 눌러서 고르기">
-            <input id="revFiles" type="file" multiple accept=".xlsx,.xlsm,.xls,.pdf,.docx,.hwpx,.hwp" hidden>
+          <div id="revDrop" class="qs-drop rv-drop" tabindex="0" role="button" aria-label="자료를 끌어다 놓거나 눌러서 고르기">
+            <input id="revFiles" type="file" multiple accept=".xlsx,.xlsm,.xls,.pdf,.docx,.hwpx,.hwp,.txt,.md,.html,.htm" hidden>
             <svg class="rv-folder" viewBox="0 0 48 40" aria-hidden="true"><path d="M3 8a4 4 0 0 1 4-4h11l5 5h18a4 4 0 0 1 4 4v21a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z" fill="#2e9e6b"/><path d="M3 15h42v18a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z" fill="#58c08c"/></svg>
-            <span class="rv-drop-t"><span><b>② 대사할 자료</b> 끌어다 놓거나 눌러서 고르기</span><small>사전제출자료(2-3·2-8·2-10 …) · 매출장 · 감사보고서 · 감사시간집계표 · 감사조서 관리대장 · 20개까지</small></span>
+            <span class="rv-drop-t"><span><b>자료</b> 끌어다 놓거나 눌러서 고르기 — 어디에 올려도 종류는 알아서 구분합니다</span><small>사전제출자료 · 매출장 · 감사보고서 · 감사시간집계표 · 회계법인 자료 등 · 엑셀·워드(docx)·한글(hwp·hwpx)·PDF · 20개까지 · 파일당 30MB · 합계 150MB</small></span>
           </div>
           <ul id="revList" class="qs-files rv-files"></ul>
         </div>
@@ -228,7 +226,7 @@
   <div id="toast" class="qs-toast" role="status" aria-live="polite"></div>
 
   <!-- 한글(hwpx) 채우기 엔진은 안건 화면과 같은 파일(classic script) -->
-  <script>window.QC_STATIC = true;</script>
+  <script>window.QC_STATIC = true; window.QC_NEW = true;</script>
 <script src="./qc/static/relay_config.js"></script>
 <script src="./qc/static/qc_static.js"></script>
 <script src="./agenda2/hwpx.js"></script>

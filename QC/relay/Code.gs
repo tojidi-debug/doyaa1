@@ -127,6 +127,10 @@ function handle_(p) {
         'content-type': String(all['Content-Type'] || ''), location: String(all['Location'] || ''),
         'content-disposition': String(all['Content-Disposition'] || ''), 'set-cookie': sc.map(String) } });
     }
+    if (p.op === 'fetch') {         // 외부 사이트 주소의 문서·웹페이지 한 건(제출자료 대사(New)의 링크 첨부) — 열람 암호가 있는 사람만, 공개 http(s) 주소만
+      need_(role_(props, p.pass, p.email) !== '', '열람 암호가 맞지 않습니다.');
+      return out_(Object.assign({ ok: true }, fetchUrl_(String(p.url || ''))));
+    }
     // ── 2026-11-27 판(심사·조서 검토) — 기준서 참고·AI 보강. 사이트(github.io)에서 직접 부를 수 없는 곳(CORS)을 대신 부른다 ──
     if (p.op === 'wiki') {          // 회계위키 MCP(https://accountingwiki.co.kr/api/mcp — 인증 없이 무료, 조회 전용). 출처 표기는 화면이 한다
       need_(WIKI_TOOLS.indexOf(String(p.tool || '')) >= 0, '허용하지 않는 회계위키 도구입니다.');
@@ -342,6 +346,24 @@ function extractXlsxText_(f) {
   } catch (e) { return '[XLSX 글 추출 실패] ' + e.message + ' — CSV 또는 PDF 로 바꿔 다시 올려 주세요.'; }
 }
 function xmlDecode_(t) { return String(t || '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&'); }
+
+/** 외부 주소 한 건 받기 — 내부망·메타데이터 주소는 막는다. 결과 { status, ctype, name, b64 } */
+function fetchUrl_(url) {
+  const m = /^(https?):\/\/([^\/:?#@]+)(:\d{1,5})?(\/[^#]*)?(#.*)?$/i.exec(url.trim());
+  need_(m, '주소가 올바르지 않습니다(http:// 또는 https:// 로 시작).');
+  const host = m[2].toLowerCase();
+  need_(!/^(localhost|.*\.local|.*\.internal|metadata\.google\.internal)$/.test(host) && !/^\d+\.\d+\.\d+\.\d+$/.test(host) && host.indexOf('[') < 0 && host.indexOf('.') > 0, '허용하지 않는 주소입니다(공개 사이트의 도메인 주소만).');
+  const r = UrlFetchApp.fetch(url.trim(), { muteHttpExceptions: true, followRedirects: true, headers: { 'User-Agent': UA, 'Accept-Language': 'ko-KR,ko;q=0.9' } });
+  const bytes = r.getContent();
+  need_(r.getResponseCode() < 400, '그 주소가 응답하지 않습니다(HTTP ' + r.getResponseCode() + ').');
+  need_(bytes.length <= MAX_BYTES, '받을 파일이 너무 큽니다(' + Math.round(bytes.length / 1048576) + 'MB).');
+  const h = r.getHeaders(), ctype = String(h['Content-Type'] || h['content-type'] || ''), cd = String(h['Content-Disposition'] || h['content-disposition'] || '');
+  let name = '';
+  const fm = /filename\*=UTF-8''([^;]+)/i.exec(cd) || /filename="?([^";]+)"?/i.exec(cd);
+  if (fm) { try { name = decodeURIComponent(fm[1]); } catch (e) { name = fm[1]; } }
+  if (!name) name = decodeURIComponent((m[4] || '').split('?')[0].split('/').filter(String).pop() || '') || host;
+  return { status: r.getResponseCode(), ctype: ctype, name: name.slice(0, 120), b64: Utilities.base64Encode(bytes) };
+}
 
 function fetch_(path, params) {
   const r = UrlFetchApp.fetch(OPENDART + path + '?' + qs_(params), { muteHttpExceptions: true, followRedirects: true });

@@ -29,3 +29,6 @@
 .r2-md-t th { background: #eef3f9; white-space: nowrap; }
 .r2-md code { background: #eef3f9; padding: 0 4px; border-radius: 4px; font-size: 12px; }
 #r2Rep { margin-top: 12px; }
+
+.r2-pair { margin: 16px 0 6px; font-size: 14px; color: #0b3a6e; }
+.r2-table tr.r2-sec td { background: #eef3f9; font-size: 12.5px; padding: 4px 8px; }

@@ -24,7 +24,20 @@ async function firms(q) {
 const relayUrl = () => { let v = ''; try { v = localStorage.getItem('qc.relay') || ''; } catch { /* */ } return v || window.QC_RELAY || ''; };
 export const hasRelay = () => !!relayUrl();
 /* 심사·조서 검토(2026-11-27) — 중계의 새 기능(wiki · kasb · ai)과 전자공시 원문. 열람 암호가 있으면 함께 보낸다 */
-export const relayCall = (payload) => relayPost({ ...payload, ...(payload.op === 'ai' ? creds() : {}) });
+export const relayCall = (payload) => relayPost({ ...payload, ...(payload.op === 'ai' || payload.op === 'fetch' ? creds() : {}) });
+/* 저장 위치를 매번 같게(제출자료 대사(New)) — 브라우저의 「다른 이름으로 저장」 창에 고정 id 를 줘서 지난번 폴더에서 열린다. 창을 지원하지 않으면 보통 내려받기.
+ * 창은 클릭 직후에만 열 수 있으므로 파일을 만들기 전에 먼저 연다. makeBlob() 이 파일 내용을 돌려준다. 취소하면 false. */
+export async function saveFile(name, ext, desc, mime, makeBlob) {
+  let h = null;
+  if (window.QC_NEW && window.showSaveFilePicker) {
+    try { h = await window.showSaveFilePicker({ id: 'qc-save', suggestedName: name, types: [{ description: desc, accept: { [mime]: [ext] } }] }); }
+    catch (e) { if (e && e.name === 'AbortError') return false; h = null; }
+  }
+  const blob = await makeBlob();
+  if (h) { const w = await h.createWritable(); await w.write(blob); await w.close(); return true; }
+  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000); return true;
+}
 export const dartDocZip = async (rcept) => (await relay({ op: 'doc', rcept_no: rcept })).b64;
 export const dartCompany = async (corp) => (await relay({ op: 'company', corp_code: corp })).data || {};   // 전자공시 기업개황(신용정보 조회로 보낼 때 사업자번호 찾기 — qc_creport_send.js)
 async function relay(params) {
@@ -331,7 +344,7 @@ async function sampleUpload(path, fd) {
   const [p, qs] = path.split('?'); const q = new URLSearchParams(qs || ''); const fy = fd.get('fy') ? Number(fd.get('fy')) : null;
   if (p === '/qc-sample/parse') return py('parse', [fd.get('file').name, await b64of(fd.get('file')), fy]);
   if (p === '/qc-sample/reconcile') return py('reconcile', [await Promise.all(fd.getAll('files').map(fileB64)), fy]);
-  if (p === '/qc-sample/review') return py('review', [await Promise.all(fd.getAll('files').map(fileB64)), await Promise.all(fd.getAll('firm_files').map(fileB64)), fy]);   // [품감] 통합 — 제출자료 대사 한 번에
+  if (p === '/qc-sample/review') return py('review', [await Promise.all(fd.getAll('files').map(fileB64)), await Promise.all(fd.getAll('firm_files').map(fileB64)), fy, await Promise.all(fd.getAll('auto_files').map(fileB64))]);   // [품감] 통합 — 제출자료 대사 한 번에
   if (p === '/qc-sample/other') return py('other', [await fileB64(fd.get('presubmit')), await Promise.all(fd.getAll('files').map(fileB64)), fy]);
   let m = /^\/qc-sample\/templates\/(full|part)$/.exec(p);
   if (m) {
@@ -410,7 +423,13 @@ export const api = {
   post: (...a) => qcApi.post(...a), patch: (...a) => qcApi.patch(...a), postBlob: (...a) => qcApi.postBlob(...a),
   async downloadPost(path, body, fallbackName) {
     if (path !== '/qc-sample/review.xlsx') return qcApi.downloadPost(path, body, fallbackName);
-    const o = await py('review_xlsx', [body]); const res = binResponse(o); const url = URL.createObjectURL(await res.blob());   // 대사 결과 엑셀 — 브라우저 파이썬이 만든다
+    let o = null;   // 대사 결과 엑셀 — 브라우저 파이썬이 만든다
+    if (window.QC_NEW) {   // New 화면 — 저장 위치는 매번 같은 곳(고정 id)
+      const day = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const ok = await saveFile(`제출자료대사_${day}.xlsx`, '.xlsx', '엑셀', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', async () => { o = await py('review_xlsx', [body]); return binResponse(o).blob(); });
+      return ok ? (o && o.name) || '' : '';
+    }
+    o = await py('review_xlsx', [body]); const res = binResponse(o); const url = URL.createObjectURL(await res.blob());
     const a = document.createElement('a'); a.href = url; a.download = o.name || fallbackName || '제출자료대사.xlsx'; document.body.append(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60000); return o.name;
   },

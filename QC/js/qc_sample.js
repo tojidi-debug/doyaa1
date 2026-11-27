@@ -8,7 +8,7 @@
  * 이 화면의 몫은 사전제출자료를 슬라이서로 거르는 것과, 제출자료끼리 맞춰 보는 것뿐이다.
  */
 import './ui/guard.js';
-import { api, auth } from './api.js';
+import { api, auth, relayCall } from './api.js';
 import { showAlert, showAsk, showChoice, showConfirm, showDetail, showPrompt } from './ui/dialog.js';
 import { $, esc, toast } from './lookup_kit.js';
 import {
@@ -1766,18 +1766,94 @@ const won = (v) => `${Math.round(Number(v) || 0).toLocaleString('ko-KR')}원`;
 
 function revLists() {
   for (const [side, id] of [['firm', 'revFirmList'], ['check', 'revList']]) {
+    if (!$(id)) continue;                       // 제출자료 대사(New)는 한 곳(revList)에만 올린다
     $(id).innerHTML = state.rev[side].map((f, i) => `<li title="${esc(f.name)}${f.size ? ` · ${Math.max(1, Math.round(f.size / 1024)).toLocaleString('ko-KR')}KB` : ''}"><span class="nm">${esc(f.name)}</span>${f === state.file ? ' <em class="qs-muted">개별선정</em>' : ''}<button type="button" data-rm="${side}:${i}" title="빼기">⨯</button></li>`).join('');
   }
   $('revRun').disabled = !(state.rev.firm.length || state.rev.check.length || ($('firmRep').value && !$('firmRep').hidden));
 }
 
+/* 제출자료 대사(New) — 한 번에 돌리는 효과를 위해 개수·크기만 가볍게 제한한다(20개 · 파일당 30MB · 합계 150MB) */
+const REV_LIMIT = { count: 20, file: 30 * 1048576, total: 150 * 1048576 };
+const REV_EXT = /\.(xlsx|xlsm|xls|pdf|docx|hwpx|hwp|txt|md|html?)$/i;
 function revAdd(side, files) {
-  const list = state.rev[side];
+  const list = state.rev[side], skipped = [];
   for (const f of files) {
-    if (list.length >= 20) break;
+    if (window.QC_NEW) {
+      if (/\.doc$/i.test(f.name)) { skipped.push(`${f.name}: 예전 워드(.doc)는 읽지 못합니다 — .docx 로 저장해 올려 주세요`); continue; }
+      if (!REV_EXT.test(f.name)) { skipped.push(`${f.name}: 지원하지 않는 형식(엑셀·워드(docx)·한글(hwp·hwpx)·PDF만)`); continue; }
+      if (f.size > REV_LIMIT.file) { skipped.push(`${f.name}: 파일당 30MB 를 넘습니다`); continue; }
+      if (list.reduce((a, x) => a + (x.size || 0), 0) + f.size > REV_LIMIT.total) { skipped.push(`${f.name}: 합계 150MB 를 넘습니다`); continue; }
+      if (list.length >= REV_LIMIT.count) { skipped.push(`${f.name}: 20개를 넘습니다`); continue; }
+    } else if (list.length >= 20) break;
     if (!list.some((x) => x.name === f.name && x.size === f.size)) list.push(f);
   }
   revLists();
+  if (skipped.length) showAlert(skipped.join('\n'), { title: '제출자료 대사 — 올리지 않은 파일' });
+}
+/* 자료 고르기 창도 매번 같은 폴더에서 열린다(고정 id) */
+async function pickFiles(inp) {
+  if (window.QC_NEW && window.showOpenFilePicker) {
+    try {
+      const hs = await window.showOpenFilePicker({ multiple: true, id: 'qc-open', types: [{ description: '제출자료(엑셀·워드·한글·PDF·웹문서)', accept: { 'application/octet-stream': ['.xlsx', '.xlsm', '.xls', '.pdf', '.docx', '.hwpx', '.hwp', '.txt', '.md', '.html', '.htm'] } }] });
+      revAdd('check', await Promise.all(hs.map((h) => h.getFile()))); return;
+    } catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  inp.click();
+}
+/* DART 링크 · 외부 사이트 링크 → 파일로 받아 같은 목록에 넣는다 */
+const bin2b64 = (u8) => { let t = ''; for (let i = 0; i < u8.length; i += 0x8000) t += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(t); };
+const b642file = (b64, name, type = '') => { const bin = atob(b64), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new File([u], name, { type }); };
+const pyr = (fn, args) => window.QcStatic.sample(fn, args).then((o) => { if (o && o.error) { const d = o.error.detail; throw new Error(typeof d === 'string' ? d : (d && d.message) || '처리하지 못했습니다.'); } return o; });
+async function linkToFile(tok) {
+  const dart = /dart\.fss\.or\.kr/i.test(tok) || /^\d{14}$/.test(tok);
+  if (dart) {
+    const no = (tok.match(/(\d{14})/) || [])[1]; if (!no) throw new Error('전자공시 접수번호(14자리)를 찾지 못했습니다');
+    const o = await pyr('dart_pdf', [no]); return b642file(o.b64, o.name || `감사보고서_${no}.pdf`, 'application/pdf');
+  }
+  if (!/^https?:\/\//i.test(tok)) throw new Error('주소(http…)나 전자공시 접수번호가 아닙니다');
+  const d = await relayCall({ op: 'fetch', url: tok });
+  let name = String(d.name || 'web').replace(/[\\/:*?"<>|]/g, '_'); const ct = String(d.ctype || '').toLowerCase();
+  if (/pdf/.test(ct) && !/\.pdf$/i.test(name)) name += '.pdf';
+  if (!REV_EXT.test(name) || /html|text\/plain/.test(ct)) {      // 웹 페이지 → 마크다운 글(markitdown)로
+    const base = name.replace(/\.[A-Za-z0-9]{1,5}$/, '') || 'web';
+    if (/html/.test(ct) || !REV_EXT.test(name)) {
+      const o = await pyr('md_convert', [`${base}.html`, d.b64]);
+      return new File([o.text], `${base}.md`, { type: 'text/markdown' });
+    }
+  }
+  return b642file(d.b64, name);
+}
+async function addLinks() {
+  const box = $('revLinks'), st = $('revLinkState'); if (!box) return;
+  const toks = [...new Set(box.value.split(/[\s,;]+/).filter(Boolean))];
+  if (!toks.length) return;
+  if (toks.length > 10) { showAlert('링크는 한 번에 10개까지 받습니다.', { title: '링크 추가' }); return; }
+  await busy($('revLinkAdd'), '받는 중…', async () => {
+    const got = [], bad = [];
+    for (let i = 0; i < toks.length; i++) {
+      st.textContent = `${i + 1}/${toks.length} 받는 중…(전자공시는 1분 안팎 걸릴 수 있습니다)`;
+      try { got.push(await linkToFile(toks[i])); } catch (e) { bad.push(`${toks[i].slice(0, 70)} — ${e.message || e}`); }
+    }
+    if (got.length) revAdd('check', got);
+    box.value = bad.map((x) => x.split(' — ')[0]).join('\n'); st.textContent = got.length ? `${got.length}건 추가` : '';
+    if (bad.length) showAlert(bad.join('\n'), { title: '링크를 받지 못했습니다' });
+  });
+}
+/* 초기화 — 올린 자료·링크·대사 결과·이 컴퓨터에 저장해 둔 마지막 결과까지 비운다 */
+async function revReset() {
+  const has = state.rev.check.length || state.rev.firm.length || state.rev.last || ($('revLinks') && $('revLinks').value.trim());
+  if (has && !(await showConfirm('올려 둔 자료·링크·대사 결과를 모두 지우고 처음 상태로 돌립니다(자료는 원래 서버에 저장되지 않습니다). 초기화할까요?', { title: '초기화', okText: '초기화' }))) return;
+  const hint = state.rev.last && state.rev.last.firm ? { corp_code: state.rev.last.firm.corp_code, corp_name: state.rev.last.firm.corp_name } : { corp_name: ($('firmQ').value || '').trim() };
+  Object.assign(state.rev, { firm: [], check: [], last: null, hidden: new Set(), view: 'item', detailOpen: false, autoAdded: true, cleared: true });
+  if (state.recon) state.recon.last = null;
+  for (const id of ['firmQ', 'revFy']) if ($(id)) $(id).value = '';
+  if ($('revLinks')) { $('revLinks').value = ''; $('revLinkState').textContent = ''; }
+  $('firmSel').innerHTML = ''; $('firmSel').hidden = true; $('firmRep').innerHTML = ''; $('firmRep').hidden = true; $('firmOut').innerHTML = '';
+  $('revOut').hidden = true; $('revOut').innerHTML = ''; $('revState').textContent = ''; $('revXlsx').disabled = true;
+  revLists();
+  window.dispatchEvent(new Event('qc:reset'));
+  if (hint.corp_name || hint.corp_code) Project.saveReview({}, hint).catch(() => {});
+  toast('초기화했습니다.');
 }
 
 /* 탭을 열 때 — 프로젝트의 회계법인·사업보고서를 왼쪽에, 개별선정에서 올린 사전제출자료를 오른쪽에(한 번), 저장된 마지막 결과를 아래에 */
@@ -1794,7 +1870,7 @@ async function reviewShown() {
   } else if (!$('firmQ').value) $('firmQ').value = guessFirmFrom((state.rev.check[0] || state.file || {}).name || '');
   if (state.file && !state.rev.autoAdded) { state.rev.autoAdded = true; revAdd('check', [state.file]); }
   revLists();
-  if (!state.rev.last && p && p.review && p.review.out !== undefined) {
+  if (!state.rev.last && !state.rev.cleared && p && p.review && p.review.out !== undefined) {
     state.rev.last = p.review;
     if (p.review.out && p.review.out.result) state.recon.last = { result: p.review.out.result };
     renderReview(state.rev.last, true);
@@ -1804,14 +1880,18 @@ async function reviewShown() {
 function reviewWire() {
   for (const [side, dropId, inputId] of [['firm', 'revFirmDrop', 'revFirmFiles'], ['check', 'revDrop', 'revFiles']]) {
     const d = $(dropId), inp = $(inputId);
-    d.addEventListener('click', () => inp.click());
-    d.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inp.click(); } });
+    if (!d || !inp) continue;
+    d.addEventListener('click', () => pickFiles(inp));
+    d.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickFiles(inp); } });
     d.addEventListener('dragover', (e) => { e.preventDefault(); d.classList.add('is-over'); });
     d.addEventListener('dragleave', () => d.classList.remove('is-over'));
     d.addEventListener('drop', (e) => { e.preventDefault(); d.classList.remove('is-over'); revAdd(side, [...e.dataTransfer.files]); });
     inp.addEventListener('change', (e) => { revAdd(side, [...e.target.files]); e.target.value = ''; });
   }
+  if ($('revReset')) $('revReset').addEventListener('click', revReset);
+  if ($('revLinkAdd')) { $('revLinkAdd').addEventListener('click', addLinks); $('revLinks').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) addLinks(); }); }
   for (const id of ['revFirmList', 'revList']) {
+    if (!$(id)) continue;
     $(id).addEventListener('click', (e) => {
       const b = e.target.closest('[data-rm]'); if (!b) return;
       const [side, i] = b.dataset.rm.split(':'); state.rev[side].splice(Number(i), 1); revLists();
@@ -1847,7 +1927,7 @@ async function runReview() {
       let out = null;
       if (files) {
         const fd = new FormData();
-        state.rev.check.forEach((f) => fd.append('files', f));
+        state.rev.check.forEach((f) => fd.append(window.QC_NEW ? 'auto_files' : 'files', f));     // New: 올린 자리를 가리지 않고 내용으로 알아서 구분
         state.rev.firm.forEach((f) => fd.append('firm_files', f));
         const fy = $('revFy').value.trim();
         if (fy) fd.append('fy', fy);
@@ -1862,7 +1942,7 @@ async function runReview() {
         firm = { corp_code: corp, corp_name: $('firmSel').selectedOptions[0]?.textContent || '', rcept_no: rep,
           report: $('firmRep').selectedOptions[0]?.textContent || '', profile };
       }
-      state.rev.last = { out, firm, saved: new Date().toISOString() };
+      state.rev.cleared = false; state.rev.last = { out, firm, saved: new Date().toISOString() };
       if (out && out.result) {
         state.recon.last = { result: out.result };
         adoptPresubmit(out);
@@ -2047,6 +2127,51 @@ function salesTsv(s) {
 const midCut = (t, n = 26) => (t.length > n ? `${t.slice(0, n - 9)}…${t.slice(-8)}` : t);
 const lab = (t) => sheetText(t).replace(/(\d+-\d+\.\s)([^\s]+)\s+\2/g, '$1$2');   // 「2-8 자체조서점검」에 시트 이름을 또 붙이지 않게
 const isNum = (v) => /^[-+]?[\d,.]+(%|일)?$/.test(String(v ?? '').trim());
+/* 제출자료 대사(New) — 항목마다 회사별 긴 표 대신, 등급마다 「점검 항목 | 구분 | 건수 | 회사(차이)」 한 표로 묶는다(사용자 지정 2026-11-27).
+   시간은 0~20 · 21~50 · 50 초과, 일수는 7일 이내 · 8~30일 · 30일 초과, 작은 수(년수 등)는 차이값별, 그 밖의 수치는 비율(10% 이내 · 11~50% · 50% 초과), 글 값은 「내용 다름」, 같은 값은 「차이 없음」. */
+const toN = (v) => { const m = String(v ?? '').replace(/,/g, '').match(/-?\d+(\.\d+)?/); return m ? Number(m[0]) : null; };
+function compactBand(g, r) {
+  const hour = /시간/.test(g.title), diffTxt = String(r.diff || '');
+  const diffs = (diffTxt.replace(/,/g, '').match(/-?\d+(\.\d+)?/g) || []).map(Number);
+  if (!diffs.length) return { key: 90, label: '내용 다름', tag: '' };
+  const d = Math.max(...diffs.map(Math.abs)), tag = diffTxt.replace(/\s*·\s*/g, '·');
+  if (hour) return d <= 20 ? { key: 1, label: '0~20시간 차이', tag } : d <= 50 ? { key: 2, label: '21~50시간 차이', tag } : { key: 3, label: '50시간 초과', tag };
+  if (/일/.test(diffTxt)) return d <= 7 ? { key: 1, label: '7일 이내 차이', tag } : d <= 30 ? { key: 2, label: '8~30일 차이', tag } : { key: 3, label: '30일 초과', tag };
+  const a = toN(g.kind === 'pivot' ? r.mine : r.left), b = toN(g.kind === 'pivot' ? (r.cells.find((c) => c.length) || [{}])[0].v : r.right);
+  if (a != null && b != null) {
+    if (Math.max(Math.abs(a), Math.abs(b)) < 100) return { key: 10 + Math.round(d), label: `${Math.round(d)} 차이`, tag };
+    const rel = Math.abs(a - b) / Math.max(Math.abs(a), Math.abs(b));
+    return rel <= 0.1 ? { key: 4, label: '10% 이내 차이', tag } : rel <= 0.5 ? { key: 5, label: '11~50% 차이', tag } : { key: 6, label: '50% 초과 차이', tag };
+  }
+  return { key: 70, label: '수치 차이', tag };
+}
+function compactRows(g, all) {
+  const rows = [];
+  if (g.kind === 'list') {
+    const co = [...new Set(g.idx.map((k) => (all[k] || {}).company).filter(Boolean))];
+    rows.push({ key: 0, label: '해당 회사', names: co.length ? co : [`${g.count}건`] });
+  } else {
+    const by = new Map(), bad = new Set();
+    for (const r of g.rows) {
+      const b = compactBand(g, r); bad.add(r.company);
+      let name = esc(r.company || '');
+      if (b.key === 90) name += `(${esc(String(g.kind === 'pivot' ? `${r.mine ?? ''}→${(r.cells.find((c) => c.length) || [{}])[0].v ?? ''}` : `${r.left}→${r.right}`).slice(0, 24))})`;
+      else if (b.tag) name += `(${esc(b.tag)})`;
+      if (!by.has(b.key)) by.set(b.key, { key: b.key, label: b.label, names: [], raw: true });
+      by.get(b.key).names.push(name);
+    }
+    rows.push(...[...by.values()].sort((x, y) => x.key - y.key));
+    const code = (all[g.idx[0]] || {}).code, st = (state.rev.last || {}).out || {};
+    const oks = [...(((st.result || {}).checks || {}).ok || []), ...((st.other || {}).ok || [])].filter((o) => o.code === code && o.company && !bad.has(o.company));
+    const same = [...new Set(oks.map((o) => o.company))];
+    if (same.length) rows.unshift({ key: -1, label: '차이 없음', names: same });
+  }
+  return { title: g.title, count: g.count, rows };
+}
+function compactTable(list) {
+  const body = list.map((it) => it.rows.map((r, i) => `<tr${i ? '' : ' class="cc-first"'}>${i ? '' : `<td class="cc-item" rowspan="${it.rows.length}"><b>${esc(sheetText(it.title))}</b> <span class="qs-muted">${it.count}건</span></td>`}<td class="cc-band">${esc(r.label)}</td><td class="num">${r.names.length}</td><td class="cc-co">${r.raw ? r.names.join(', ') : r.names.map(esc).join(', ')}</td></tr>`).join('')).join('');
+  return `<div class="cmp-grp cmp-compact"><div class="qs-table-wrap"><table class="qs-table cmp-table"><colgroup><col style="width:24%"><col style="width:14%"><col style="width:5%"><col></colgroup><thead><tr><th>점검 항목</th><th>구분</th><th class="num">건수</th><th>회사(차이)</th></tr></thead><tbody>${body}</tbody></table></div></div>`;
+}
 function cmpGroup(g, all) {
   if (g.kind === 'list') return issueTable(g.idx.map((k) => all[k]).filter(Boolean), true);
   const head = `<div class="cmp-head"><span class="lv lv-${esc(g.level)}">${esc(g.level)}</span> <b>${esc(sheetText(g.title))}</b> <span class="qs-muted">${g.count}건</span></div>${g.basis ? `<div class="qs-basis">${esc(g.basis)}</div>` : ''}`;
@@ -2088,7 +2213,7 @@ function issuesSection(out) {
     : GRADES.map(([g, label]) => {
       const sub = items.filter((i) => GRADE[i.level] === g);
       if (!sub.length) return '';
-      const inner = tb ? tb.filter((x) => x.grade === g).map((x) => cmpGroup(x, all)).join('') : issueTable(sub, true);
+      const inner = tb ? (window.QC_NEW ? compactTable(tb.filter((x) => x.grade === g).map((x) => compactRows(x, all))) : tb.filter((x) => x.grade === g).map((x) => cmpGroup(x, all)).join('')) : issueTable(sub, true);
       return `<h3 class="qs-sub"><span class="gr gr-${g}">${g}</span> ${esc(label)} ${sub.length}건</h3>${inner}`;
     }).join('') || '<p class="qs-muted">골라 둔 등급의 항목이 없습니다.</p>';
   const legend = out.tables && out.tables.sources && out.tables.sources.length
