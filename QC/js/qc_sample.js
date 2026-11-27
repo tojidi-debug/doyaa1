@@ -1770,11 +1770,22 @@ function revLists() {
     $(id).innerHTML = state.rev[side].map((f, i) => `<li title="${esc(f.name)}${f.size ? ` · ${Math.max(1, Math.round(f.size / 1024)).toLocaleString('ko-KR')}KB` : ''}"><span class="nm">${esc(f.name)}</span>${f === state.file ? ' <em class="qs-muted">개별선정</em>' : ''}<button type="button" data-rm="${side}:${i}" title="빼기">⨯</button></li>`).join('');
   }
   $('revRun').disabled = !(state.rev.firm.length || state.rev.check.length || ($('firmRep').value && !$('firmRep').hidden));
+  if (window.QC_NEW) window.dispatchEvent(new Event('qc:files'));
 }
 
 /* 제출자료 대사(New) — 한 번에 돌리는 효과를 위해 개수·크기만 가볍게 제한한다(20개 · 파일당 30MB · 합계 150MB) */
 const REV_LIMIT = { count: 20, file: 30 * 1048576, total: 150 * 1048576 };
 const REV_EXT = /\.(xlsx|xlsm|xls|pdf|docx|hwpx|hwp|txt|md|html?)$/i;
+/* 업종별 AI 분석(qc_industry.js)이 올린 파일과 대사 결과 요약을 가져가는 자리 */
+function reconDigest() {
+  const out = (state.rev.last || {}).out; const tb = out && out.tables && out.tables.groups; if (!tb) return '';
+  const all = reviewItems(out);
+  return tb.slice(0, 40).map((g) => {
+    const names = g.kind === 'list' ? [...new Set(g.idx.map((k) => (all[k] || {}).company).filter(Boolean))] : g.rows.map((r) => `${r.company}${r.diff ? `(${r.diff})` : ''}`);
+    return `- [${g.grade}] ${sheetText(g.title)} ${g.count}건: ${names.slice(0, 15).join(', ')}${names.length > 15 ? ' 외' : ''}`;
+  }).join('\n');
+}
+if (window.QC_NEW) window.QcRecon = { files: () => state.rev.check, digest: reconDigest };
 function revAdd(side, files) {
   const list = state.rev[side], skipped = [];
   for (const f of files) {
@@ -2330,6 +2341,7 @@ function summaryCard(rv) {
 
 function renderReview(rv, restored = false) {
   if (!rv) return;
+  if (window.QC_NEW) setTimeout(() => window.dispatchEvent(new Event('qc:reviewed')), 0);
   const out = rv.out || {};
   const box = $('revOut');
   box.hidden = false;

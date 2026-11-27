@@ -12,7 +12,7 @@
  *   VIEW_PASS   열람 암호(팀원) — 품감 일정·명부를 볼 때만 묻는다. 인뎁스 서식은 암호 없이(2026-10-16)
  *   ADMIN_PASS  관리자 암호 — 공유 자료 올리기·고치기 때 사이트에서 관리자 이메일(사이트가 확인)과 이 암호를 둘 다 맞게 넣어야 관리자(2중 확인, 2026-10-16)
  *   ADMIN_EMAIL (선택) 관리자 구글 이메일 — 적어 두면 중계도 이메일을 한 번 더 견준다
- *   GEMINI_API_KEY  (선택) 구글 AI Studio API 키 — 심사·조서 검토의 [AI 보강·AI 종합 검토]. PROMPT 스크립트에 넣은 것과 같은 값 · GEMINI_MODEL(선택, 기본 gemini-2.5-flash)
+ *   GEMINI_API_KEY  (선택) 구글 AI Studio API 키 — 심사·조서 검토의 [AI 보강·AI 종합 검토]. PROMPT 스크립트에 넣은 것과 같은 값 · 모델은 자동(그때 쓸 수 있는 가장 새 flash) — GEMINI_MODEL 은 특정 모델로 고정하고 싶을 때만
  *   FOLDER_ID   자료 폴더 ID — 비워 두면 처음 저장할 때 「QC_개별선정_공유자료」 폴더를 만들고 스스로 적는다
  *
  * 기능(op)
@@ -225,7 +225,7 @@ function setupFolder() { Logger.log(folder_(PropertiesService.getScriptPropertie
 const WIKI_URL = 'https://accountingwiki.co.kr/api/mcp';
 const WIKI_TOOLS = ['search', 'find_evidence', 'fetch', 'get_paragraphs', 'get_standard', 'get_qna', 'list_standards', 'get_related', 'get_topic', 'list_audit_cases', 'verify_quote', 'check_citations'];
 const KASB_PATH = /^\/api\/(standard-indexes\/\d{1,5}|paragraphs\/\d{1,5}\/[A-Za-z0-9_-]{1,40})(\?searchWord=[^&#\s]{0,60})?$/;
-const AI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-2.5-pro'];
+const AI_FALLBACK = { flash: 'gemini-2.5-flash', lite: 'gemini-2.5-flash-lite' };   // 모델 목록을 못 받을 때만 쓰는 이름
 const AI_MAX_FILE = 18 * 1024 * 1024, AI_MAX_FILES = 6;     // PROMPT 스크립트와 같은 상한(파일당 18MB · 6개)
 const MAX_PROMPT = 150000;               // 글자 — 한 번에 보내는 상한
 
@@ -266,6 +266,27 @@ function kasbGet_(path) {
   return out;
 }
 
+/** 지금 쓸 수 있는 가장 새 flash 모델을 자동으로 고른다 — 모델 목록 API 에서 정식 이름(gemini-N.N-flash / -flash-lite, 미리보기·실험·이미지·음성 제외)의 가장 높은 판. 6시간 캐시, 목록을 못 받으면 기본 이름. */
+function flashModel_(key, lite) {
+  const ck = 'gm_' + (lite ? 'lite' : 'flash'), hit = cacheGet_(ck);
+  if (hit && hit !== '-') return hit;
+  let pick = '';
+  try {
+    const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { muteHttpExceptions: true, headers: { 'x-goog-api-key': key } });
+    if (r.getResponseCode() === 200) {
+      const ver = function (n) { return parseFloat((/^gemini-(\d+(?:\.\d+)?)-/.exec(n) || [0, 0])[1]); };
+      const names = (JSON.parse(r.getContentText('UTF-8')).models || []).filter(function (m) { return (m.supportedGenerationMethods || []).indexOf('generateContent') >= 0; })
+        .map(function (m) { return String(m.name || '').replace(/^models\//, ''); })
+        .filter(function (n) { return /^gemini-\d+(\.\d+)?-flash(-lite)?$/.test(n) && (lite ? /-lite$/.test(n) : !/-lite$/.test(n)); });
+      names.sort(function (a, b) { return ver(b) - ver(a); });
+      pick = names[0] || '';
+    }
+  } catch (e) { /* 아래 기본 이름 */ }
+  if (!pick) pick = AI_FALLBACK[lite ? 'lite' : 'flash'];
+  cachePut_(ck, pick, 21600);
+  return pick;
+}
+
 /** Gemini(구글 AI Studio) — PROMPT 스크립트(업종별 감사보고서 분석기)와 같은 방식: 스크립트 속성 GEMINI_API_KEY(+ 선택 GEMINI_MODEL),
  *  첨부는 PDF·이미지는 원본(inlineData), 텍스트·CSV·XLSX 는 글로 풀어 본문에 붙인다.
  *  { prompt, system?, json?, model?, temperature?, files?: [{ name, mimeType, base64 | text }] } → { text, model, usage } */
@@ -274,8 +295,9 @@ function geminiCall_(props, p) {
   need_(key, '중계에 AI Studio API 키가 없습니다(스크립트 속성 GEMINI_API_KEY).');
   const prompt = String(p.prompt || '');
   need_(prompt.length >= 5 && prompt.length <= MAX_PROMPT, '질문이 비었거나 너무 깁니다(' + prompt.length + '자, ' + MAX_PROMPT + '자까지).');
-  const want = String(p.model || '').trim() || props.getProperty('GEMINI_MODEL') || AI_MODELS[0];
-  const model = AI_MODELS.indexOf(want) >= 0 ? want : AI_MODELS[0];
+  const lite = /lite/i.test(String(p.model || ''));                       // 사이트가 「lite」를 청하면 가장 새 flash-lite, 아니면 가장 새 flash
+  const fixed = String(props.getProperty('GEMINI_MODEL') || '').trim();    // 스크립트 속성에 적어 두면 그 모델로 고정(안 적으면 자동)
+  const model = fixed || flashModel_(key, lite);
   const parts = [{ text: prompt }];
   const files = Array.isArray(p.files) ? p.files : [];
   need_(files.length <= AI_MAX_FILES, '첨부는 ' + AI_MAX_FILES + '개까지입니다.');
@@ -289,16 +311,21 @@ function geminiCall_(props, p) {
     generationConfig: { temperature: typeof p.temperature === 'number' ? Math.min(Math.max(p.temperature, 0), 1) : 0.2, maxOutputTokens: 16384 } };
   if (p.system) body.systemInstruction = { parts: [{ text: String(p.system).slice(0, 20000) }] };
   if (p.json) body.generationConfig.responseMimeType = 'application/json';
-  const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', { method: 'post', contentType: 'application/json',
-    muteHttpExceptions: true, headers: { 'x-goog-api-key': key }, payload: JSON.stringify(body) });
-  const code = r.getResponseCode();
+  let r = null, code = 0, used = model;
+  [model, AI_FALLBACK[lite ? 'lite' : 'flash']].filter(function (m, i, a) { return a.indexOf(m) === i; }).some(function (m) {   // 고른 모델이 사라졌으면(404) 기본 이름으로 한 번 더
+    r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(m) + ':generateContent', { method: 'post', contentType: 'application/json',
+      muteHttpExceptions: true, headers: { 'x-goog-api-key': key }, payload: JSON.stringify(body) });
+    code = r.getResponseCode(); used = m;
+    if (code === 404) cachePut_('gm_' + (lite ? 'lite' : 'flash'), '-', 1);
+    return code !== 404;
+  });
   let j = {};
   try { j = JSON.parse(r.getContentText('UTF-8') || '{}'); } catch (e) { need_(false, 'AI 응답을 해석하지 못했습니다(HTTP ' + code + ').'); }
   need_(code === 200, 'AI Studio 응답 ' + code + ': ' + String((j.error && (j.error.message || j.error.type)) || '').slice(0, 200));
   const cand = (j.candidates || [])[0] || {};
   const text = ((cand.content || {}).parts || []).map(function (x) { return x.text || ''; }).join('\n').trim();
   need_(text, 'AI 가 답을 만들지 못했습니다(' + String(cand.finishReason || (j.promptFeedback && j.promptFeedback.blockReason) || '') + ').');
-  return { text: text, model: model, usage: j.usageMetadata || null };
+  return { text: text, model: used, usage: j.usageMetadata || null };
 }
 
 /** 첨부 한 개 → Gemini 요청 조각 (PROMPT 스크립트 prepareGeminiFilePart_ 와 같은 규칙) */

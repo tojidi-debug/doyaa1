@@ -163,3 +163,7 @@ a.qs-tab.qs-tab-old { background: #fff; color: #5b6b7e; font-weight: 500; }
 .rv-links { display: flex; align-items: flex-start; gap: 8px; margin: 8px 0; }
 .rv-linkbox { flex: 1; min-width: 0; resize: vertical; font-size: 12.5px; line-height: 1.5; min-height: 34px; }
 .rv-grid1 { display: block; }
+
+.ind-card { margin-top: 12px; }
+.ind-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 6px 0; font-size: 12.5px; }
+.ind-outhead h3 { margin: 10px 0 4px; font-size: 14px; color: #0b3a6e; }
