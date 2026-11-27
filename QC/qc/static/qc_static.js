@@ -30,12 +30,12 @@
     const bytes = out.toJs(); if (out.destroy) out.destroy();
     return new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   }
+  /* 사업보고서 해석 — 서버와 같은 dart_firm(py/gumiho.zip)을 쓴다(예전 py/qc_firm.py 복사본은 쓰지 않는다 — 손해배상준비금 검증 등 새 규칙이 늘 같이 가게, 2026-11-13) */
   async function parseFirm(zipB64, rceptNo) {
-    const p = await mod('qc_firm', (p) => p.loadPackage('lxml'));
-    p.globals.set('QC_ZIP', zipB64); p.globals.set('QC_NO', rceptNo);
-    try { return await p.runPythonAsync('import qc_firm\nqc_firm.parse_zip(QC_ZIP, QC_NO)'); }
-    catch (e) { throw new Error(pyMessage(e)); }
-    finally { p.globals.delete('QC_ZIP'); }
+    const qs = await sampleMod();
+    const out = JSON.parse(await qs.call('firm_parse', JSON.stringify([zipB64, rceptNo])));
+    if (out && out.error) throw new Error(typeof out.error.detail === 'string' ? out.error.detail : '사업보고서를 해석하지 못했습니다.');
+    return JSON.stringify(out);
   }
   /* 외감회사대사: qc_audited.web_*(인자 목록) — 글(JSON)은 그대로, bytes 는 엑셀 Blob 으로 */
   async function audited(fn, args) {

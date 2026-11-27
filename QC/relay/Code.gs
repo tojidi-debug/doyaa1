@@ -12,12 +12,14 @@
  *   VIEW_PASS   열람 암호(팀원) — 품감 일정·명부를 볼 때만 묻는다. 인뎁스 서식은 암호 없이(2026-10-16)
  *   ADMIN_PASS  관리자 암호 — 공유 자료 올리기·고치기 때 사이트에서 관리자 이메일(사이트가 확인)과 이 암호를 둘 다 맞게 넣어야 관리자(2중 확인, 2026-10-16)
  *   ADMIN_EMAIL (선택) 관리자 구글 이메일 — 적어 두면 중계도 이메일을 한 번 더 견준다
+ *   GEMINI_API_KEY  (선택) 구글 AI Studio API 키 — 심사·조서 검토의 [AI 보강·AI 종합 검토]. PROMPT 스크립트에 넣은 것과 같은 값 · GEMINI_MODEL(선택, 기본 gemini-2.5-flash)
  *   FOLDER_ID   자료 폴더 ID — 비워 두면 처음 저장할 때 「QC_개별선정_공유자료」 폴더를 만들고 스스로 적는다
  *
  * 기능(op)
  *   ping · list · doc · company · dsab   — 2026-10-08 판 그대로(심의안 사이트가 쓴다. 바꾸지 않음)
  *   api      OpenDART 원문 API 중 list.json · company.json · document.xml 만 — 인증키는 이 스크립트가 붙인다
  *   web      공시뷰어(dart.fss.or.kr)의 정해진 주소만 GET — 감사보고서 PDF 받기(뷰어 → PDF 목록 → PDF, 쿠키는 사이트가 넘겨줌)
+ *   wiki · kasb · ai   (2026-11-27 심사·조서 검토) 회계위키 MCP 조회 · 회계기준원 열람서비스 조문 · 구글 AI Studio(Gemini) — ai 는 열람 암호 필요, 키는 스크립트 속성 GEMINI_API_KEY
  *   auth     열람 암호 · 관리자(이메일+암호) 확인 → { view, admin }
  *   store_list · store_get        (열람 암호)   공유 자료 목록 · 하나 읽기 — 인뎁스 서식(tpl_…)만 암호 없이
  *   store_put · store_del         (관리자 이메일+암호) 공유 자료 덮어쓰기(POST) · 비우기
@@ -52,7 +54,7 @@ function handle_(p) {
     const props = PropertiesService.getScriptProperties();
     const key = props.getProperty('DART_KEY');
     if (!key) return out_({ ok: false, error: '중계에 OpenDART 인증키가 없습니다(스크립트 속성 DART_KEY).' });
-    if (p.op === 'ping') return out_({ ok: true, op: 'ping', version: '2026-10-16b', store: true });
+    if (p.op === 'ping') return out_({ ok: true, op: 'ping', version: '2026-11-27', store: true });
 
     // ── 2026-10-08 판(심의안) — 그대로 ──
     if (p.op === 'list') {
@@ -124,6 +126,19 @@ function handle_(p) {
       return out_({ ok: true, status: r.getResponseCode(), b64: Utilities.base64Encode(bytes), headers: {
         'content-type': String(all['Content-Type'] || ''), location: String(all['Location'] || ''),
         'content-disposition': String(all['Content-Disposition'] || ''), 'set-cookie': sc.map(String) } });
+    }
+    // ── 2026-11-27 판(심사·조서 검토) — 기준서 참고·AI 보강. 사이트(github.io)에서 직접 부를 수 없는 곳(CORS)을 대신 부른다 ──
+    if (p.op === 'wiki') {          // 회계위키 MCP(https://accountingwiki.co.kr/api/mcp — 인증 없이 무료, 조회 전용). 출처 표기는 화면이 한다
+      need_(WIKI_TOOLS.indexOf(String(p.tool || '')) >= 0, '허용하지 않는 회계위키 도구입니다.');
+      return out_({ ok: true, data: wikiCall_(String(p.tool), p.args && typeof p.args === 'object' ? p.args : {}) });
+    }
+    if (p.op === 'kasb') {          // 회계기준원 회계기준열람서비스(db.kasb.or.kr) REST — 공개 조회만(목차·조문 전문)
+      need_(KASB_PATH.test(String(p.path || '')), '허용하지 않는 주소입니다(기준서 목차·조문만).');
+      return out_({ ok: true, data: kasbGet_(String(p.path)) });
+    }
+    if (p.op === 'ai') {            // 구글 AI Studio(Gemini) — 열람 암호가 있는 사람만(API 키 사용량 보호). 키는 스크립트 속성 GEMINI_API_KEY
+      need_(role_(props, p.pass, p.email) !== '', '열람 암호가 맞지 않습니다.');
+      return out_({ ok: true, data: geminiCall_(props, p) });
     }
     if (p.op === 'auth') {
       const who = role_(props, p.pass, p.email);
@@ -201,6 +216,132 @@ function find_(folder, name) {
 }
 /* 편집기에서 한 번 실행하면 드라이브 권한을 미리 승인하고 폴더를 만든다(선택) */
 function setupFolder() { Logger.log(folder_(PropertiesService.getScriptProperties()).getUrl()); }
+
+/* ── 회계위키 · 회계기준원 · Gemini 도우미 (2026-11-27) ─────────────────────────────────────────────── */
+const WIKI_URL = 'https://accountingwiki.co.kr/api/mcp';
+const WIKI_TOOLS = ['search', 'find_evidence', 'fetch', 'get_paragraphs', 'get_standard', 'get_qna', 'list_standards', 'get_related', 'get_topic', 'list_audit_cases', 'verify_quote', 'check_citations'];
+const KASB_PATH = /^\/api\/(standard-indexes\/\d{1,5}|paragraphs\/\d{1,5}\/[A-Za-z0-9_-]{1,40})(\?searchWord=[^&#\s]{0,60})?$/;
+const AI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-2.5-pro'];
+const AI_MAX_FILE = 18 * 1024 * 1024, AI_MAX_FILES = 6;     // PROMPT 스크립트와 같은 상한(파일당 18MB · 6개)
+const MAX_PROMPT = 150000;               // 글자 — 한 번에 보내는 상한
+
+function cacheGet_(k) { try { return CacheService.getScriptCache().get(k); } catch (e) { return null; } }
+function cachePut_(k, v, sec) { try { if (v.length < 90000) CacheService.getScriptCache().put(k, v, sec); } catch (e) { /* 캐시는 덤 */ } }
+function md5_(t) { return Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, t, Utilities.Charset.UTF_8)).replace(/[^A-Za-z0-9]/g, ''); }
+
+/** 회계위키 MCP 도구 호출 → 도구가 돌려준 글(대개 JSON 글). 같은 질문은 6시간 캐시 */
+function wikiCall_(tool, args) {
+  const ck = 'wiki:' + md5_(tool + JSON.stringify(args));
+  const hit = cacheGet_(ck);
+  if (hit) return JSON.parse(hit);
+  const r = UrlFetchApp.fetch(WIKI_URL, { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { Accept: 'application/json, text/event-stream', 'User-Agent': UA },
+    payload: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: tool, arguments: args } }) });
+  need_(r.getResponseCode() === 200, '회계위키 응답 ' + r.getResponseCode());
+  const raw = r.getContentText('UTF-8');
+  const m = raw.match(/^data:\s*(\{[\s\S]*\})\s*$/m) || raw.match(/(\{[\s\S]*\})/);
+  need_(m, '회계위키 응답을 읽지 못했습니다.');
+  const msg = JSON.parse(m[1]);
+  need_(!msg.error, '회계위키: ' + String((msg.error && msg.error.message) || '오류'));
+  const res = msg.result || {};
+  const text = (res.content || []).map(function (c) { return c && c.text ? c.text : ''; }).join('\n');
+  const out = { text: text, structured: res.structuredContent || null, isError: !!res.isError };
+  cachePut_(ck, JSON.stringify(out), 21600);
+  return out;
+}
+
+/** 회계기준원 열람서비스 REST(공개) — 목차·조문 전문. 1일 캐시 */
+function kasbGet_(path) {
+  const ck = 'kasb:' + md5_(path);
+  const hit = cacheGet_(ck);
+  if (hit) return JSON.parse(hit);
+  const r = UrlFetchApp.fetch('https://db.kasb.or.kr' + path, { muteHttpExceptions: true, headers: { 'User-Agent': UA, Accept: 'application/json' } });
+  need_(r.getResponseCode() === 200, '회계기준원 응답 ' + r.getResponseCode());
+  const out = JSON.parse(r.getContentText('UTF-8'));
+  cachePut_(ck, JSON.stringify(out), 86400);
+  return out;
+}
+
+/** Gemini(구글 AI Studio) — PROMPT 스크립트(업종별 감사보고서 분석기)와 같은 방식: 스크립트 속성 GEMINI_API_KEY(+ 선택 GEMINI_MODEL),
+ *  첨부는 PDF·이미지는 원본(inlineData), 텍스트·CSV·XLSX 는 글로 풀어 본문에 붙인다.
+ *  { prompt, system?, json?, model?, temperature?, files?: [{ name, mimeType, base64 | text }] } → { text, model, usage } */
+function geminiCall_(props, p) {
+  const key = props.getProperty('GEMINI_API_KEY');
+  need_(key, '중계에 AI Studio API 키가 없습니다(스크립트 속성 GEMINI_API_KEY).');
+  const prompt = String(p.prompt || '');
+  need_(prompt.length >= 5 && prompt.length <= MAX_PROMPT, '질문이 비었거나 너무 깁니다(' + prompt.length + '자, ' + MAX_PROMPT + '자까지).');
+  const want = String(p.model || '').trim() || props.getProperty('GEMINI_MODEL') || AI_MODELS[0];
+  const model = AI_MODELS.indexOf(want) >= 0 ? want : AI_MODELS[0];
+  const parts = [{ text: prompt }];
+  const files = Array.isArray(p.files) ? p.files : [];
+  need_(files.length <= AI_MAX_FILES, '첨부는 ' + AI_MAX_FILES + '개까지입니다.');
+  files.forEach(function (f) {
+    need_(f && f.name, '첨부파일 정보가 올바르지 않습니다.');
+    const fp = geminiFilePart_(f);
+    if (fp.inlineData) parts.push({ inlineData: fp.inlineData });
+    if (fp.text) parts.push({ text: fp.text });
+  });
+  const body = { contents: [{ role: 'user', parts: parts }],
+    generationConfig: { temperature: typeof p.temperature === 'number' ? Math.min(Math.max(p.temperature, 0), 1) : 0.2, maxOutputTokens: 16384 } };
+  if (p.system) body.systemInstruction = { parts: [{ text: String(p.system).slice(0, 20000) }] };
+  if (p.json) body.generationConfig.responseMimeType = 'application/json';
+  const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', { method: 'post', contentType: 'application/json',
+    muteHttpExceptions: true, headers: { 'x-goog-api-key': key }, payload: JSON.stringify(body) });
+  const code = r.getResponseCode();
+  let j = {};
+  try { j = JSON.parse(r.getContentText('UTF-8') || '{}'); } catch (e) { need_(false, 'AI 응답을 해석하지 못했습니다(HTTP ' + code + ').'); }
+  need_(code === 200, 'AI Studio 응답 ' + code + ': ' + String((j.error && (j.error.message || j.error.type)) || '').slice(0, 200));
+  const cand = (j.candidates || [])[0] || {};
+  const text = ((cand.content || {}).parts || []).map(function (x) { return x.text || ''; }).join('\n').trim();
+  need_(text, 'AI 가 답을 만들지 못했습니다(' + String(cand.finishReason || (j.promptFeedback && j.promptFeedback.blockReason) || '') + ').');
+  return { text: text, model: model, usage: j.usageMetadata || null };
+}
+
+/** 첨부 한 개 → Gemini 요청 조각 (PROMPT 스크립트 prepareGeminiFilePart_ 와 같은 규칙) */
+function geminiFilePart_(f) {
+  const name = String(f.name || '첨부파일'), mime = String(f.mimeType || '').toLowerCase(), lower = name.toLowerCase();
+  if (typeof f.text === 'string' && f.text) return { text: fileText_(name, f.text) };                          // 브라우저가 이미 글로 푼 것(엑셀 표 등)
+  need_(f.base64, name + ': 내용이 비었습니다.');
+  need_(String(f.base64).length * 0.75 <= AI_MAX_FILE, name + ' 파일이 18MB 를 넘습니다.');
+  if (mime === 'application/pdf' || mime.indexOf('image/') === 0) return { inlineData: { mimeType: f.mimeType, data: f.base64 } };
+  if (mime.indexOf('text/') === 0 || /\.(txt|csv)$/.test(lower)) return { text: fileText_(name, Utilities.newBlob(Utilities.base64Decode(f.base64)).getDataAsString('UTF-8')) };
+  if (/\.xlsx$/.test(lower) || mime === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') return { text: fileText_(name, extractXlsxText_(f)) };
+  return { text: '[첨부파일 처리 안내]\n' + name + '\n- 이 형식(' + (f.mimeType || '알 수 없음') + ')은 AI 에 직접 붙일 수 없어 본문에서 뺐습니다. PDF·이미지·TXT·CSV·XLSX 로 바꿔 올려 주세요.' };
+}
+function fileText_(name, text) {
+  const limit = 180000, v = String(text || '').trim();
+  return '[첨부파일 텍스트: ' + name + ']\n' + (v.length > limit ? v.slice(0, limit) + '\n...[길어서 앞부분 ' + limit + '자만 포함]' : v || '(추출된 텍스트 없음)');
+}
+/* XLSX → 글 (PROMPT 스크립트의 extractXlsxText_ 와 같은 방법: zip 을 풀어 sharedStrings·sheet XML 을 읽는다) */
+function extractXlsxText_(f) {
+  try {
+    const blobs = Utilities.unzip(Utilities.newBlob(Utilities.base64Decode(f.base64 || ''), f.mimeType, f.name));
+    const map = {};
+    blobs.forEach(function (b) { map[b.getName()] = b.getDataAsString('UTF-8'); });
+    const shared = [];
+    (String(map['xl/sharedStrings.xml'] || '').match(/<si[\s\S]*?<\/si>/g) || []).forEach(function (si) {
+      shared.push((si.match(/<t[^>]*>[\s\S]*?<\/t>/g) || []).map(function (t) { return xmlDecode_(t.replace(/<[^>]+>/g, '')); }).join(''));
+    });
+    const out = [];
+    Object.keys(map).filter(function (n) { return /^xl\/worksheets\/sheet\d+\.xml$/i.test(n); }).sort().slice(0, 8).forEach(function (sn, idx) {
+      out.push('\n[Sheet ' + (idx + 1) + ': ' + sn + ']');
+      const rows = [];
+      (String(map[sn] || '').match(/<row[\s\S]*?<\/row>/g) || []).slice(0, 3000).forEach(function (rowXml) {
+        const cells = (rowXml.match(/<c[\s\S]*?<\/c>/g) || []).map(function (c) {
+          const type = ((c.match(/\st="([^"]+)"/) || [])[1] || '').trim();
+          const vm = c.match(/<v[^>]*>([\s\S]*?)<\/v>/), im = c.match(/<t[^>]*>([\s\S]*?)<\/t>/);
+          let v = vm ? vm[1] : (im ? im[1] : '');
+          if (type === 's') v = shared[Number(v)] || '';
+          return xmlDecode_(String(v).replace(/<[^>]+>/g, ''));
+        });
+        if (cells.some(function (x) { return String(x).trim(); })) rows.push(cells.join('\t'));
+      });
+      out.push(rows.join('\n'));
+    });
+    return out.join('\n');
+  } catch (e) { return '[XLSX 글 추출 실패] ' + e.message + ' — CSV 또는 PDF 로 바꿔 다시 올려 주세요.'; }
+}
+function xmlDecode_(t) { return String(t || '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&'); }
 
 function fetch_(path, params) {
   const r = UrlFetchApp.fetch(OPENDART + path + '?' + qs_(params), { muteHttpExceptions: true, followRedirects: true });

@@ -255,6 +255,8 @@ details.qs-fold > div { padding: 0 14px 14px; }
 /* 일정표 아래 간격(사용자 지정 2026-10-15) */
 .qs-sched-card { padding-bottom: 20px; margin-bottom: 24px; }
 /* 초기화 — 맨 오른쪽, 눈에 띄게(사용자 지정 2026-10-15) */
+.qs-checkpoint { border-color: #7fbfb8; color: #0f766e; font-weight: 700; background: #f0fbf9; }
+.qs-checkpoint:hover { background: #dff5f1; border-color: #0f766e; color: #115e59; }
 .qs-reset { border-color: #e57373; color: #c62828; font-weight: 700; }
 .qs-reset:hover { background: #fdecec; border-color: #c62828; color: #b71c1c; }
 .em-blue { color: #1E4FD8; font-weight: 800; }

@@ -33,6 +33,7 @@
         <button class="qs-tab is-on" role="tab" data-tab="recon" aria-selected="true">제출자료 대사</button>
         <button class="qs-tab" role="tab" data-tab="pick" aria-selected="false">개별선정</button>
         <button class="qs-tab" id="sendCreport" type="button" hidden disabled title="개별선정에서 회사를 체크하면 켜집니다">신용정보 조회로 보내기</button>
+        <a class="qs-tab qs-tab-new" href="./total_new.html" title="기존 제출자료 대사에 감사보고서(DART)·AI·기준서 참고를 더한 새 화면(별도 페이지)">제출자료 대사(New)</a>
         <button class="qs-tab qs-tab-draft" role="tab" data-tab="draft" aria-selected="false" title="법인 조회에서 [심의안에 반영 →]으로 넘긴 회계법인으로 심의안 초안·서식·조서·한글 서류를 만듭니다">심의안 초안 작성</button>
       </nav>
     </div>
@@ -101,6 +102,7 @@
     </article>
   </main>
 
+
   <!-- ② 제출자료 대사(통합) — 위 한 줄(회계법인 찾기 · 사업보고서 · 사업연도 · 대사 실행 · 엑셀) → 왼쪽 회계법인 관련 자료 · 오른쪽 대사할 자료 → ① 회계법인 ② 매출장(독립성) ③ 오류·체크포인트 -->
   <main id="tab-recon" class="qs-pane">
     <section class="qs-card rv-in">
@@ -152,6 +154,7 @@
       <select id="recentSel" class="qs-select qs-recent" hidden title="이 컴퓨터에만 저장된 최근 사전제출자료(서버에는 남기지 않음)"></select>
       <!-- 올리면 그 회계법인의 감사인감리 요약 한 줄(일정·배정 엑셀 + DART 분사무소) — 사용자 지정 2026-10-15 -->
       <span id="pickName" class="qs-muted qs-brief">회계법인 사전제출자료(엑셀)를 올려 주세요. 파일은 서버에 남기지 않습니다.</span>
+      <button id="checkpointBtn" class="qs-btn qs-checkpoint" type="button" hidden>checkpoint</button>
       <button id="resetAll" class="qs-btn qs-reset" type="button" title="슬라이서·선택·선정 회사를 처음 상태로">초기화</button>
     </section>
     <!-- 대상 회계법인·명부 단추는 관리자가 관리자설정을 연 동안만(사용자 지정 2026-10-15) -->

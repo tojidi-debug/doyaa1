@@ -226,7 +226,9 @@ async function showPresubmit(fileName, { fresh = false, file = null } = {}) {
       units.forEach((u) => periodLines.push({ ...mk(`${u}개월단위 결산 ${byUnit.get(u).length}개사`, byUnit.get(u), unitOf), suffix: {} }));
     }
   }
-  if (fresh && (c['위반의심'] || c['중점확인'] || periodLines.length)) {
+  const hasNotice = !!(c['위반의심'] || c['중점확인'] || periodLines.length);
+  /* 중요 체크포인트 알림창 — 새로 올렸을 때 한 번, 그리고 [checkpoint] 단추로 언제든 다시(사용자 지정 2026-11-13) */
+  const showNotice = () => {
     const top = ((d.checks && d.checks.items) || []).filter((i) => i.level === '위반의심' || i.level === '중점확인');
     const kinds = new Map();
     top.forEach((i) => { const k = kinds.get(i.title) || []; k.push(i); kinds.set(i.title, k); });
@@ -299,7 +301,11 @@ async function showPresubmit(fileName, { fresh = false, file = null } = {}) {
         }
       });
     }, 50);
-  }
+  };
+  state.checkpointShow = showNotice;       // 불러온 자료(올린 것·최근 자료)의 체크포인트를 다시 열 수 있게
+  state.checkpointHas = hasNotice;
+  syncCheckpointButton();
+  if (fresh && hasNotice) showNotice();
   $('slicerArea').hidden = $('resultArea').hidden = false;
   if (file && !state.recon.files.some((f) => f === file)) state.recon.files.unshift(file);
   state.recon.last = { result: d, files: [{ name: fileName, kind: '엑셀', found: [d.sheet, ...Object.values(d.others || {}).map((o) => o.sheet)] }] };
@@ -814,6 +820,17 @@ function renderStatus() {
     <tbody>${t.rows.map((x) => tr(x, x.pick && x.name !== '기타' ? 'is-pref' : '')).join('')}${tr(t.total, 'is-total')}</tbody>`;
   $('statusTable').dataset.tsv = [['구분', '모집단구성수', '표본선정수', '선정률(%)'], ...t.rows.map((x) => [x.name, x.pop || '-', x.pick || '-', x.rate]),
     [t.total.name, t.total.pop, t.total.pick, t.total.rate]].map((r) => r.join('\t')).join('\n');
+}
+
+/* [checkpoint] — 올려 둔(또는 이 컴퓨터에 저장된 최근) 회계법인 자료의 중요 체크포인트를 언제든 다시 본다. 「초기화」 바로 앞 */
+function syncCheckpointButton() {
+  const b = $('checkpointBtn'); if (!b) return;
+  const has = !!state.data && !!state.checkpointShow;
+  b.hidden = !state.data;
+  b.disabled = !has;
+  b.title = !state.data ? '' : has ? '이 회계법인 사전제출자료의 중요 체크포인트를 다시 봅니다' : '이 자료에는 중요 체크포인트가 없습니다';
+  const n = state.data && state.data.checks && state.data.checks.summary;
+  b.textContent = n && (n['위반의심'] || n['중점확인']) ? `checkpoint ${n['위반의심'] + n['중점확인']}` : 'checkpoint';
 }
 
 /* [신용정보 조회로 보내기] — GitHub(정적) 사이트에서만(QC/creport 가 있다). 체크한 회사가 있을 때만 켠다(사용자 지정 2026-11-12: 통합 화면에도) */
@@ -1805,6 +1822,7 @@ function reviewWire() {
   $('revRun').addEventListener('click', runReview);
   $('revXlsx').addEventListener('click', downloadReview);
   $('revOut').addEventListener('click', onReviewClick);
+  $('revOut').addEventListener('toggle', (e) => { if (e.target.id === 'rvAllDetail') state.rev.detailOpen = e.target.open; }, true);
 }
 
 /* 대사 결과를 엑셀로(사용자 지정 2026-11-12) — 화면이 가진 결과를 그대로 보내 표로 정리해 받는다(서버에 남기지 않음) */
@@ -1853,7 +1871,7 @@ async function runReview() {
       $('revState').textContent = '';
       const hint = firm ? { corp_code: firm.corp_code, corp_name: firm.corp_name } : { corp_name: $('firmQ').value.trim() || guessFirmFrom((state.rev.check[0] || {}).name || '') };
       Project.saveReview(state.rev.last, hint).catch(() => {});
-    } catch (e) { $('revState').textContent = ''; showAlert(e.message, { title: '제출자료 대사' }); }
+    } catch (e) { $('revState').textContent = ''; console.error('제출자료 대사', e); showAlert(e.message, { title: '제출자료 대사' }); }
   });
 }
 
@@ -1882,6 +1900,21 @@ function onReviewClick(e) {
   if (tg) { e.preventDefault(); const tr = tg.closest('tr').nextElementSibling; tr.hidden = !tr.hidden; tg.closest('tr').classList.toggle('is-open', !tr.hidden); return; }
   const go = t.closest('[data-gotab]');
   if (go) { e.preventDefault(); document.querySelector(`.qs-tab[data-tab="${go.dataset.gotab}"]`)?.click(); return; }
+  const rs = t.closest('[data-rs]');
+  if (rs) {
+    e.preventDefault(); const k = rs.dataset.rs;
+    if (k === 'more') { const sp = rs.previousElementSibling; const open = sp.dataset.open === '1'; sp.textContent = open ? sp.dataset.short : sp.dataset.full; sp.dataset.open = open ? '' : '1'; rs.textContent = open ? (sp.dataset.short ? '전체 ▾' : '회사 전체 ▾') : '접기 ▴'; return; }
+    if (k === 'days') { const box = rs.nextElementSibling; box.hidden = !box.hidden; rs.textContent = box.hidden ? '회사별 상세 ▾' : '회사별 상세 ▴'; return; }
+    if (k === 'xlsx') { downloadReview(); return; }
+    if (k === 'copy') {
+      const rv = state.rev.last; const text = summaryText(rv), html = summaryHtml(rv);
+      const done = () => toast('요약을 복사했습니다 — 엑셀·워드·한글에 붙여 넣으세요.');
+      const fail = () => navigator.clipboard.writeText(text).then(done).catch(() => showAlert('복사하지 못했습니다.', { title: '요약 복사' }));
+      if (window.ClipboardItem && navigator.clipboard.write) navigator.clipboard.write([new ClipboardItem({ 'text/plain': new Blob([text], { type: 'text/plain' }), 'text/html': new Blob([html], { type: 'text/html' }) })]).then(done).catch(fail);
+      else fail();
+      return;
+    }
+  }
   const cp = t.closest('[data-copy]');
   if (cp) {
     const out = (state.rev.last || {}).out || {};
@@ -2098,13 +2131,86 @@ function filesFold(out) {
     </div></details></section>` : '';
 }
 
+/* ── 점검 요약표(중요도 순) — 서버가 만든 out.tables.summary(services/qc_review_summary)를 그린다(사용자 지정 2026-11-13) ──
+   「체크 항목 | 대상 회사·건수 | 자료 위치」 한 장 — 항목마다 한 줄, 회사는 쉼표로. 복사·엑셀 아이콘은 같은 표를 그대로 내보낸다. */
+const ICON_COPY = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>';
+const ICON_XLSX = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/></svg>';
+
+/* 회계법인 정보(맨 위에 늘 먼저): 대표이사 · 품질관리실장 · 손해배상준비금 적립 검증 */
+function firmInfo(rv) {
+  const p = rv.firm && rv.firm.profile;
+  if (!p) return [['대표이사', '-'], ['품질관리실장', '-'], ['손해배상준비금', '회계법인을 고르고 사업보고서를 연결하면 대표이사·품질관리실장·손해배상준비금 적립 검증이 나옵니다.', null]];
+  const g = p.general || {}, rc = p.reserve_check;
+  const rows = [['대표이사', g.ceo || '-'], ['품질관리실장', (g.qc_head || '-') + (g.qc_head_source ? ` (${g.qc_head_source})` : '')]];
+  if (!rc) rows.push(['손해배상준비금', '검증 전 — 회계법인 조회에서 [내역 보기]로 사업보고서를 다시 읽으면 검증됩니다.', null]);
+  else rows.push(['손해배상준비금', rc.summary + (rc.issues && rc.issues.length ? `\n${rc.issues.map((x) => `· ${x}`).join('\n')}` : ''), rc.status, rc]);
+  return rows;
+}
+
+const sumLine = (r, full = false) => [r.lead, full && r.full ? r.full : r.text].filter(Boolean).join(' ');
+function summaryRows(sm, full) {   // 복사·화면 공통 — [{no,title,body,sheets,sub}]
+  return (sm.table || []).map((r) => (r.divider ? { divider: r.divider } : {
+    no: r.no, title: r.title, body: [sumLine(r, full), ...(r.lines || [])].filter(Boolean).join(' / '), sheets: r.sheets || '',
+    sub: (r.sub || []).map((x) => ({ label: x.label, body: [sumLine(x, full), ...(x.lines || [])].filter(Boolean).join(' / ') })) }));
+}
+function summaryText(rv) {
+  const out = rv.out || {}, sm = (out.tables || {}).summary; if (!sm) return '';
+  const firm = rv.firm ? (rv.firm.profile && rv.firm.profile.corp_name) || rv.firm.corp_name : '';
+  const L = [`[제출자료 대사 점검 요약]\t${firm || ''}${out.fy ? ` · 당기 FY${out.fy}` : ''}`];
+  for (const [k, v] of firmInfo(rv)) L.push(`${k}\t${String(v).replace(/\n/g, ' ')}`);
+  L.push('', ['번호', '체크 항목', '대상 회사·건수', '자료 위치'].join('\t'));
+  for (const r of summaryRows(sm, true)) {
+    if (r.divider) { L.push(`\t${r.divider}`); continue; }
+    L.push([r.no, r.title, r.body, r.sheets].join('\t'));
+    for (const x of r.sub) L.push(['', `  └ ${x.label}`, x.body, ''].join('\t'));
+  }
+  for (const d of sm.details || []) { L.push('', d.title, d.head.join('\t')); for (const x of d.rows) L.push(x.join('\t')); }
+  if ((sm.notes || []).length) L.push('', ...sm.notes);
+  return L.join('\n');
+}
+function summaryHtml(rv) {
+  const out = rv.out || {}, sm = (out.tables || {}).summary; if (!sm) return '';
+  const td = 'border:1px solid #bbb;padding:3px 6px;font-size:10pt;vertical-align:top';
+  const head = firmInfo(rv).map(([k, v]) => `<tr><th style="${td};background:#eef2f7;text-align:left">${esc(k)}</th><td style="${td}" colspan="3">${esc(v).replace(/\n/g, '<br>')}</td></tr>`).join('');
+  const body = summaryRows(sm, true).map((r) => (r.divider ? `<tr><td colspan="4" style="${td};background:#eef2f7"><b>${esc(r.divider)}</b></td></tr>`
+    : `<tr><td style="${td}">${r.no}</td><td style="${td}"><b>${esc(r.title)}</b></td><td style="${td}">${esc(r.body)}</td><td style="${td}">${esc(r.sheets)}</td></tr>`
+      + r.sub.map((x) => `<tr><td style="${td}"></td><td style="${td}">└ ${esc(x.label)}</td><td style="${td}">${esc(x.body)}</td><td style="${td}"></td></tr>`).join(''))).join('');
+  const det = (sm.details || []).map((d) => `<p><b>${esc(d.title)}</b></p><table style="border-collapse:collapse"><tr>${d.head.map((h) => `<th style="${td};background:#eef2f7">${esc(h)}</th>`).join('')}</tr>${d.rows.map((x) => `<tr>${x.map((c) => `<td style="${td}">${esc(c)}</td>`).join('')}</tr>`).join('')}</table>`).join('');
+  return `<table style="border-collapse:collapse;font-family:'Noto Sans KR','Malgun Gothic',sans-serif">${head}<tr>${['번호', '체크 항목', '대상 회사·건수', '자료 위치'].map((h) => `<th style="${td};background:#1f3a5f;color:#fff">${h}</th>`).join('')}</tr>${body}</table>${det}${(sm.notes || []).map((n) => `<p style="font-size:10pt">${esc(n)}</p>`).join('')}`;
+}
+function summaryCard(rv) {
+  const out = rv.out || {}, sm = (out.tables || {}).summary;
+  if (!sm) return '';
+  const info = firmInfo(rv).map(([k, v, st, rc]) => `<div class="rs-info"><b>${esc(k)}</b><span class="${st === 'issue' ? 'bad' : st === 'ok' ? 'good' : ''}">${esc(String(v).split('\n')[0])}</span>${
+    String(v).includes('\n') ? `<ul>${String(v).split('\n').slice(1).map((x) => `<li>${esc(x.replace(/^· /, ''))}</li>`).join('')}</ul>` : ''}${
+    rc && rc.basis ? `<small class="qs-muted" title="공인회계사법 제28조제1항 · 시행령 제20조 — 직전 2개 사업연도와 당해 사업연도 총 매출액 평균의 10%에 달할 때까지 당해 사업연도 총 매출액의 2%를 매 사업연도 적립">${esc(rc.basis)} (백만원)</small>` : ''}</div>`).join('');
+  const names = (r) => ((r.text || r.full) ? `<span class="rs-names" ${r.full ? `data-full="${esc(r.full)}" data-short="${esc(r.text || '')}"` : ''}>${esc(r.text || '')}</span>${r.full ? ` <a href="#" class="rs-more" data-rs="more">${r.text ? '전체' : '회사 전체'} ▾</a>` : ''}` : '');
+  const cell = (r) => `${r.lead ? `<b>${esc(r.lead)}</b> ` : ''}${names(r)}${(r.lines || []).map((x) => `<div>${esc(x)}</div>`).join('')}`;
+  const rows = sm.table.map((r) => {
+    if (r.divider) return `<tr class="rs-div"><td colspan="4">${esc(r.divider)}</td></tr>`;
+    const days = r.days_detail ? ` <a href="#" class="rs-more" data-rs="days">회사별 상세 ▾</a><div class="rs-days" hidden><table><thead><tr><th>회사</th><th>구분</th><th>감사보고서일</th><th>취합완료일</th><th>경과일수</th></tr></thead><tbody>${
+      r.days_detail.map((x) => `<tr><td>${esc(displayName(x.company))}</td><td>${esc(x.part)}</td><td>${esc(x.base)}</td><td>${esc(x.collect)}</td><td class="num">${x.days}일</td></tr>`).join('')}</tbody></table></div>` : '';
+    const subs = (r.sub || []).map((x) => `<tr class="rs-sub"><td></td><td>└ ${esc(x.label)}</td><td>${cell(x)}</td><td></td></tr>`).join('');
+    return `<tr class="rs-row"><td class="no">${r.no}</td><td class="ti"><span class="gr gr-${esc(r.grade)}">${esc(r.grade)}</span> <b>${esc(r.title)}</b>${r.basis ? `<div class="rs-basis">${esc(r.basis)}</div>` : ''}</td><td class="tg">${cell(r)}${days}</td><td class="sh">${esc(r.sheets || '')}</td></tr>${subs}`;
+  }).join('');
+  const det = (sm.details || []).map((d) => `<h3 class="qs-sub">${esc(d.title)}</h3><table class="rs-table rs-det"><colgroup><col style="width:22%"><col></colgroup><thead><tr>${d.head.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${d.rows.map((x) => `<tr class="rs-row"><td>${esc(x[0])}</td><td>${esc(x[1])}</td></tr>`).join('')}</tbody></table>`).join('');
+  const empty = sm.table.length ? '' : '<p class="qs-muted">점검에서 걸린 항목이 없습니다.</p>';
+  return `<section class="qs-card rv-sec rs-card"><div class="qs-card-head"><h2>점검 요약 <span class="qs-muted">— 중요도 순</span></h2><span class="qs-grow"></span>
+      <button type="button" class="rs-ic" data-rs="copy" title="이 요약을 한꺼번에 복사 — 엑셀·워드·한글에 붙여넣기">${ICON_COPY}</button>
+      <button type="button" class="rs-ic" data-rs="xlsx" title="엑셀 다운로드(첫 시트 = 이 요약, 나머지는 자료 비교·일치·매출장 상세)">${ICON_XLSX}</button></div>
+    <div class="rs-infos">${info}</div>${empty}
+    ${sm.table.length ? `<table class="rs-table"><colgroup><col style="width:4%"><col style="width:25%"><col><col style="width:15%"></colgroup><thead><tr><th class="no">#</th><th>체크 항목</th><th>대상 회사·건수</th><th>자료 위치</th></tr></thead><tbody>${rows}</tbody></table>` : ''}
+    ${det}${(sm.notes || []).map((n) => `<p class="rs-note">${esc(n)}</p>`).join('')}</section>`;
+}
+
 function renderReview(rv, restored = false) {
   if (!rv) return;
   const out = rv.out || {};
   const box = $('revOut');
   box.hidden = false;
   box.innerHTML = `${restored ? `<p class="qs-muted qs-small rv-restored">이 컴퓨터에 저장된 마지막 대사 결과입니다(${esc(Project.when(rv.saved))}). 자료는 저장하지 않으므로, 다시 맞춰 보려면 자료를 올리고 [대사 실행]을 누르세요.</p>` : ''}
-    ${firmSection(rv)}${salesSection(out)}${issuesSection(out)}${filesFold(out)}`;
+    ${out.tables && out.tables.summary ? `${summaryCard(rv)}${firmSection(rv)}${salesSection(out)}<details class="qs-fold rs-all" id="rvAllDetail" ${state.rev.detailOpen ? 'open' : ''}><summary>전체 항목 상세 — 등급·항목별 / 회사별 / 자료 비교 표</summary><div>${issuesSection(out)}</div></details>`
+      : `${firmSection(rv)}${salesSection(out)}${issuesSection(out)}`}${filesFold(out)}`;
   if ($('revXlsx')) $('revXlsx').disabled = false;
 }
 
@@ -2764,6 +2870,7 @@ async function start() {
   document.querySelectorAll('.qs-tab[data-tab]').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
   if (window.QC_STATIC && $('sendCreport')) { $('sendCreport').hidden = false; $('sendCreport').addEventListener('click', sendCreport); syncSendButton(); }
   $('pickFile').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) loadPresubmit(f); e.target.value = ''; });
+  if ($('checkpointBtn')) $('checkpointBtn').addEventListener('click', () => { if (state.checkpointShow) state.checkpointShow(); });
   $('recentSel').addEventListener('change', onRecentChange);
   $('pickSave').addEventListener('click', savePicks);
   $('pickDel').addEventListener('click', deletePicks);

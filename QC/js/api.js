@@ -23,6 +23,9 @@ async function firms(q) {
 /* ── 전자공시 중계 ── */
 const relayUrl = () => { let v = ''; try { v = localStorage.getItem('qc.relay') || ''; } catch { /* */ } return v || window.QC_RELAY || ''; };
 export const hasRelay = () => !!relayUrl();
+/* 심사·조서 검토(2026-11-27) — 중계의 새 기능(wiki · kasb · ai)과 전자공시 원문. 열람 암호가 있으면 함께 보낸다 */
+export const relayCall = (payload) => relayPost({ ...payload, ...(payload.op === 'ai' ? creds() : {}) });
+export const dartDocZip = async (rcept) => (await relay({ op: 'doc', rcept_no: rcept })).b64;
 export const dartCompany = async (corp) => (await relay({ op: 'company', corp_code: corp })).data || {};   // 전자공시 기업개황(신용정보 조회로 보낼 때 사업자번호 찾기 — qc_creport_send.js)
 async function relay(params) {
   const url = relayUrl(); if (!url) throw only('전자공시 조회(중계 주소 없음)');
@@ -183,9 +186,11 @@ const adminCreds = () => ({ pass: getPass(), email: getEmail() });
 const creds = () => (getEmail() && getPass() ? adminCreds() : { pass: getView(), email: '' });
 /* 중계가 응답하지 않으면 화면이 통째로 멈춘다 — 20초면 끊고 오류로 돌려준다(2026-11-24) */
 const RELAY_WAIT = 20000;
+/* 전자공시 원문(doc)·검색(dsab)·AI 는 중계가 오래 걸릴 수 있다(원문 15~90초) — 이런 호출만 더 기다린다(2026-11-27). 나머지(암호 확인 등)는 20초 */
+const RELAY_WAIT_OP = { doc: 120000, api: 120000, web: 120000, dsab: 150000, store_get: 60000, store_list: 60000, wiki: 60000, kasb: 40000, ai: 150000 };
 async function relayPost(payload) {
   const url = relayUrl(); if (!url) throw new ApiError(503, '전자공시 중계(구글 Apps Script) 주소가 없습니다(qc/static/relay_config.js).');
-  const ac = new AbortController(); const timer = setTimeout(() => ac.abort(), RELAY_WAIT);
+  const ac = new AbortController(); const timer = setTimeout(() => ac.abort(), RELAY_WAIT_OP[payload.op] || RELAY_WAIT);
   let r;
   try { r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload), redirect: 'follow', signal: ac.signal }); }
   catch (e) { throw new ApiError(502, ac.signal.aborted ? '중계(구글 Apps Script)가 제때 응답하지 않았습니다.' : `중계(구글 Apps Script)에 연결하지 못했습니다: ${e.message || e}`); }

@@ -114,3 +114,42 @@ body:has(#tab-ws:not([hidden])) { height: 100vh; overflow: hidden; }
 .rv-legend { margin: 2px 0 8px; font-size: 11.5px; color: #475569; line-height: 1.7; }
 .rv-legend b { color: var(--qs-navy); margin-right: 2px; }
 .rv-legend span { display: inline-block; margin-right: 12px; }
+
+/* 점검 요약표(중요도 순) — 항목마다 한 줄, 마우스를 올리면 행 색이 살짝 달라진다(사용자 지정 2026-11-13) */
+.rs-card .qs-card-head h2 { font-size: 16px; }
+.rs-ic { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 1px solid #c9d8e5; border-radius: 8px; background: #fff; color: #334155; cursor: pointer; }
+.rs-ic:hover { background: #eef5fb; border-color: var(--qs-primary); color: var(--qs-primary-d); }
+.rs-infos { margin: 2px 0 10px; border: 1px solid var(--qs-line); border-radius: 8px; background: #fbfdff; }
+.rs-info { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 6px 12px; font-size: 13px; border-bottom: 1px solid #eef2f6; }
+.rs-info:last-child { border-bottom: 0; }
+.rs-info > b { flex: 0 0 96px; color: var(--qs-navy); }
+.rs-info > span.good { color: var(--lv-ok); font-weight: 700; }
+.rs-info > span.bad { color: var(--lv-violation); font-weight: 700; }
+.rs-info ul { flex: 1 0 100%; margin: 2px 0 2px 106px; padding-left: 16px; font-size: 12.5px; color: #334155; }
+.rs-info small { flex: 1 0 100%; margin-left: 106px; font-size: 11.5px; }
+.rs-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 13px; }
+.rs-table th { background: #f3f6fa; color: #334155; font-weight: 700; text-align: left; padding: 7px 10px; border-bottom: 1px solid #d9e1ea; }
+.rs-table td { padding: 8px 10px; border-bottom: 1px solid #edf1f5; vertical-align: top; line-height: 1.6; word-break: keep-all; overflow-wrap: anywhere; }
+.rs-table td.no, .rs-table th.no { text-align: center; color: #94a3b8; }
+.rs-table td.sh { font-size: 12px; color: #64748b; }
+.rs-table tbody tr.rs-row:hover td, .rs-table tbody tr.rs-sub:hover td { background: #f1f6fc; }
+.rs-table tr.rs-sub td { padding-top: 3px; padding-bottom: 5px; font-size: 12.5px; }
+.rs-table tr.rs-sub td:nth-child(2) { color: #64748b; padding-left: 22px; }
+.rs-table tr.rs-div td { background: #eef2f7; color: var(--qs-navy); font-weight: 700; font-size: 12px; padding: 6px 10px; }
+.rs-basis { margin-top: 2px; font-size: 11.5px; font-weight: 400; color: #6b7684; }
+.rs-more { font-size: 11.5px; color: #1e4fd8; text-decoration: none; white-space: nowrap; }
+.rs-more:hover { text-decoration: underline; }
+.rs-days { margin-top: 6px; max-height: none; }
+.rs-days table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.rs-days th, .rs-days td { padding: 3px 8px; border-bottom: 1px solid #eef2f6; text-align: left; background: transparent; }
+.rs-days td.num { text-align: right; }
+.rs-det { margin-bottom: 6px; }
+.rs-note { margin: 8px 2px 0; font-size: 12.5px; color: #334155; line-height: 1.7; }
+details.rs-all { margin-top: 14px; }
+
+a.qs-tab { text-decoration: none; }
+a.qs-tab.qs-tab-new { background: #fff7e6; border-color: #e0a100; color: #8a5a00; font-weight: 800; }
+a.qs-tab.qs-tab-new:hover { background: #ffedc2; border-color: #c88a00; color: #6b4500; }
+a.qs-tab.qs-tab-old { background: #fff; color: #5b6b7e; font-weight: 500; }
+.qs-new { display: inline-block; margin-left: 4px; padding: 0 7px; border-radius: 9px; background: #e0a100; color: #fff; font-size: 11px; font-weight: 800; vertical-align: middle; }
+.r2-wrap { margin-top: 14px; }

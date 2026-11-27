@@ -1,0 +1,31 @@
+/* [품감] 심사·조서 검토(GitHub 전용 탭) — 2026-11-27. 공통 표 모양은 qc_total.css(.rs-*)를 그대로 쓴다. */
+#tab-r2 .qs-card-head h2 { font-size: 16px; }
+.r2-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; margin-top: 4px; }
+@media (max-width: 1000px) { .r2-grid { grid-template-columns: 1fr; } }
+.r2-col { min-width: 0; }
+.r2-lab { display: block; margin: 0 0 4px; font-size: 12.5px; font-weight: 700; color: var(--qs-navy); }
+.r2-links { width: 100%; box-sizing: border-box; font-size: 12.5px; line-height: 1.5; resize: vertical; }
+.r2-row { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; }
+.r2-bar { margin-top: 10px; }
+.r2-role { height: 22px; padding: 0 4px; font-size: 11px; border: 1px solid #c9d8e5; border-radius: 5px; background: #fff; }
+.r2-table td { font-size: 12.5px; }
+.r2-table td.r2-a { color: #334155; }
+.r2-table td.r2-a .num { font-weight: 700; color: #0f172a; text-align: left; }
+.r2-table td.num { text-align: right; white-space: nowrap; }
+.r2-refs { margin-top: 6px; padding: 8px 10px; border: 1px solid #dbe4ee; border-radius: 8px; background: #f8fbfe; }
+.r2-refs ul { margin: 0; padding-left: 16px; font-size: 12px; line-height: 1.6; }
+.r2-refs li { margin: 3px 0; }
+.r2-src { display: inline-block; padding: 0 6px; margin-right: 4px; border-radius: 8px; background: #e8f0fb; color: #1e4fd8; font-size: 10.5px; font-weight: 700; }
+.r2-ai { margin-top: 6px; padding: 8px 10px; border: 1px solid #99d5cf; border-left: 4px solid #0f766e; border-radius: 8px; background: #f0fbf9; font-size: 12.5px; line-height: 1.7; }
+.r2-aihead { font-weight: 800; color: #0b4f4a; margin-bottom: 2px; }
+.r2-rec { margin-top: 4px; padding: 6px 8px; background: #fff; border-radius: 6px; border: 1px dashed #99d5cf; }
+.r2-b { color: #c00000; font-weight: 800; }
+
+.r2-md { font-size: 13px; line-height: 1.75; color: #0f172a; }
+.r2-md h3, .r2-md h4, .r2-md h5 { margin: 14px 0 4px; color: #0b3a6e; font-size: 14px; }
+.r2-md p { margin: 4px 0; } .r2-md ul, .r2-md ol { margin: 4px 0; padding-left: 20px; } .r2-md li { margin: 2px 0; }
+.r2-md-t { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 12.5px; }
+.r2-md-t th, .r2-md-t td { border: 1px solid #cbd5e1; padding: 4px 8px; vertical-align: top; text-align: left; }
+.r2-md-t th { background: #eef3f9; white-space: nowrap; }
+.r2-md code { background: #eef3f9; padding: 0 4px; border-radius: 4px; font-size: 12px; }
+#r2Rep { margin-top: 12px; }
