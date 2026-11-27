@@ -1819,7 +1819,7 @@ async function linkToFile(tok) {
   const dart = /dart\.fss\.or\.kr/i.test(tok) || /^\d{14}$/.test(tok);
   if (dart) {
     const no = (tok.match(/(\d{14})/) || [])[1]; if (!no) throw new Error('전자공시 접수번호(14자리)를 찾지 못했습니다');
-    const o = await pyr('dart_pdf', [no]); return b642file(o.b64, o.name || `감사보고서_${no}.pdf`, 'application/pdf');
+    const o = await pyr('dart_pdf', [no]); const f = b642file(o.b64, o.name || `감사보고서_${no}.pdf`, 'application/pdf'); f._dartNo = no; return f;     // _dartNo — 감사보고서·심사조서 금액 대사(qc_review2.js)가 본표를 따로 받는 표시
   }
   if (!/^https?:\/\//i.test(tok)) throw new Error('주소(http…)나 전자공시 접수번호가 아닙니다');
   const d = await relayCall({ op: 'fetch', url: tok });

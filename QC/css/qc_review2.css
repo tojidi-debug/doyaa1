@@ -32,3 +32,9 @@
 
 .r2-pair { margin: 16px 0 6px; font-size: 14px; color: #0b3a6e; }
 .r2-table tr.r2-sec td { background: #eef3f9; font-size: 12.5px; padding: 4px 8px; }
+
+/* 제출자료 대사(New)에 합쳐진 금액 기준 — 접어 두고 한 줄 */
+.rv-opt { margin: 6px 0 0; font-size: 12px; color: #475569; }
+.rv-opt summary { cursor: pointer; width: fit-content; }
+.rv-opt label { display: inline-flex; align-items: center; gap: 6px; margin: 6px 14px 0 0; }
+.rv-opt .qs-num { width: 84px; }
